@@ -1,0 +1,15 @@
+-R src BY
+src/AppendixE.v
+src/AppendixF.v
+src/Section9.v
+src/Tactics.v
+src/Matrix.v
+src/SetoidRewrite.v
+src/IZR.v
+src/InductionPrinciples.v
+src/ModInv.v
+src/PadicVal.v
+src/Rlemmas.v
+src/Zlemmas.v
+src/Zpower_nat.v
+src/SsrIntRingTactic.v
