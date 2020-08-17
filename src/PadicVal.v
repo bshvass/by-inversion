@@ -46,6 +46,14 @@ Proof.
   unfold pval. rewrite <- divide_abs_r, <- (divide_abs_r _ a).
   apply pval_aux_spec; [rewrite <- Z2Nat.inj_succ, Z2Nat.id by lia| |]; lia. Qed.
 
+Lemma pval_lower_bound p a n (Ha : a <> 0) (Hp : 1 < p) : (p ^+ (S n) | a) -> (n < pval p a)%nat.
+Proof.
+  intros.
+  destruct (lt_dec n (pval p a)); [assumption|].
+  pose proof pval_spec p a Ha Hp as [].
+  replace (S n) with (S (pval p a) + ((S n) - S (pval p a)))%nat in H.
+  rewrite Zpower_nat_is_exp in H. apply divide_mul_l_l in H. contradiction. lia. Qed.
+  
 Lemma pval_opp p a : pval p (-a) = pval p a.
 Proof. unfold pval. rewrite abs_opp. reflexivity. Qed.
 

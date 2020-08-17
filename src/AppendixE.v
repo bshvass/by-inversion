@@ -16,6 +16,12 @@ Proof. tauto. Qed.
 Local Notation ord2 g := (pval 2 g).
 Local Notation split2 g := (psplit 2 g).
 
+Lemma ord2_even g (Hg : even g = true) : (0 < ord2 g)%nat.
+Proof.
+  destruct (eq_dec g 0) as [e|e]; [rewrite e; cbn; lia|].
+  apply pval_lower_bound. assumption. lia.
+  simpl. apply even_divide. assumption. Qed.
+
 Lemma split2_odd g (Hg : g <> 0) : odd (split2 g) = true.
 Proof.
   apply odd_gcd; apply Zgcd_1_rel_prime; apply rel_prime_sym.
@@ -127,6 +133,9 @@ Proof.
   - simpl in *; rewrite H; simpl; lia.
   - rewrite R_alt_S_S. rewrite H. reflexivity. Qed.
 
+Lemma R_alt_nonzero_S R0 R1 i (R0_nonzero : R0 <> 0) : R_alt R0 R1 (S i) <> 0 -> R_alt R0 R1 i <> 0.
+Proof. intros H H0; apply R_alt_zero_S in H0; [contradiction|assumption]. Qed.
+
 Lemma R_alt_zero R0 R1 i j (H : R0 <> 0) : R_alt R0 R1 i = 0 -> (i <= j)%nat -> R_alt R0 R1 j = 0.
 Proof.
   intros H1; revert j; apply (induction_at i).
@@ -138,6 +147,12 @@ Proof.
   intros H1; revert j; apply (induction_at (S i)).
   - assumption.
   - intros; destruct m; [lia|apply R_alt_zero_S']; assumption. Qed.
+
+Lemma R_alt_nonzero R0 R1 i j (R0_nonzero : R0 <> 0) : R_alt R0 R1 i <> 0 -> (j <= i)%nat -> R_alt R0 R1 j <> 0.
+Proof.
+  intros i_nonzero j_le_i. 
+  intros j_zero.
+  destruct j; [simpl in j_zero; lia|]. apply (R_alt_zero' _ _ _ i) in j_zero. contradiction. lia. Qed.
 
 Lemma R_S R0 R1 i :
   R R0 R1 (S i) = if R1 =? 0 then 0 else R R1 (- ((split2 R0) mod2 R1) / 2 ^+ (ord2 R1)) i.
@@ -195,6 +210,15 @@ Proof. rewrite !R_R_alt. apply R_alt_zero_S. assumption. Qed.
 Lemma R_S_0_contra a b n (Ha : a <> 0) : R a b (S n) <> 0 -> R a b n <> 0.
 Proof. intros H H0; apply R_S_0 in H0. contradiction. assumption. Qed.
 
+Lemma R_nonzero R0 R1 i j (R0_nonzero : R0 <> 0) : R R0 R1 i <> 0 -> (j <= i)%nat -> R R0 R1 j <> 0.
+Proof. rewrite !R_R_alt. apply R_alt_nonzero. assumption. Qed.
+
+Lemma R_zero R0 R1 i j (H : R0 <> 0) : R R0 R1 i = 0 -> (i <= j)%nat -> R R0 R1 j = 0.
+Proof. rewrite !R_R_alt. apply R_alt_zero. assumption. Qed.
+
+Lemma R_zero' R0 R1 i j : R R0 R1 (S i) = 0 -> ((S i) <= j)%nat -> R R0 R1 j = 0.
+Proof. rewrite !R_R_alt. apply R_alt_zero'. Qed.
+
 Lemma R_eq R0 R1 i :
   IZR ((split2 (R R0 R1 i)) mod2 (R R0 R1 (S i))) = (split2 (R R0 R1 i) - (split2 (R R0 R1 i)) div2 (R R0 R1 (S i)) * R R0 R1 (S i))%R.
 Proof.
@@ -228,6 +252,11 @@ Proof.
 
   apply Zdivide_mod. apply Zdivide_opp_r. apply mod2_div'. apply split2_odd. assumption. assumption. assumption. Qed.
 
+Lemma R_recurrence' R0 R1 i (H : R R0 R1 (S i) <> 0) (R0_nonzero : R0 <> 0) :
+  2 ^+ (ord2 (R R0 R1 (S i))) * (R R0 R1 i)
+  = 2 ^+ (ord2 (R R0 R1 i)) * q (split2 (R R0 R1 i)) (R R0 R1 (S i)) * (R R0 R1 (S i)) - 2 ^+ (2 * ord2 (R R0 R1 (S i)) + ord2 (R R0 R1 i)) * (R R0 R1 (S (S i))).
+Proof. rewrite R_recurrence; lia. Qed.
+
 Local Open Scope R.
 Theorem E2 R0 R_1 i (HR0 : R0 <> 0%Z) (H : R R0 R_1 (S i) <> 0%Z) :
   [ IZR (split2 (R R0 R_1 (S i))) ; IZR (R R0 R_1 (S (S i))) ] =
@@ -253,15 +282,61 @@ Proof.
 Local Close Scope R.
 Local Open Scope Z.
 
+
+
 Theorem E3 R0 R1 t (R0_odd : odd R0 = true) (R1_even : even R1 = true) :
-  R R0 R1 (S t) = 0 -> abs (split2 (R R0 R1 t)) = gcd R0 R1.
+  R R0 R1 (S t) = 0 -> R R0 R1 t <> 0 -> abs (split2 (R R0 R1 t)) = gcd R0 R1.
 Proof.
+  intros.
   set (g := gcd R0 R1).
+  assert (R0_nonzero : R0 <> 0) by (apply odd_nonzero; assumption).
   assert (odd g = true).
   { unfold g; apply gcd_odd_l; assumption. }
 
   assert (forall i, (g | R R0 R1 i)).
   - induction i using induction2.
     + unfold g; simpl. apply gcd_divide_l.
-    + unfold g; simpl. destruct (R1 =? 0); [apply divide_0_r|apply gcd_divide_r]. Admitted.
-(* + rewrite R_recurrence. *)
+    + unfold g; simpl. destruct (R1 =? 0); [apply divide_0_r|apply gcd_divide_r].
+    + destruct (eq_dec (R R0 R1 (S (S i))) 0).
+      * rewrite e. apply divide_0_r.
+      * eapply Gauss.
+        rewrite R_recurrence.
+        apply divide_sub_r.
+        apply divide_mul_r. assumption.
+        apply divide_mul_r. assumption.  apply R_S_0_contra. assumption. assumption. assumption.
+        apply odd_rel_prime_pow.
+        pose proof (ord2_even _ (R_even _ _ i R0_nonzero R1_even)). lia. assumption.
+  - set (g' := split2 (R R0 R1 t)).
+    assert (g | 2 ^+ (ord2 (R R0 R1 t)) * g').
+    { rewrite <- (psplit_spec' 2). apply H2. assumption. lia. }
+    apply Gauss in H3.
+
+    assert (forall i, (g' | R R0 R1 i)).
+    intros.
+    destruct (le_dec i (S t)).
+    + generalize i l. apply rev_2_ind.
+      * rewrite H. apply divide_0_r.
+      * exists (2 ^+ (ord2 (R R0 R1 t))). apply psplit_spec. assumption. lia.
+      * intros. destruct k as [| [|k] ]; [assumption|assumption|].
+        rewrite !Nat.pred_succ in *.
+        eapply Gauss. 
+        rewrite R_recurrence'.
+        apply divide_sub_r.
+        apply divide_mul_r. assumption.
+        apply divide_mul_r. assumption.
+
+        apply R_zero.
+        
+        apply R_S_0_contra. assumption.
+
+        assumption. assumption.
+        apply odd_rel_prime_pow.
+        pose proof (ord2_even _ (R_even _ _ i R0_nonzero R1_even)). lia. assumption.        
+        
+    intros.
+    destruct (le_dec i (S t)). generalize i l. apply rev_1_ind.
+
+    
+    
+    
+      

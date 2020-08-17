@@ -32,6 +32,18 @@ Proof.
   - right. assert (log2 a = 0) by (pose proof log2_nonneg a; lia).
     apply log2_null in H1; lia. Qed.
 
+Lemma even_mul_2_l a : even (2 * a) = true.
+Proof. rewrite even_mul; reflexivity. Qed.
+
+Lemma even_mul_2_r a : even (a * 2) = true.
+Proof. rewrite mul_comm; apply even_mul_2_l. Qed.
+
+Lemma even_divide a : even a = true <-> (2 | a).
+Proof.
+  split.
+  - intros. apply even_spec in H. destruct H as [x]. exists x; lia.
+  - intros [x ->]. apply even_mul_2_r. Qed.
+  
 Lemma odd_gcd a : odd a = true <-> gcd a 2 = 1.
 Proof.
   split; intros.
@@ -42,6 +54,9 @@ Proof.
     apply (f_equal odd) in H.
     rewrite odd_add, !odd_mul in H. simpl in H.
     destruct (odd a); rewrite !andb_false_r in H; easy. Qed.
+
+Lemma odd_rel_prime a : odd a = true <-> rel_prime a 2.
+Proof. pose proof Zgcd_1_rel_prime a 2; pose proof odd_gcd a; tauto. Qed.
 
 Lemma rel_prime_pow a b n (Hn : (1 <= n)%nat) : rel_prime a b <-> rel_prime a (b ^+ n).
 Proof.
@@ -56,6 +71,9 @@ Proof.
         apply IHn; lia.
   - apply rel_prime_sym. apply rel_prime_div with (b ^+ n). apply rel_prime_sym.
     assumption. red. exists (b ^+ (n - 1)). rewrite mul_comm, mul_base_pull. reflexivity. lia. Qed.
+
+Lemma odd_rel_prime_pow a n (Hn : (1 <= n)%nat): odd a = true <-> rel_prime a (2 ^+ n).
+Proof. pose proof rel_prime_pow a 2 n Hn. pose proof odd_rel_prime a. tauto. Qed.
 
 Lemma odd_pow2 n (H : (0 < n)%nat) : odd (2 ^+ n) = false.
 Proof.
@@ -117,3 +135,10 @@ Proof. intros; eapply odd_divide. apply H. apply gcd_divide_r. Qed.
 
 Lemma gcd_odd_l a b : odd a = true -> odd (gcd a b) = true.
 Proof. intros; eapply odd_divide. apply H. apply gcd_divide_l. Qed.
+
+Lemma divide_mul_l_l a b c : (a * b | c) -> (a | c).
+Proof. intros [x]; exists (b * x); lia. Qed.
+
+Lemma divide_mul_l_r a b c : (a * b | c) -> (b | c).
+Proof. intros [x]; exists (a * x); lia. Qed.
+  
