@@ -1,41 +1,67 @@
 Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
-Require Import Rbase Reals QArith micromega.Lia micromega.Lra.
+Require Import Rbase Reals QArith micromega.Lia micromega.Lra Qreals.
 
-From BY Require Import Rlemmas Tactics Matrix SetoidRewrite.
+From BY Require Import Rlemmas Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas BigOp.
 
+Local Open Scope mat_scope.
 Local Open Scope R.
-Local Open Scope list_scope.
 
 Local Coercion INR : nat >-> R.
 Local Coercion IZR : Z >-> R.
+Local Coercion Q2R : Q >-> R.
 
-Theorem F12 (P : matrix) (N : R) :
+Lemma pow2_IZR (a : Z) : (a <> 0)%Z -> 1 <= a ^ 2.
+Proof.
+  intros.
+  pose proof one_IZR_lt1 a.
+  destruct (Rle_dec 1 a). nra.
+  destruct (Rle_dec a (-1)). nra.
+  exfalso. apply H. apply H0. nra. Qed.
+
+Lemma neq_0_IZR a : IZR a <> 0 -> (a <> 0)%Z.
+Proof. intros H contra. apply H. rewrite contra. reflexivity. Qed.
+
+Lemma F6 (v1 v2 : Z) :
+  [ IZR v1 ; IZR v2 ] <> v0 -> 1 <= vec_norm [ IZR v1 ; IZR v2 ].
+Proof.
+  intros vnon0.
+  apply vnonzero in vnon0.
+  unfold vec_norm. rewrite <- Rabs_pos_eq by apply sqrt_pos.
+  apply (le_pow 2). simpl; lra.
+  field_simplify.
+
+  destruct vnon0 as [H|H]; apply neq_0_IZR in H; apply pow2_IZR in H.
+  rewrite pow2_sqrt. nra. nra.
+  rewrite pow2_sqrt. nra. nra. Qed.
+
+ Theorem F12 (P : mat) (N : R) :
   let '(P11, P12, P21, P22) := P in
   let a := P11 ^ 2 + P12 ^ 2 in
-  let b := P11 * P12 + P21 * P22 in
-  let c := P11 * P12 + P21 * P22 in
-  let d := P21 ^ 2 + P22 ^ 2 in  
-  (norm P) <= N <-> (0 <= N)
+  let b := P11 * P21 + P12 * P22 in
+  let c := P11 * P21 + P12 * P22 in
+  let d := P21 ^ 2 + P22 ^ 2 in
+  mat_norm P <= N <-> (0 <= N)
                      /\ a + d <= 2 * N ^ 2
                      /\ (a - d) ^ 2 + 4 * b ^ 2 <= (2 * N ^ 2 - a - d) ^ 2.
 Proof.
-  pose proof (norm_nonneg P).
-  destruct P as [[[P11 P12] P21] P22]. unfold norm. assert_pow; assert_sqrt.
+  pose proof (mat_norm_nonneg P).
+  destruct P as [[[P11 P12] P21] P22]. unfold mat_norm. assert_pow; assert_sqrt.
   split; intros.
   assert (0 <= N) by lra.
   rewrite <- (Rabs_pos_eq (sqrt _)) in H10 by lra.
   apply (pow_maj_Rabs _ _ 2) in H10.
 
-  rewrite <- Rsqr_pow2, Rsqr_sqrt in H10. 
+  rewrite <- Rsqr_pow2, Rsqr_sqrt in H10.
   repeat split. lra. lra.
-  apply sqrt_le_0. lra. lra. 
-  
-  rewrite <- (Rsqr_pow2 (_ - _ - _)). rewrite sqrt_Rsqr. lra. lra. lra.
+  apply sqrt_le_0. lra. lra.
+
+  rewrite <- (Rsqr_pow2 (_ - _ - _)). rewrite sqrt_Rsqr.
+  nra. lra. lra.
 
   destruct H10 as [H11 [H12 H13]].
 
-  apply sqrt_le_1 in H13. 
+  apply sqrt_le_1 in H13.
   rewrite <- (Rsqr_pow2 (_ - _ - _)) in H13. rewrite sqrt_Rsqr in H13.
   replace N with (Rabs N) by (apply Rabs_pos_eq; assumption).
   apply le_pow with (n := 2%nat). replace (INR 2%nat) with 2 by reflexivity. lra.
@@ -45,11 +71,11 @@ Proof.
 Definition M (e : nat) (q : Z) := [ 0 , 1 / (2 ^ e) ; - 1 / (2 ^ e) , q / (2 ^ (2 * e)) ].
 
 Theorem F16 e q (qodd : Z.odd q = true) (qbound : 1 <= q <= 2 ^ (S e) - 1) :
-  norm (M e q) < (1 + sqrt 2) / (2 ^ e).
+  mat_norm (M e q) < (1 + sqrt 2) / (2 ^ e).
 Proof.
-  assert (q < 2 * 2 ^ e). rewrite <- tech_pow_Rmult in qbound. lra. 
+  assert (q < 2 * 2 ^ e). rewrite <- tech_pow_Rmult in qbound. lra.
   assert (2 ^ e <> 0) by (apply pow_nonzero; lra).
-  unfold norm. simpl.
+  unfold mat_norm. simpl.
   rewrite !Rmult_0_l, !Rplus_0_l, !Rmult_1_r. rewrite Nat.add_0_r.
   replace (e + e)%nat with (2 * e)%nat by ring.
   rewrite !mult_pow2. rewrite Rpow_mult_distr, !pow_div, pow1, <- !pow_mult.
@@ -71,7 +97,7 @@ Proof.
 
   rewrite !div_mul_inv. apply Rmult_lt_compat_r.
   apply Rinv_pos_nonneg. apply pow_lt. lra. assumption.
-  
+
   replace (4 * 2 ^ (e * 2) / 2 ^ (e * 4)) with (4 * (2 ^ (e * 2) / 2 ^ (e * 4))) by (field; try apply pow_nonzero; lra).
   rewrite div_pow_inv.
   replace (e * 4 - e * 2)%nat with (e * 2)%nat by lia. field. apply pow_nonzero; lra. lra. nia.
@@ -82,7 +108,7 @@ Proof.
   assert ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 < (4 / 2 ^ (e * 2)) ^ 2).
   apply pow_maj_Rabs_lt. lia. rewrite Rabs_Ropp.
   rewrite Rabs_pos_eq. (* unfold Rlt_pos in H1. *)
-  lra. apply Rle_div.
+  lra. apply Rle_div_r.
   apply pow_lt. lra. rewrite Rmult_0_r. apply pow_le. lra.
 
   assert (4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4))) <= 16 / 2 ^ (e * 4)).
@@ -109,7 +135,7 @@ Proof.
 
   (* apply sqrt_lt_1_alt. *)
   (* split.  *)
-  
+
   assert (sqrt
     ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + q ^ 2 / 2 ^ (e * 4)) +
               sqrt ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 + 4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4))))) / 2) <
@@ -125,7 +151,7 @@ Proof.
   repeat apply mul_pos; try lra.
 
   try apply div_pos; try apply pow_lt; try apply pow_le; try lra.
-  
+
   apply inv_pos. rewrite <- pow_add. apply pow_lt. lra. lra. lra.
 
   apply (Rlt_le_trans _ _ _ H3).
@@ -137,8 +163,8 @@ Proof.
     sqrt
     ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)) +
              sqrt (32 / 2 ^ (e * 4))) / 2)).
-  
-  apply sqrt_le_1_alt. apply Rle_div. lra.
+
+  apply sqrt_le_1_alt. apply Rle_div_r. lra.
   replace (2 *
   ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)) +
             sqrt ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 + 4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4))))) / 2)) with
@@ -169,8 +195,8 @@ Proof.
   replace ((1 + sqrt 2) ^ 2 / 2 ^ (e * 2) * 2) with
       ((2 * (1 + sqrt 2) ^ 2) / 2 ^ (e * 2)).
   apply f_equal2. field_simplify. rewrite pow2_sqrt. field. lra. reflexivity.
-  field. apply pow_nonzero. lra. apply pow_nonzero. lra. lra. 
-  
+  field. apply pow_nonzero. lra. apply pow_nonzero. lra. lra.
+
   rewrite !mult_INR. simpl. lra. lra. apply pow_lt. lra. lra. apply pow_lt. lra.
   apply div_pos. apply add_pos. apply div_pos. lra. apply pow_lt. lra. apply sqrt_positivity. apply div_pos.
   lra. apply pow_lt. lra. lra.
@@ -178,14 +204,10 @@ Proof.
   split. apply pow_nonzero. lra. apply pow_nonzero. lra. apply pow_nonzero. lra. apply pow_nonzero.
   lra. apply pow_nonzero. lra. Qed.
 
-Search _ (nat -> Z).
-
-Import ListNotations.
-
 Definition Qmin a b := if Qle_bool a b then a else b.
 Definition Qmin_list l : Q :=
   match l with
-  | [] => 0
+  | nil => 0
   | h :: t => fold_right Qmin h t
   end.
 
@@ -214,41 +236,149 @@ Definition alpha (w : nat) : Q :=
 
 Fixpoint alpha_aux w :=
   match w with
-  | 0%nat => []
-  | S n => alpha_aux n ++ [alpha_high w / alpha w]%Q
+  | 0%nat => nil
+  | S n => alpha_aux n ++ (alpha_high w / alpha w)%Q :: nil
   end.
 
 Fixpoint beta_aux w :=
   (fix beta_fix j :=
       match j with
-      | 0%nat => []
-      | S i => beta_fix i ++ [alpha (w + i) / alpha i]%Q
+      | 0%nat => nil
+      | S i => beta_fix i ++ (alpha (w + i) / alpha i)%Q :: nil
       end) 68%nat.
 
 Definition beta w := Qmin_list (beta_aux w).
 
-Compute beta 50.
-
 Fixpoint gamma_aux w e :=
   (fix gamma_fix k :=
      match k with
-     | 0%nat => []
-     | S i => gamma_fix i ++ [(beta (w + i + e)%nat) * (2 ^ (Z.of_nat (i + e))) * 70 / 169]%Q
+     | 0%nat => nil
+     | S i => gamma_fix i ++ ((beta (w + i + e)%nat) * (2 ^ (Z.of_nat (i + e))) * 70 / 169)%Q :: nil
      end) 68%nat.
 
 Definition gamma w e := Qmin_list (gamma_aux w e).
-Locate "+".
-
-From mathcomp Require Import bigop.
-
 
 (* the following theorem is the conclusion of the computational theorems F22 and F21 *)
 
-Locate "\big".
 
-From mathcomp Require Import all_ssreflect.
-From mathcomp Require Import all_algebra.
-
-Theorem F24 (j : nat) (e : nat -> nat) (q : nat -> Z) (Hq : forall i, (Z.odd (q i) = true) /\ (1 <= q i <= 2 ^ ((e i) + 1) - 1)) :
-  norm (\big[matmult / I]_(1 <= i < j) M (e i) (q i)) <= Qreals.Q2R (alpha (\big[Init.Nat.add / 0%nat]_(1 <= i < j) (e i))).
+Theorem F24 (j : nat) (e : nat -> nat) (q : nat -> Z) (Hq : forall i, (i <= j)%nat -> (Z.odd (q i) = true) /\ (1 <= q i < 2 ^+ (S (e i)))%Z) :
+  mat_norm (big_mmult_rev j (fun i => M (e i) (q i))) <= Qreals.Q2R (alpha (big_sum_rev j e)).
 Proof. Admitted.
+
+Section __.
+
+  Parameter R0 R1 : Z.
+
+  Notation R_ := (R_ R0 R1).
+
+  Notation e i := (ord2 (R_ (S i))).
+  Notation q i := (q (split2 (R_ i)) (R_ (S i))).
+  Definition M_ i := M (e i) (q i).
+
+  Lemma E2_cor i (HR0 : R0 <> 0%Z) (H : R_ (S i) <> 0%Z) :
+    [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] =
+    M (e i) (q i) *v [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
+  Proof.
+    unfold M. rewrite E2. unfold vmult. apply f_equal2. field. apply pow_nonzero. lra.
+    apply f_equal2. reflexivity. apply f_equal2.
+
+    unfold div_2. field_simplify. apply f_equal2. reflexivity.
+
+    rewrite Zpower_nat_IZR. rewrite <- pow_add. apply f_equal2. lra. lia. apply pow_nonzero. lra.
+    split. apply IZR_neq. apply Zpower_nat_nonzero. lia. apply pow_nonzero. lra. reflexivity.  assumption. assumption. Qed.
+
+  Lemma E2_cor2 j (R0_odd : Z.odd R0 = true) (H : R_ (S j) <> 0%Z) :
+    [ IZR (split2 (R_ j)) ; IZR (R_ (S j)) ] =
+    (big_mmult_rev j (fun i => M (e i) (q i))) *v [ IZR R0 ; IZR R1].
+  Proof.
+    assert (R0_nonzero : R0 <> 0%Z) by (apply odd_nonzero; assumption).
+    induction j.
+    - simpl. apply f_equal2.
+      rewrite split2_odd. field. assumption.
+      field.
+    - rewrite big_mmult_rev_S.
+      rewrite mmult_vmult.
+      rewrite <- IHj.
+      rewrite E2_cor. reflexivity.
+      assumption. apply R_nonzero_S. assumption. assumption. apply R_nonzero_S. assumption. assumption. Qed.
+
+  Ltac assert_norm :=
+    repeat match goal with
+           | [ |- context[mat_norm ?a] ] => match goal with
+                                          | [ _ : 0 <= mat_norm a |- _ ] => fail 1
+                                          | [ |- _ ] =>
+                                            assert (0 <= mat_norm a) by (apply mat_norm_nonneg)
+                                          end
+           | [ |- context[vec_norm ?a] ] => match goal with
+                                          | [ _ : 0 <= vec_norm a |- _ ] => fail 1
+                                          | [ |- _ ] =>
+                                            assert (0 <= vec_norm a) by (apply vec_norm_nonneg)
+                                          end
+           end.
+
+  Theorem F25 j (R0_odd : Z.odd R0 = true) (H : R_ (S j) <> 0%Z) :
+    vec_norm [ IZR (split2 (R_ j)) ; IZR (R_ (S j)) ] <=
+    (alpha (big_sum_rev j (fun i => e i))) * vec_norm [ IZR R0 ; IZR R1 ].
+  Proof.
+    rewrite E2_cor2. rewrite mat_norm_vmult.
+    epose proof F24 j (fun i => e i) (fun i => q i) _.
+    assert_norm. nra. assumption. assumption.
+
+    Unshelve.
+    intros.
+    split.
+    apply q_spec.
+    apply odd_split2.
+    apply (R_nonzero _ _ (S j)).
+    apply odd_nonzero. assumption. assumption. lia.
+    apply (R_nonzero _ _ (S j)).
+    apply odd_nonzero. assumption. assumption. lia.
+    apply q_spec.
+    apply odd_split2.
+    apply (R_nonzero _ _ (S j)).
+    apply odd_nonzero. assumption. assumption. lia.
+    apply (R_nonzero _ _ (S j)).
+    apply odd_nonzero. assumption. assumption. lia. Qed.
+
+  Definition log n x := ln x / ln n.
+
+  Lemma ln_le_inc a b : 0 < a <= b -> ln a <= ln b.
+  Proof.
+    destruct (Req_dec a b). subst. lra. intros. apply Rlt_le. apply ln_increasing.  lra. lra. Qed.
+
+  Lemma ln_gt_0 n (ngt1 : 1 < n) : 0 < ln n.
+  Proof. replace 0 with (ln 1) by apply ln_1. apply (ln_increasing). lra. assumption. Qed.
+
+  Lemma ln_ge_0 n (ngt1 : 1 <= n) : 0 <= ln n.
+  Proof. rewrite <- ln_1. apply ln_le_inc. lra. Qed.
+
+  Lemma log_pow n x (ngt1 : 1 < n) : log n (n ^ x) = x.
+  Proof.
+    unfold log. replace n with (exp (ln n)).
+    rewrite <- Rpower_pow. unfold Rpower.
+    rewrite !ln_exp. field.
+    assert (0 < ln n) by (apply ln_gt_0; assumption).
+    lra. rewrite exp_ln. lra. lra. apply exp_ln. lra. Qed.
+
+  Lemma log_inc n a b (nge1 : 1 <= n) :
+    0 < a <= b -> log n a <= log n b.
+  Proof.
+    unfold log.
+    intros. apply Rle_div. apply ln_ge_0. assumption.
+    apply ln_le_inc.  lra. Qed.
+
+  Notation log_1024_633 := (log (1024 / 633)).
+
+  Lemma alpha67 i : (67 <= i)%nat -> alpha i = alpha_high i.
+  Proof. do 67 (destruct i as [|i]; [lia|]). reflexivity. Qed.
+
+  Theorem F25_cor j (R0_odd : Z.odd R0 = true) (H : R_ (S j) <> 0%Z)
+    : (67 <= big_sum_rev j (fun i => e i))%nat -> big_sum_rev j (fun i => e i) <= log_1024_633 (vec_norm [ IZR R0 ; IZR R1 ]).
+  Proof.
+    intros ineq; pose proof F25 j R0_odd H as F25'.
+    rewrite alpha67 in F25' by assumption. unfold alpha_high in F25'.
+
+    assert (1 <= vec_norm [ IZR (split2 (R_ j)) ; IZR (R_ (S j))]).
+    apply F6. apply vnonzero. right. apply not_0_IZR. assumption.
+
+  Theorem F26

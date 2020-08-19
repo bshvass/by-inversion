@@ -46,6 +46,26 @@ Proof.
   unfold pval. rewrite <- divide_abs_r, <- (divide_abs_r _ a).
   apply pval_aux_spec; [rewrite <- Z2Nat.inj_succ, Z2Nat.id by lia| |]; lia. Qed.
 
+Lemma pval_unique p a v (Ha : a <> 0) (Hp : 1 < p) :
+  (p ^+ v | a) /\ ~ (p ^+ (S v) | a) -> pval p a = v.
+Proof.
+  pose proof pval_spec p a Ha Hp as [].
+  intros [].
+  destruct (le_dec (pval p a) v)%nat.
+  - destruct (le_dec v (pval p a))%nat; [lia|].
+    assert (p ^+ (S (pval p a)) | a).
+    { etransitivity. exists (p ^+ (v - S (pval p a))). reflexivity.
+      rewrite <- Zpower_nat_is_exp. rewrite Nat.sub_add. assumption. lia. }
+    contradiction.
+  - assert (p ^+ (S v) | a).
+    { etransitivity. exists (p ^+ ((pval p a) - (S v))). reflexivity.
+      rewrite <- Zpower_nat_is_exp. rewrite Nat.sub_add. assumption. lia. }
+    contradiction. Qed.
+
+Lemma pval_full_spec p a v (Ha : a <> 0) (Hp : 1 < p) :
+  pval p a = v <-> (p ^+ v | a) /\ ~ (p ^+ (S v) | a).
+Proof. split; [intros <-; apply pval_spec; assumption|apply pval_unique; assumption]. Qed.
+
 Lemma pval_lower_bound p a n (Ha : a <> 0) (Hp : 1 < p) : (p ^+ (S n) | a) -> (n < pval p a)%nat.
 Proof.
   intros.

@@ -6,7 +6,7 @@ Local Open Scope R.
 Local Coercion INR : nat >-> R.
 
 Lemma Rinv_pos_nonneg c : 0 < c -> 0 < / c.
-Proof. 
+Proof.
   intros. replace (/ c) with (1 * (/ c)) by lra.
   apply Rlt_mult_inv_pos; lra. Qed.
 
@@ -14,22 +14,32 @@ Lemma inv_pos c : 0 < c -> 0 <= / c.
 Proof.
   now intros; apply Rlt_le; apply Rinv_pos_nonneg. Qed.
 
-Lemma Rle_div a b c : 0 < c ->  a <= b / c <-> c * a <= b.
+Lemma Rle_div_r a b c : 0 < c ->  a <= b / c <-> c * a <= b.
 Proof.
   split; intros.
   replace b with (c * (b / c)) by (field; lra).
   apply Rmult_le_compat_l; lra.
   apply (Rmult_le_compat_r (/ c)) in H0.
-  field_simplify in H0; lra. 
+  field_simplify in H0; lra.
   left. apply Rinv_pos_nonneg; assumption. Qed.
+
+Lemma Rle_div_l a b c : 0 < b -> a / b <= c <-> a <= b * c.
+Proof.
+  split; intros.
+  replace a with (b * (a / b)) by (field; lra).
+  apply Rmult_le_compat_l; lra.
+  apply (Rmult_le_compat_r (/ b)) in H0.
+  field_simplify in H0; lra.
+  left. apply Rinv_pos_nonneg; assumption. Qed.
+
 
 Lemma eq_div a b c : c <> 0 -> a / c = b <-> a = b * c.
 Proof.
   split; intros; subst; field; assumption. Qed.
 
-Lemma le_pow a b (n : nat) (Hn : 0 < n) : a ^ n <= b ^ n -> a <= Rabs b.
+Lemma le_pow (n : nat) a b (Hn : 0 < n) : a ^ n <= b ^ n -> a <= Rabs b.
 Proof.
-  destruct (Rle_lt_dec a 0) as [Ha|Ha]; intros. 
+  destruct (Rle_lt_dec a 0) as [Ha|Ha]; intros.
   - eapply Rle_trans. apply Ha. apply Rabs_pos.
   - assert (0 < a ^ n) by (apply pow_lt; assumption).
     destruct (Req_EM_T b 0).
@@ -42,7 +52,7 @@ Proof.
       rewrite <- (Rpower_1 a), <- Rpower_1 by assumption.
       replace 1 with (n * / n) by (field; lra).
       rewrite <- !Rpower_mult.
-      apply Rle_Rpower_l. apply Rlt_le, Rinv_pos_nonneg; assumption. 
+      apply Rle_Rpower_l. apply Rlt_le, Rinv_pos_nonneg; assumption.
       rewrite !Rpower_pow by lra. lra. Qed.
 
 Lemma mult_pow2 x : x * x = x ^ 2.
@@ -70,7 +80,7 @@ Lemma pow_maj_Rabs_lt x y (n : nat) (Hn : (0 < n)%nat) : Rabs y < x -> y ^ n < x
 Proof.
   intros.
   pose proof pow_maj_Rabs x y n ltac:(lra).
-  assert (Rabsy : 0 <= Rabs y) by (apply Rabs_pos).   
+  assert (Rabsy : 0 <= Rabs y) by (apply Rabs_pos).
   destruct (Rle_lt_or_eq_dec _ _ H0); [assumption|].
   destruct (Req_EM_T (Rabs y) 0).
   - apply Rabs_0 in e0. subst. rewrite Rabs_R0 in H.
@@ -81,7 +91,7 @@ Proof.
     rewrite (Rabs_pos_eq x) in e.
     apply (f_equal (fun a => Rpower a (/ n))) in e.
     rewrite <- !Rpower_pow in e.
-    rewrite !Rpower_mult in e. 
+    rewrite !Rpower_mult in e.
     rewrite Rinv_r in e.
     rewrite !Rpower_1 in e. lra.
     lra. lra. apply not_0_INR. lia.
@@ -129,3 +139,11 @@ Lemma sqrt32 : sqrt 32 = 4 * sqrt 2.
 Proof. replace 32 with (4 ^ 2 * 2) by lra.
        rewrite sqrt_mult_alt.
        rewrite sqrt_pow2; lra. apply pow_le. lra. Qed.
+
+Lemma inv_pos' c : 0 <= c -> 0 <= / c.
+Proof.
+  destruct (Req_dec c 0). rewrite H. rewrite inv0; lra.
+  intros; apply Rlt_le; apply Rinv_pos_nonneg; lra. Qed.
+
+Lemma Rle_div a b c : 0 <= c -> a <= b -> a / c <= b / c.
+Proof. intros. apply Rmult_le_compat_r. apply inv_pos'. assumption. assumption. Qed.
