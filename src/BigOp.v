@@ -1,4 +1,4 @@
-Require Import List Arith.
+Require Import List Arith micromega.Lia.
 
 From BY Require Import Matrix.
 
@@ -26,3 +26,17 @@ Definition big_sum_rev n f : nat :=
 Lemma big_sum_rev_S n f :
   big_sum_rev (S n) f = (f n + big_sum_rev n f)%nat.
 Proof. unfold big_sum_rev; rewrite seq_snoc, rev_app_distr; reflexivity. Qed.
+
+Lemma big_sum_bound1 n f :
+  (forall i, i <= n -> 1 <= f i) -> n <= big_sum_rev n f.
+Proof.
+  intros.
+
+  induction n.
+  unfold big_sum_rev. simpl. lia.
+
+  assert (forall i : nat, i <= n -> 1 <= f i). intros; apply H. lia.
+  apply IHn in H0.
+
+  rewrite big_sum_rev_S.
+  assert (1 <= f n). apply H. lia. lia. Qed.

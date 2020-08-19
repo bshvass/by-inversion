@@ -1,8 +1,8 @@
 Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
-Require Import Rbase Reals QArith micromega.Lia micromega.Lra Qreals.
+Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import Rlemmas Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas BigOp.
+From BY Require Import Rlemmas Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas BigOp Spectral.
 
 Local Open Scope mat_scope.
 Local Open Scope R.
@@ -258,6 +258,7 @@ Fixpoint gamma_aux w e :=
 
 Definition gamma w e := Qmin_list (gamma_aux w e).
 
+
 (* the following theorem is the conclusion of the computational theorems F22 and F21 *)
 
 
@@ -352,13 +353,58 @@ Section __.
   Lemma ln_ge_0 n (ngt1 : 1 <= n) : 0 <= ln n.
   Proof. rewrite <- ln_1. apply ln_le_inc. lra. Qed.
 
-  Lemma log_pow n x (ngt1 : 1 < n) : log n (n ^ x) = x.
+  Lemma ln_neq_0 n (npos : 0 < n) (nneq1 : n <> 1) : ln n <> 0.
+  Proof.
+    destruct (Rle_dec 1 n).
+    assert (1 < n). lra. pose proof ln_gt_0 _ H. lra.
+
+    assert (ln n < 0). replace 0 with (ln 1) by apply ln_1.
+    apply ln_increasing. assumption. lra. lra. Qed.
+
+  Lemma log_pow_id n x (npos : 0 < n) (nneq1 : n <> 1) : log n (n ^ x) = x.
   Proof.
     unfold log. replace n with (exp (ln n)).
     rewrite <- Rpower_pow. unfold Rpower.
-    rewrite !ln_exp. field.
-    assert (0 < ln n) by (apply ln_gt_0; assumption).
-    lra. rewrite exp_ln. lra. lra. apply exp_ln. lra. Qed.
+    rewrite !ln_exp. field. apply ln_neq_0.  assumption. assumption.
+    rewrite exp_ln. assumption. assumption. apply exp_ln. lra. Qed.
+
+  Lemma ln_0 : ln 0 = 0.
+  Proof. unfold ln; destruct (Rlt_dec 0 0); [exfalso|]; lra. Qed.
+
+  Lemma ln_neg x (xneg : x <= 0) : ln x = 0.
+  Proof. unfold ln; destruct (Rlt_dec 0 x); [exfalso|]; lra. Qed.
+
+  Lemma log_1 n : log n 1 = 0.
+  Proof. unfold log. rewrite ln_1. lra. Qed.
+
+  Lemma log_n_n n (npos : 0 < n) (nneq1 : n <> 1) : log n n = 1.
+  Proof. unfold log. field. apply ln_neq_0; assumption. Qed.
+
+  Lemma log_neg n x (xneg : x <= 0) : log n x = 0.
+  Proof.
+    unfold log. rewrite ln_neg. lra. assumption. Qed.
+
+  Lemma log_mult n a b (apos : 0 < a) (bpos : 0 < b) : log n (a * b) = log n a + log n b.
+  Proof.
+    unfold log. rewrite ln_mult by assumption. lra. Qed.
+
+  Lemma log_inv n a (apos : 0 < a) : log n (/ a) = - log n a.
+  Proof. unfold log. rewrite ln_Rinv. lra. assumption. Qed.
+
+  Lemma log_div n a b (apos : 0 < a) (bpos : 0 < b) : log n (a / b) = log n a - log n b.
+  Proof. unfold Rdiv. rewrite log_mult, log_inv. lra. assumption. assumption. apply Rinv_pos_nonneg. assumption. Qed.
+
+  Lemma log_pow n a b (apos : 0 < a) : log n (a ^ b) = b * log n a.
+  Proof.
+    unfold log. rewrite <- Rpower_pow. unfold Rpower.
+    rewrite !ln_exp. lra. assumption. Qed.
+
+  Lemma Rpower_log n x (xgt0 : 0 < x) (ngt1 : 1 < n) : Rpower n (log n x) = x.
+  Proof.
+    unfold log. replace n with (exp (ln n)).
+    unfold Rpower.
+    rewrite !ln_exp. field_simplify (ln x / ln n * ln n).
+    apply exp_ln.  assumption. apply ln_neq_0. lra. lra. apply exp_ln. lra. Qed.
 
   Lemma log_inc n a b (nge1 : 1 <= n) :
     0 < a <= b -> log n a <= log n b.
@@ -380,5 +426,58 @@ Section __.
 
     assert (1 <= vec_norm [ IZR (split2 (R_ j)) ; IZR (R_ (S j))]).
     apply F6. apply vnonzero. right. apply not_0_IZR. assumption.
+    pose proof Rle_trans _ _ _ H0 F25'.
+    assert (0 < 1 <= ((633 / 1024) ^ Z.of_nat (big_sum_rev j (fun i : nat => e i)))%Q * vec_norm (IZR R0, IZR R1)).
+    lra.
+    assert (1 <= 1024/633). nra.
+    eapply (log_inc _ _ _ H3) in H2.
 
-  Theorem F26
+    rewrite log_1 in H2.
+    rewrite log_mult in H2. Locate "^".
+    rewrite RMicromega.Q2RpowerRZ in H2.
+    rewrite <- pow_powerRZ in H2.
+    rewrite log_pow in H2.
+    rewrite Q2R_div in H2.
+    replace (633%Q / 1024%Q) with (/ (1024 / 633)) in H2.
+    rewrite log_inv in H2.
+    rewrite log_n_n in H2. lra. lra. lra. lra. lra. Lqa.lra.
+    rewrite Q2R_div. lra. Lqa.lra.
+
+    left. intros contra. apply Qeq_eqR in contra. rewrite Q2R_div in contra. lra. Lqa.lra.
+    rewrite RMicromega.Q2RpowerRZ.
+    rewrite <- pow_powerRZ. apply pow_lt. rewrite Q2R_div. lra. Lqa.lra.
+    left. intros contra. apply Qeq_eqR in contra. rewrite Q2R_div in contra. lra. Lqa.lra.
+
+    assert ((IZR R0 , IZR R1) <> v0).
+    apply vnonzero. left. apply not_0_IZR.  apply odd_nonzero. assumption.
+    apply vnonzero_norm in H4.
+    pose proof (vec_norm_nonneg (IZR R0, IZR R1)). lra. Qed.
+
+  Lemma IZR_INR_lt z n : (Z.to_nat z <= n)%nat -> IZR z <= INR n.
+  Proof. intros. rewrite INR_IZR_INZ. apply IZR_le. lia. Qed.
+
+  Theorem F26 j
+          (R0_odd : Z.odd R0 = true)
+          (R1_even : Z.even R1 = true)
+          (Hj : (max 67 (Z.to_nat (up (log_1024_633 (vec_norm (IZR R0, IZR R1))))) <= j)%nat) :
+    (R_ (S j)) = 0%Z.
+  Proof.
+    destruct (Z.eq_dec (R_ (S j)) 0%Z).
+    assumption.
+
+    pose proof F25_cor _ (R0_odd) n.
+
+    assert (j <= big_sum_rev j (fun i => e i))%nat.
+    apply big_sum_bound1.
+    intros. apply e_ge_1. apply odd_nonzero. assumption. assumption.
+
+    assert (67 <= big_sum_rev j (fun i => e i))%nat. lia.
+
+    apply H in H1.
+
+    assert (log_1024_633 (vec_norm (IZR R0, IZR R1)) < j).
+    eapply Rlt_le_trans.
+    apply archimed. apply IZR_INR_lt.
+    etransitivity. shelve. apply Hj.
+    apply le_INR in H0. lra.
+    Unshelve. apply Max.le_max_r. Qed.

@@ -168,6 +168,9 @@ Section __.
     apply even_div; apply divide_lemma. apply Zpower_nat_pos_nonneg. lia.
     transitivity (2 ^+ S (e (S i))). exists 2.  reflexivity. assumption. rewrite Zpower_nat_mul_r. assumption. Qed.
 
+  Lemma e_ge_1 i (R0_nonzero : R0 <> 0) (R1_even : even R1 = true) : (1 <= e (S i))%nat.
+  Proof. apply ord2_even. apply R_even; assumption. Qed.
+
   Lemma R_eq i :
     IZR ((split2 (R_ i)) mod2 (R_ (S i))) = (split2 (R_ i) - (split2 (R_ i)) div2 (R_ (S i)) * R_ (S i))%R.
   Proof.
