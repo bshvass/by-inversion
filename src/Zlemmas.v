@@ -66,7 +66,7 @@ Proof.
     (* induction (abs_nat n). *)
     + apply rel_prime_sym; apply rel_prime_1.
     + destruct n.
-      * rewrite Zpower_nat_1; assumption.
+      * rewrite Zpower_nat_1_r; assumption.
       * rewrite Zpower_nat_succ_r; apply rel_prime_mult. assumption.
         apply IHn; lia.
   - apply rel_prime_sym. apply rel_prime_div with (b ^+ n). apply rel_prime_sym.
@@ -141,4 +141,28 @@ Proof. intros [x]; exists (b * x); lia. Qed.
 
 Lemma divide_mul_l_r a b c : (a * b | c) -> (b | c).
 Proof. intros [x]; exists (a * x); lia. Qed.
+
+Lemma mod2_dec a : { a mod 2 = 0 } + { a mod 2 = 1 }.
+Proof. pose proof Zmod_even a; destruct (even a); auto. Qed.
   
+Fixpoint fixp f n :=
+  match n with
+  | 0%nat => f 0%nat
+  | S n => if (f (S n)) =? 0 then f n else fixp f n
+  end.
+
+Lemma fixp_Sn f n :
+  fixp f (S n) = if (f (S n)) =? 0 then f n else fixp f n.
+Proof. reflexivity. Qed.
+  
+Lemma min (f : nat -> Z) (H0 : f 0%nat <> 0) (H : exists N, f N = 0) :
+  exists K, f K <> 0 /\ f (S K) = 0.
+Proof.
+  destruct H as [N]. 
+  induction N.
+  - lia. 
+  - destruct (eqb_spec (f N) 0).
+    + apply IHN. assumption.
+    + exists N. split.
+      * assumption.
+      * apply H. Qed.

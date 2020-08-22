@@ -29,16 +29,6 @@ Ltac inversion_mat H :=
 Lemma vec_eq_dec (v w : vec) : (v = w) \/ v <> w.
 Proof. auto_mat; destruct (Req_dec r1 r); destruct (Req_dec r2 r0); tauto. Qed.
 
-Lemma mmult_I_l m : I * m = m.
-Proof. auto_mat. Qed.
-
-Lemma mmult_I_r m : m * I = m.
-Proof. auto_mat. Qed.
-
-Lemma mmult_assoc (a b c : mat) :
-  (a * b) * c = a * (b * c).
-Proof. auto_mat. Qed.
-
 Lemma scmat_vmult (l : R) (v : vec) (m : mat) :
   l ** m *v v = l **v (m *v v).
 Proof. auto_mat. Qed.

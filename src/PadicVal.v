@@ -32,7 +32,7 @@ Proof.
         ** apply divide_lemma. lia. apply mod_divide; lia. tauto.
         ** intro. apply divide_lemma in H2. tauto. lia. apply mod_divide. lia. lia.
       * subst. rewrite Z.mod_1_l in e. lia. lia.
-    + rewrite Zpower_nat_0, Zpower_nat_1. split.
+    + rewrite Zpower_nat_0_r, Zpower_nat_1_r. split.
       * apply Z.divide_1_l.
       * intro. apply mod_divide in H0. lia. lia. Qed.
 

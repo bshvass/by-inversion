@@ -141,6 +141,18 @@ Ltac auto_mat :=
          | _ => nra
          end.
 
+Lemma mmult_I_l m : I * m = m.
+Proof. auto_mat. Qed.
+
+Lemma mmult_I_r m : m * I = m.
+Proof. auto_mat. Qed.
+
+Lemma mmult_assoc (a b c : mat) :
+  (a * b) * c = a * (b * c).
+Proof. auto_mat. Qed.
+
+Hint Resolve mmult_I_l mmult_I_r mmult_assoc : matrix.
+
 Lemma mmult_vmult m1 m2 v :
   (m1 * m2) *v v = m1 *v (m2 *v v).
 Proof. auto_mat. Qed.

@@ -94,6 +94,22 @@ Proof.
     rewrite (mul_comm _ (split2 g)). rewrite mod_inv_spec, mul_1_r.
     rewrite Zminus_mod_idemp_l. rewrite sub_diag, mod_0_l. reflexivity. lia. assumption. lia. Qed.
 
+Theorem q_unique f g (Hf : odd f = true) (Hg : g <> 0) q' :
+  (odd q' = true) /\ (1 <= q' < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | q' * (split2 g) - f) -> q' = q f g.
+Proof.
+  pose proof (q_spec f g ltac:(auto) ltac:(auto)) as [q_odd [q_bound q_div]].
+  intros [q'_odd [q'_bound q'_div]]. 
+  assert (2 ^+ (S (ord2 g)) | (q f g) - q'). 
+  apply (Gauss _ (split2 g)). replace ((split2 g) * ((q f g) - q')) with ((q f g) * (split2 g) - f - (q' * (split2 g) - f)) by ring.
+  apply divide_sub_r; auto. 
+  apply rel_prime_sym. apply rel_prime_pow. lia.
+  apply odd_rel_prime. apply odd_split2. assumption.
+  apply mod_equiv in H. rewrite !mod_small in H; lia. lia. Qed.
+
+Theorem E1 f (Hf : odd f = true) g (Hg : g <> 0) :
+  exists! q, (odd q = true) /\ (1 <= q < 2 ^+ S (ord2 g)) /\ (2 ^+ (S (ord2 g)) | q * (split2 g) - f).
+Proof. exists (q f g); split; [apply q_spec; assumption|symmetry; apply q_unique; assumption]. Qed.
+
 Lemma mod2_div f g (Hf : odd f = true) (Hg : g <> 0) : (2 ^+ (S (ord2 g)) | f mod2 g).
 Proof.
   unfold mod_2. apply Zdivide_opp_r_rev.
@@ -254,7 +270,7 @@ Section __.
       assert (g | 2 ^+ e t * g').
       { rewrite <- (psplit_spec' 2). apply H2. assumption. lia. }
       assert (g | g').
-      { destruct (e t). rewrite Zpower_nat_0 in H3. rewrite mul_1_l in H3. assumption.
+      { destruct (e t). rewrite Zpower_nat_0_r in H3. rewrite mul_1_l in H3. assumption.
         apply Gauss in H3. assumption. apply odd_rel_prime_pow. lia. assumption. }
 
       assert (forall i, (g' | R_ i)).

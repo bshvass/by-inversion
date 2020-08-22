@@ -262,13 +262,31 @@ Definition gamma w e := Qmin_list (gamma_aux w e).
 (* the following theorem is the conclusion of the computational theorems F22 and F21 *)
 
 
+Notation big_mmult_rev := (fun n f => @big_op_rev _ mmult I f 0 n).
+Notation big_sum_rev := (fun n f => @big_op_rev _ Nat.add 0%nat f 0 n).
+
+Lemma big_sum_bound n f :
+  (forall i, (i <= n)%nat -> (1 <= f i)%nat) -> (n <= big_sum_rev n f)%nat.
+Proof.
+  intros.
+
+  induction n.
+  unfold big_op_rev. simpl. lia.
+
+  assert (forall i : nat, i <= n -> 1 <= f i)%nat. intros; apply H. lia.
+  apply IHn in H0.
+
+  rewrite big_op_rev_S_l.
+  assert (1 <= f n)%nat. apply H. lia. lia. lia. Qed.
+
+
 Theorem F24 (j : nat) (e : nat -> nat) (q : nat -> Z) (Hq : forall i, (i <= j)%nat -> (Z.odd (q i) = true) /\ (1 <= q i < 2 ^+ (S (e i)))%Z) :
   mat_norm (big_mmult_rev j (fun i => M (e i) (q i))) <= Qreals.Q2R (alpha (big_sum_rev j e)).
 Proof. Admitted.
 
 Section __.
 
-  Parameter R0 R1 : Z.
+  Context {R0 R1 : Z}.
 
   Notation R_ := (R_ R0 R1).
 
@@ -297,11 +315,11 @@ Section __.
     - simpl. apply f_equal2.
       rewrite split2_odd. field. assumption.
       field.
-    - rewrite big_mmult_rev_S.
+    - rewrite big_op_rev_S_l. 
       rewrite mmult_vmult.
       rewrite <- IHj.
       rewrite E2_cor. reflexivity.
-      assumption. apply R_nonzero_S. assumption. assumption. apply R_nonzero_S. assumption. assumption. Qed.
+      assumption. apply R_nonzero_S. assumption. assumption. apply R_nonzero_S. assumption. assumption. lia. Qed.
 
   Ltac assert_norm :=
     repeat match goal with
@@ -468,7 +486,7 @@ Section __.
     pose proof F25_cor _ (R0_odd) n.
 
     assert (j <= big_sum_rev j (fun i => e i))%nat.
-    apply big_sum_bound1.
+    apply big_sum_bound.
     intros. apply e_ge_1. apply odd_nonzero. assumption. assumption.
 
     assert (67 <= big_sum_rev j (fun i => e i))%nat. lia.
@@ -481,3 +499,17 @@ Section __.
     etransitivity. shelve. apply Hj.
     apply le_INR in H0. lra.
     Unshelve. apply Max.le_max_r. Qed.
+
+  Theorem F26_cor
+          (R0_odd : Z.odd R0 = true)
+          (R1_even : Z.even R1 = true) :
+    exists j, (R_ j) = 0%Z.
+  Proof. exists (S (max 67 (Z.to_nat (up (log_1024_633 (vec_norm (IZR R0, IZR R1))))))); apply F26; auto. Qed.
+  
+  Theorem F26_cor2
+          (R0_odd : Z.odd R0 = true)
+          (R1_even : Z.even R1 = true) :
+    exists j, R_ j <> 0%Z /\ R_ (S j) = 0%Z.
+  Proof. apply min. apply odd_nonzero; assumption. apply F26_cor; assumption. Qed.
+End __.
+Notation log_1024_633 := (log (1024 / 633)).
