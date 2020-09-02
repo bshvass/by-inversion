@@ -328,7 +328,22 @@ Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N
 (*   | S n => if (a + 2) ^ 2 + b ^ 2 >=? a ^ 2 + (b + 2) ^ 2 *)
 (*           then enum (a + 2) 0 *)
 
+Definition bignumber:=(min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22)).
+
+Time Eval vm_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
 Time Eval native_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
+
+Require Import ExtrOcamlIntConv.  (* Should convert coq's numbers to ocaml numbers. *)
+Require Import ExtrOcamlZBigInt.
+
+(* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " *)
+
+(* For precision we should change to Int63 and use 
+Requrie Import ExtrOCamlInt63. 
+This would also compute faster in Coq, I understand.
+*)
+Extraction "test" bignumber.
+
 (* Time Eval native_compute in min_needs_n_steps_nat 1 0 25 (-1) (2 ^ 22). *)
 
 (* Time Compute min_needs_n_steps_nat_alt 1 0 25 (-1) ((2 ^ 30)%N). *)
