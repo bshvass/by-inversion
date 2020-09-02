@@ -233,3 +233,143 @@ Proof. apply and_lemma.
   rewrite <- (divstep_iter_0 1 R0 (R1 / 2) 1 G (2 * w)) by assumption.
   rewrite <- (divstep_iter_0 1 R0 (R1 / 2) d f n) by assumption.
   rewrite Nat.add_comm. reflexivity. inversion H. assumption. Qed.
+
+(* Compute (repeat 5%Z) 20000%nat. *)
+
+Ltac test_all :=
+  repeat match goal with
+         | [ H : ?lower <= ?a < ?upper |- _ ] =>
+           try lia; destruct (Z.eq_dec a lower) as [e|]; [rewrite e; reflexivity|];
+           assert (1 + lower <= a < upper) by lia; clear H
+         end; lia.
+
+Fixpoint test_all_fix a bound fuel :=
+  match fuel with
+  | 0%nat => true
+  | S fuel => if (a ^ 2 <? bound) then  test_all_fix (a + 1) bound fuel else false
+  end.
+
+Fixpoint old_alg a b n fuel acc bound acc1 acc2 :=
+  if (a ^ 2 >=? acc) && (negb (a =? 0)) then (acc,acc1,acc2) else
+    match fuel with
+    | 0%nat => (-1 ,acc1, acc2)
+    | S fuel => match a ^ 2 + b ^ 2 >=? 2 ^ bound with
+               | true => if b <=? 0
+                        then old_alg a (b + 2) n fuel acc bound acc1 acc2
+                        else old_alg (a + 2) (Z.land ((- sqrt (2 ^ (2 * bound) - (a + 2) ^ 2))) (-2)) n fuel acc bound acc1 acc2
+               | false => if (fix needs_n_steps d a b n :=
+                               match n with
+                               | 0%nat => true
+                               | S n => if b =? 0 then false else
+                                         let '(d', a', b') := divstep d a b in needs_n_steps d' a' b' n
+                               end) 1 a (Z.shiftr b 1) n
+                         then if (acc =? -1) || (a^2 + b ^2 <=? acc)
+                              then old_alg a (b + 2) n fuel (a ^ 2 + b ^ 2) bound a b
+                              else old_alg a (b + 2) n fuel acc bound acc1 acc2
+                         else old_alg a (b + 2) n fuel acc bound acc1 acc2
+               end
+    end.
+
+Fixpoint needs_n_steps d a b n :=
+  match n with
+  | 0%nat => true
+  | S n => if b =? 0
+          then false
+          else let '(d', a', b') := divstep d a b in needs_n_steps d' a' b' n
+  end.
+
+(* Fixpoint min_needs_n_list_clever a b fuel := *)
+(*   match fuel with *)
+(*   | 0 => [] *)
+(*           | S fuel  *)
+
+(* Require Import String. *)
+
+(* Local Open Scope string_scope. *)
+
+Fixpoint min_needs_n_steps a b n (acc : Z) fuel :=
+  match fuel with
+  | 0%nat => -1
+  | S fuel =>  if (a ^ 2 >=? acc) && (negb (acc =? -1)%Z)
+              then acc
+              else if (a ^ 2 + b ^ 2 >=? acc) && (negb (acc =? -1)%Z)
+                   then min_needs_n_steps (a + 2) 0 n acc fuel
+                   else if needs_n_steps 1 a (b / 2) n || needs_n_steps 1 a ((- b) / 2) n
+                        then min_needs_n_steps (a + 2) 0 n
+                                               (if (acc =? -1)%Z
+                                                then (a ^ 2 + b ^ 2)
+                                                else (min (a ^ 2 + b ^ 2) acc)) fuel
+                        else min_needs_n_steps a (b + 2) n acc fuel 
+  end.
+
+Require Import Program.
+
+Program Fixpoint min_needs_n_steps_nat a b n (acc : Z) fuel {measure fuel (N.lt)} :=
+  match fuel with
+  | 0%N => -1
+  | _ =>  if (a ^ 2 >=? acc) && (negb (acc =? -1)%Z)
+              then acc
+              else if (a ^ 2 + b ^ 2 >=? acc) && (negb (acc =? -1)%Z)
+                   then min_needs_n_steps_nat (a + 2) 0 n acc (N.pred fuel)
+                   else if needs_n_steps 1 a (b / 2) n || needs_n_steps 1 a ((- b) / 2) n
+                        then min_needs_n_steps_nat (a + 2) 0 n
+                                               (if (acc =? -1)%Z
+                                                then (a ^ 2 + b ^ 2)
+                                                else (min (a ^ 2 + b ^ 2) acc)) (N.pred fuel)
+                        else min_needs_n_steps_nat a (b + 2) n acc (N.pred fuel)
+  end.
+
+Solve Obligations with try lia.
+Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
+
+(* Fixpoint enum a b n acc := *)
+(*   match n with *)
+(*   | 0 => (a, b) *)
+(*   | S n => if (a + 2) ^ 2 + b ^ 2 >=? a ^ 2 + (b + 2) ^ 2 *)
+(*           then enum (a + 2) 0 *)
+
+Time Eval native_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
+(* Time Eval native_compute in min_needs_n_steps_nat 1 0 25 (-1) (2 ^ 22). *)
+
+(* Time Compute min_needs_n_steps_nat_alt 1 0 25 (-1) ((2 ^ 30)%N). *)
+
+(* Fixpoint table_maker d a b n table fuel := *)
+(*   match fuel with *)
+(*   | 0%nat => [(-1,-1)] *)
+(*   | S fuel => match table with *)
+(*              | [] => if needs_n_steps d a b 0 *)
+(*                     then table_maker d a b ((a ^ 2 + b ^ 2, 0)) *)
+(*                                      else table_maker  *)
+(*                                   |  *)
+
+
+(* Compute min_needs_n_steps 1 (Z.land (- sqrt (2 ^ 30 - 1 ^ 2)) (-2)) 6 (2 ^ 30) (-1) 15 0 0. *)
+  
+(* Fixpoint enum_all a b l divstep_fuel fuel := *)
+(*   match fuel with *)
+(*   | 0%nat => [] *)
+(*   | S fuel => match a ^ 2 + b ^ 2 >=? 2 ^ 42 with *)
+(*           | true => enum_all (a + 1) 0 l divstep_fuel fuel *)
+(*           | false => (fix divstep_needed a b fuel := *)
+(*                        match fuel with *)
+(*                        | 0%nat => [(0, 0)] *)
+(*                     | S fuel => ) *)
+
+(* Local Notation b := ((log2 (sqrt (R0 ^ 2 + R1 ^ 2)))). *)
+
+(* Theorem G4 : exists x y, divstep_iter 1 R0 (R1 / 2) (19 * b / 17) = (x, y, 0). *)
+(* Proof. Admitted. *)
+
+(* Notation it := (if b <=? 21 *)
+(*                  then 19 * b / 7 *)
+(*                  else if b <=? 46 *)
+(*                       then (49 * b + 23) / 17 *)
+(*                       else 49 * b). *)
+
+(* Theorem G6 : exists x y, divstep_iter 1 R0 (R1 / 2) (to_nat it) = (x, y, 0). *)
+(* Proof. *)
+(*   destruct (le_dec b 21). *)
+
+(*   assert (H : b <=? 21 = true) by (apply Z.leb_le; apply Z2Nat.inj_le; lia); rewrite H. apply G4. *)
+  
+  
