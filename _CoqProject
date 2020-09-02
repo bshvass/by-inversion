@@ -1,8 +1,12 @@
 -R src BY
+src/Divstep.v
+src/AppendixG.v
 src/AppendixE.v
 src/AppendixF.v
 src/Section9.v
 src/Tactics.v
+src/Spectral.v
+src/BigOp.v
 src/Matrix.v
 src/SetoidRewrite.v
 src/IZR.v
