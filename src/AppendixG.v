@@ -328,21 +328,26 @@ Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N
 (*   | S n => if (a + 2) ^ 2 + b ^ 2 >=? a ^ 2 + (b + 2) ^ 2 *)
 (*           then enum (a + 2) 0 *)
 
-Definition bignumber:=(min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22)).
-
-Time Eval vm_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
+(* Time Eval vm_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22). *)
 Time Eval native_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
 
 Require Import ExtrOcamlIntConv.  (* Should convert coq's numbers to ocaml numbers. *)
-Require Import ExtrOcamlZBigInt.
+(* Require Import ExtrOcamlZBigInt. Seems to be deprecated. *)
 
-(* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " *)
+(* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " 
+https://ocaml.org/releases/4.04/htmlman/libnum.html
+*)
 
 (* For precision we should change to Int63 and use 
 Requrie Import ExtrOCamlInt63. 
 This would also compute faster in Coq, I understand.
-*)
+ *)
+
+Definition bignumber:=(min_needs_n_steps_nat 1 0 27 (-1) (2 ^ 27)).
 Extraction "test" bignumber.
+(* ocamlopt -o test test.mli test.ml
+time ./test *)
+
 
 (* Time Eval native_compute in min_needs_n_steps_nat 1 0 25 (-1) (2 ^ 22). *)
 
