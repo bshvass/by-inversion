@@ -328,22 +328,82 @@ Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N
 (*   | S n => if (a + 2) ^ 2 + b ^ 2 >=? a ^ 2 + (b + 2) ^ 2 *)
 (*           then enum (a + 2) 0 *)
 
-Definition bignumber:=(min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22)).
+Require Import Coq.Numbers.Cyclic.Int63.Int63.
+Check int.
 
-Time Eval vm_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
-Time Eval native_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22).
+Local Open Scope int63.
 
-Require Import ExtrOcamlIntConv.  (* Should convert coq's numbers to ocaml numbers. *)
-Require Import ExtrOcamlZBigInt.
+Definition asr a := set_digit (lsr a 1) 62 (get_digit a 62).
+
+Definition divstep_int (d f g : int) :=
+  if (get_digit (opp d) 62) && (negb (is_even g))
+  then (1 - d, g, asr (g - f))
+  else (1 + d, f, asr (g + (g land 1) * f)).
+
+Fixpoint needs_n_steps_int (d a b : int) n :=
+  match n with
+  | 0%nat => true
+  | S n => if (b == 0)
+          then false
+          else let '(d', a', b') := divstep_int d a b in needs_n_steps_int d' a' b' n
+  end.
+
+Local Coercion to_Z : int >-> Z.
+Definition test_needs_n_steps_int d a b n := (needs_n_steps_int d a b n) == (needs_n_steps d a b n).
+
+Definition int_min a b := if a < b then a else b.
+
+Program Fixpoint min_needs_n_steps_nat_int (a b : int) n (acc : int) fuel {measure fuel (N.lt)} :=
+  match fuel with
+  | 0%N => 1 << 61
+  | _ =>  if (leb acc (mul a a))
+              then acc
+              else if (leb acc (add (mul a a) (mul b b)))
+                   then min_needs_n_steps_nat_int (a + 2) 0 n acc (N.pred fuel)
+                   else if needs_n_steps_int 1 a (b >> 1) n || needs_n_steps_int 1 a (opp (b >> 1)) n
+                        then min_needs_n_steps_nat_int (a + 2) 0 n (int_min (a * a + b * b) acc) (N.pred fuel)
+                        else min_needs_n_steps_nat_int a (b + 2) n acc (N.pred fuel)
+  end.
+
+Solve Obligations with try lia.
+Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
+
+Definition bignumber_int:=(min_needs_n_steps_nat_int 1 0 35 (1 << 62) (2 ^ 43)).
+Definition bignumber:=(min_needs_n_steps_nat 1 0 30 (-1) (2 ^ 43)).
+
+(* Time Compute min_needs_n_steps_nat_int 1 0 30 (1 << 61) (2 ^ 42). (* 7839829 // 27sec *) *)
+(* Time Compute min_needs_n_steps_nat 1 0 30 (-1) (2 ^ 42). (* 7839829 // 255sec *) *)
+
+(* Time Eval vm_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22). *)
+(* Time Eval native_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22). *)
+
+(* Require Import ExtrOcamlIntConv.  (* Should convert coq's numbers to ocaml numbers. *) *)
+(* Require Import ExtrOcamlZBigInt. *)
+Require Import ExtrOCamlInt63.
 
 (* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " *)
 
 (* For precision we should change to Int63 and use 
 Requrie Import ExtrOCamlInt63. 
 This would also compute faster in Coq, I understand.
-*)
-Extraction "test" bignumber.
+ *)
 
+(* Extract Constant Int63.land => "land". *)
+(* Extract Constant Int63.lxor => "lxor". *)
+(* Extract Constant Int63.lor => "lor". *)
+
+(* Extract Constant Int63.sub => "sub_int". *)
+(* Extract Constant Int63.add => "add_int". *)
+(* Extract Constant Int63.mul => "mult_int". *)
+(* Extract Constant Int63.ltb => "lt_int". *)
+(* Extract Constant Int63.leb => "le_int". *)
+(* Extract Constant Int63.lsl => "lshift_left". *)
+(* Extract Constant Int63.lsr => "lshift_right". *)
+(* Extract Constant Int63.eqb => "eq_int". *)
+(* Extract Constant Int63.int => "int". *)
+
+(* Extraction "test" bignumber. *)
+Extraction "test" bignumber_int.
 (* Time Eval native_compute in min_needs_n_steps_nat 1 0 25 (-1) (2 ^ 22). *)
 
 (* Time Compute min_needs_n_steps_nat_alt 1 0 25 (-1) ((2 ^ 30)%N). *)

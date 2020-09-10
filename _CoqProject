@@ -1,8 +1,8 @@
 -R src BY
 src/Divstep.v
-src/AppendixG.v
 src/AppendixE.v
 src/AppendixF.v
+src/AppendixG.v
 src/Section9.v
 src/Tactics.v
 src/Spectral.v
@@ -17,3 +17,5 @@ src/Rlemmas.v
 src/Zlemmas.v
 src/Zpower_nat.v
 src/SsrIntRingTactic.v
+src/Comp2/Definitions.v
+

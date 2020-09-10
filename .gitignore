@@ -33,3 +33,26 @@ nra.cache
 .nlia.cache
 .nia.cache
 .nra.cache
+
+# OCaml
+*.annot
+*.cmo
+*.cma
+*.cmi
+*.a
+*.o
+*.cmx
+*.cmxs
+*.cmxa
+
+
+# Extracted files
+
+src/Comp2/definition.ml
+src/Comp2/definition.mli
+
+# Binaries
+
+bin/comp2c
+bin/comp2ocaml
+
