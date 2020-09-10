@@ -381,7 +381,9 @@ Definition bignumber:=(min_needs_n_steps_nat 1 0 30 (-1) (2 ^ 43)).
 (* Require Import ExtrOcamlZBigInt. *)
 Require Import ExtrOCamlInt63.
 
-(* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " *)
+(* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " 
+https://ocaml.org/releases/4.04/htmlman/libnum.html
+*)
 
 (* For precision we should change to Int63 and use 
 Requrie Import ExtrOCamlInt63. 
