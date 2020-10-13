@@ -1,12 +1,14 @@
+SORT_COQPROJECT = sed 's,[^/]*/,~&,g' | env LC_COLLATE=C sort | sed 's,~,,g' | uniq
+
 all:
 	make -f CoqMakefile
 clean:
 	make -f CoqMakefile clean
 test-small:
-	coqc src/Comp2/Comp2SmallValues.v -verbose -R src BY > smallvalues.log && \
+	coqc src/Comp2/SmallValues.v -verbose -R src BY > smallvalues.log && \
 	terminal-notifier -message 'Make test-small is done' -sound default
 test-medium:
-	coqc src/Comp2/Comp2MediumValues.v -verbose -R src BY > mediumvalues.log && \
+	coqc src/Comp2/MediumValues.v -verbose -R src BY > mediumvalues.log && \
 	terminal-notifier -message 'Make test-medium is done' -sound default
 ocaml:
 	mkdir -p bin && \
@@ -27,3 +29,5 @@ test-ocaml:
 	make ocaml && \
 	(time ./bin/comp2ocaml 40 all) &> ocaml.log && \
 	terminal-notifier -message 'Make test-ocaml is done' -sound default
+update-_CoqProject:
+	(echo '-R src BY'; (git ls-files 'src/*.v' | grep -v '^src/Comp2/\(SmallValues\|MediumValues\).v' | $(SORT_COQPROJECT))) > _CoqProject

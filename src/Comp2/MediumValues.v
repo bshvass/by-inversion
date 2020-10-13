@@ -3,8 +3,6 @@ Require Import Definitions.
 
 Local Open Scope int63.
 
-Definition W n := min_needs_n_steps_nat_int 1 0 n sint_max steps.
-
 Time Definition comp231 := eq_refl 12565573 <: W 31 = 12565573.
 Check comp231.
 Time Definition comp232 := eq_refl 22372085 <: W 32 = 22372085.

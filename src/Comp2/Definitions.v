@@ -10,7 +10,7 @@ Local Open Scope int63.
 Definition steps := Eval vm_compute in 2 ^ 44 : N.
 Definition sint_max := Eval vm_compute in 1 << 62 - 1.
 
-Definition asr a := let a := if (get_digit a 62) then 1 << 63 else 0 in lor (lsr a 1) a.
+Definition asr a := let b := if (get_digit a 62) then 1 << 62 else 0 in Int63.lor (lsr a 1) b.
 Definition int_min a b := if a < b then a else b.
 
 Definition divstep_int (d f g : int) :=
@@ -40,3 +40,5 @@ Program Fixpoint min_needs_n_steps_nat_int (a b : int) n (acc : int) fuel {measu
 
 Solve Obligations with try lia.
 Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
+
+Definition W n := min_needs_n_steps_nat_int 1 0 n sint_max steps.

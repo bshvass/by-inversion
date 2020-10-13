@@ -96,10 +96,10 @@ Theorem q_unique f g (Hf : odd f = true) (Hg : g <> 0) q' :
   (odd q' = true) /\ (1 <= q' < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | q' * (split2 g) - f) -> q' = q f g.
 Proof.
   pose proof (q_spec f g ltac:(auto) ltac:(auto)) as [q_odd [q_bound q_div]].
-  intros [q'_odd [q'_bound q'_div]]. 
-  assert (2 ^+ (S (ord2 g)) | (q f g) - q'). 
+  intros [q'_odd [q'_bound q'_div]].
+  assert (2 ^+ (S (ord2 g)) | (q f g) - q').
   apply (Gauss _ (split2 g)). replace ((split2 g) * ((q f g) - q')) with ((q f g) * (split2 g) - f - (q' * (split2 g) - f)) by ring.
-  apply divide_sub_r; auto. 
+  apply divide_sub_r; auto.
   apply rel_prime_sym. apply rel_prime_pow. lia.
   apply odd_rel_prime. apply odd_split2. assumption.
   apply mod_equiv in H. rewrite !mod_small in H; lia. lia. Qed.

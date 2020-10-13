@@ -9,16 +9,16 @@ Local Open Scope R.
 
 Local Coercion IZR : Z >-> R.
 
-Lemma div_IZR a b : (b | a) -> IZR (a / b) = a%Z / b%Z. 
+Lemma div_IZR a b : (b | a) -> IZR (a / b) = a%Z / b%Z.
 Proof.
-  destruct (Z.eq_dec b 0); intros. 
+  destruct (Z.eq_dec b 0); intros.
   - now subst; rewrite div_0_r, Zdiv_0_r.
   - symmetry; apply eq_div. apply IZR_neq. assumption.
     rewrite <- mult_IZR, Zmult_comm; apply f_equal.
     apply div_exact. assumption. apply Zdivide_mod; assumption. Qed.
 
 
-  
+
 Lemma Zpower_nat_IZR a b : IZR (a ^+ b) = a ^ b.
 Proof. now rewrite pow_IZR, Zpower_nat_Z. Qed.
 
@@ -50,7 +50,7 @@ Proof.
 
 Lemma div_Rdiv (a b : Z) : a / b - 1 <= (a / b)%Z.
 Proof.
-  enough (a / b <= (a / b)%Z + 1) by lra.  
+  enough (a / b <= (a / b)%Z + 1) by lra.
   destruct (Z.eq_dec b 0); intros.
   - subst; rewrite div_0_r, Zdiv_0_r; lra.
   - assert (IZR b <> 0) by (apply IZR_neq; assumption).

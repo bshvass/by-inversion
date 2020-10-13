@@ -23,23 +23,23 @@ Theorem by_inv_spec f g pc
   by_inv f g pc * g mod f = 1.
 Proof.
   unfold by_inv.
-  
+
   set (d:= (max (log2_up (abs f)) (log2_up (abs g)))). fold d in pc_correct.
   set (m:= to_nat (iterations d)). fold m in pc_correct.
-  
+
   pose proof divstep_full_iter_spec 1 f g m.
   pose proof _11_2 f g fodd gnon0 (to_nat d) m.
 
   assert (f ^+ 2 + 4 * g ^+ 2 <= 5 * 4 ^+ (to_nat d)).
-  { unfold d in *. 
+  { unfold d in *.
     destruct (Z_le_dec (abs f) (abs g)).
-    
+
     {
       assert (log2_up (abs f) <= log2_up (abs g)). apply log2_up_le_mono; assumption.
       rewrite max_r by assumption.
       assert (f ^+ 2 + 4 * g ^+ 2 <= g ^+ 2 + 4 * g ^+ 2).
       simpl. nia.
-      
+
       replace 4 with (2 * 2) at 2 by lia. rewrite Zpower_nat_mul.
 
       destruct (Z.eq_dec (abs g) 1).
@@ -47,9 +47,9 @@ Proof.
       rewrite log2_up_1 in H0. assert (log2_up (abs f) = 0). pose proof log2_up_nonneg (abs f).
       rewrite log2_up_1 in H1.
       lia. apply log2_up_null in H3.
-      
+
       simpl. nia.
-      
+
       pose proof Zpower_nat_log2_up (abs g) ltac:(lia).
       simpl. nia. }
    {
@@ -57,9 +57,9 @@ Proof.
       rewrite max_l by assumption.
       assert (f ^+ 2 + 4 * g ^+ 2 <= f ^+ 2 + 4 * f ^+ 2).
       simpl. nia.
-      
+
       assert (f <> 0) by (apply odd_nonzero; assumption).
-      
+
       replace 4 with (2 * 2) at 2 by lia. rewrite Zpower_nat_mul.
 
       destruct (eq_dec (abs f) 1).
@@ -69,16 +69,16 @@ Proof.
 
       pose proof Zpower_nat_log2_up (abs f) ltac:(lia).
       simpl. nia. } }
-  
+
   pose proof divstep_divstep_full_iter 1 f g 0 1 m.
   destruct (divstep_full_iter) as [[[[? fm] ?] vm] ?] eqn:E3.
   destruct H as [um [qm]].
-  
+
   cbn -[Zpower_nat] in H0.
   rewrite <- H in H0.
-  
+
   apply H0 in H1.
-  
+
   clear H0. destruct H1.  destruct H1.
 
   unfold fn, gn in *.

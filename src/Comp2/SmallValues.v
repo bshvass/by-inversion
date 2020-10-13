@@ -3,8 +3,6 @@ Require Import BY.Comp2.Definitions.
 
 Local Open Scope int63.
 
-Definition W n := min_needs_n_steps_nat_int 1 0 n sint_max steps.
-
 Time Definition comp20 := eq_refl 1 <: W 0 = 1.
 Check comp20.
 Time Definition comp21 := eq_refl 5 <: W 1 = 5.

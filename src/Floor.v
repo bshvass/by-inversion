@@ -67,9 +67,9 @@ Proof.
     apply IZR_lt. pose proof Z.mod_pos_bound a b ltac:(apply lt_IZR; lra). lia. lra.
     apply div_neg_nonneg. rewrite <- minus_IZR.
     apply IZR_lt. pose proof Z.mod_neg_bound a b ltac:(apply lt_IZR; lra). lia. lra.
-  
+
     lra.
-    
+
     rewrite <- Rdiv_plus_distr. rewrite <- minus_IZR, <- plus_IZR, <- div_IZR. apply IZR_le.
     rewrite Zdiv.Zmod_eq_full.
     replace (a + (b - (a - a / b * b)))%Z with (b + a / b * b)%Z by lia.

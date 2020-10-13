@@ -491,7 +491,7 @@ Section __.
 
     assert (log_1024_633 (vec_norm (IZR R0, IZR R1)) < j).
     eapply Rlt_le_trans.
-    apply archimed. apply IZR_INR_le. 
+    apply archimed. apply IZR_INR_le.
     etransitivity. shelve. apply Hj.
     apply le_INR in H0. lra.
     Unshelve. apply Max.le_max_r. Qed.

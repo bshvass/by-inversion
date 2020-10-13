@@ -216,10 +216,10 @@ Proof.
 
   rewrite <- Rabs_pos_eq by (assert_pow; assert_sqrt; nra).
 
-  apply (le_pow 2). lia. 
+  apply (le_pow 2). lia.
 
   rewrite Rpow_mult_distr, pow2_sqrt by (assert_pow; nra).
- 
+
   psatz R. Qed.
 
 Lemma mat_norm_nonneg m :
