@@ -21,16 +21,16 @@ Lemma pval_aux_spec n p a
 Proof.
   revert H Hp Ha. revert p a.
   induction n; intros.
-  - pose proof Z.log2_nonneg a. lia.
+  - pose proof Z.log2_nonneg a; lia.
   - cbn [pval_aux]; destruct (Z.eqb_spec (a mod p) 0).
     + pose proof log2_div a p ltac:(lia) ltac:(lia).
-      destruct H0. 
+      destruct H0.
       * assert (0 < a / p) by (rewrite mod_eq in e; nia).
         specialize (IHn p (a / p) ltac:(lia) ltac:(lia) ltac:(lia)).
-        rewrite !Zpower_nat_succ_r. 
+        rewrite !Zpower_nat_succ_r.
         split.
         ** apply divide_lemma. lia. apply mod_divide; lia. tauto.
-        ** intro. apply divide_lemma in H2. tauto. lia. apply mod_divide. lia. lia.
+        ** intro contra. apply divide_lemma in contra. tauto. lia. apply mod_divide. lia. lia.
       * subst. rewrite Z.mod_1_l in e. lia. lia.
     + rewrite Zpower_nat_0_r, Zpower_nat_1_r. split.
       * apply Z.divide_1_l.
@@ -55,11 +55,11 @@ Proof.
   - destruct (le_dec v (pval p a))%nat; [lia|].
     assert (p ^+ (S (pval p a)) | a).
     { etransitivity. exists (p ^+ (v - S (pval p a))). reflexivity.
-      rewrite <- Zpower_nat_is_exp. rewrite Nat.sub_add. assumption. lia. }
+      rewrite <- Zpower_nat_is_exp, Nat.sub_add by lia; assumption. }
     contradiction.
   - assert (p ^+ (S v) | a).
     { etransitivity. exists (p ^+ ((pval p a) - (S v))). reflexivity.
-      rewrite <- Zpower_nat_is_exp. rewrite Nat.sub_add. assumption. lia. }
+      rewrite <- Zpower_nat_is_exp, Nat.sub_add by lia. assumption. }
     contradiction. Qed.
 
 Lemma pval_full_spec p a v (Ha : a <> 0) (Hp : 1 < p) :
@@ -73,31 +73,39 @@ Proof.
   pose proof pval_spec p a Ha Hp as [].
   replace (S n) with (S (pval p a) + ((S n) - S (pval p a)))%nat in H.
   rewrite Zpower_nat_is_exp in H. apply divide_mul_l_l in H. contradiction. lia. Qed.
-  
+
 Lemma pval_opp p a : pval p (-a) = pval p a.
-Proof. unfold pval. rewrite abs_opp. reflexivity. Qed.
+Proof. unfold pval; rewrite abs_opp; reflexivity. Qed.
 
 Definition psplit p a := a / (p ^+ (pval p a)).
 
 Lemma psplit_opp p a (Ha : a <> 0) (Hp : 1 < p) : - psplit p a = psplit p (-a).
 Proof.
-  unfold psplit. rewrite Z_div_zero_opp_full, pval_opp. reflexivity.
+  unfold psplit. rewrite Z_div_zero_opp_full, pval_opp; [reflexivity|].
   rewrite pval_opp. apply mod_divide. apply Zpower_nat_nonzero. lia.
-  apply pval_spec. assumption. assumption. Qed.
+  apply pval_spec; assumption. Qed.
 
 Lemma psplit_spec p a (Ha : a <> 0) (Hp : 1 < p): a = (p ^+ (pval p a)) * psplit p a /\ ~ (p | psplit p a).
 Proof.
-  unfold psplit. 
+  unfold psplit.
   pose proof pval_spec p a ltac:(assumption) ltac:(assumption).
-  destruct H. 
+  destruct H.
   split.
   - assert (p ^+ pval p a <> 0) by (apply Zpower_nat_nonzero; lia).
-    rewrite div_exact by assumption. apply mod_divide; assumption. 
-  - rewrite divide_lemma. rewrite Zpower_nat_mul_r. assumption. 
-    apply Zpower_nat_pos_nonneg. lia. assumption. Qed.
+    rewrite div_exact by assumption. apply mod_divide; assumption.
+  - rewrite divide_lemma, Zpower_nat_mul_r. assumption.
+    apply Zpower_nat_pos_nonneg; lia. assumption. Qed.
 
 Lemma psplit_spec' p a (Ha : a <> 0) (Hp : 1 < p) : a = (p ^+ (pval p a)) * psplit p a.
 Proof. apply psplit_spec; assumption. Qed.
 
 Lemma psplit_0 p (Hp : p <> 0) : psplit p 0 = 0.
 Proof. unfold psplit; rewrite Z.div_0_l. reflexivity. apply Zpower_nat_nonzero. assumption. Qed.
+
+Lemma psplit_non0 p a (Hp : 1 < p) (Ha : a <> 0) : psplit p a <> 0.
+Proof.
+  unfold psplit. intros contra.
+  apply div_small_iff in contra; [|apply Zpower_nat_nonzero; lia].
+  destruct contra as [contra1|contra2].
+  - epose proof divide_pos_le (p ^+ pval p a) a ltac:(lia) _. lia. Unshelve. apply pval_spec; assumption.
+  - epose proof Zpower_nat_nonneg p (pval p a) _. lia. Unshelve. lia. Qed.

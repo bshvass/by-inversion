@@ -40,17 +40,17 @@ Proof.
       rewrite e, gcd_0_l; lia.
     + assert (log2 r1 = 0). pose proof log2_nonneg r1; nia.
       apply log2_null in H. assert (r1 = 1) by lia.
-      rewrite H0 in *. 
+      rewrite H0 in *.
       rewrite mod_1_r in n. contradiction.
   - simpl. destruct (eqb_spec (r0 mod r1) 0).
     + rewrite <- inv1, <- inv_gcd, gcd_comm, <- gcd_mod by lia.
       rewrite e, gcd_0_l; lia.
     + pose proof mod_pos_bound r0 r1 ltac:(lia).
       destruct (eqb_spec (r1 mod (r0 mod r1)) 0).
-      * rewrite <- inv_gcd, gcd_comm, <- 2!gcd_mod by lia. 
+      * rewrite <- inv_gcd, gcd_comm, <- 2!gcd_mod by lia.
         rewrite e, gcd_0_l, abs_eq by (pose proof mod_pos_bound r0 r1; lia).
         replace (_ + _) with (r0 - r1 * (r0 / r1)) by lia.
-        rewrite mod_eq by lia. reflexivity. 
+        rewrite mod_eq by lia. reflexivity.
       * apply IHn.
         ** pose proof mod_half r1 (r0 mod r1) ltac:(lia).
            pose proof log2_half r1 ltac:(lia) as [].
@@ -104,7 +104,7 @@ Proof.
 
 Lemma prime_inv a m (Hm1 : 1 < m) : rel_prime a m <-> exists b, a * b mod m = 1.
 Proof.
-  split; intro. 
+  split; intro.
   - apply rel_prime_bezout in H. destruct H.
     exists u. replace (a * u) with (1 + - v * m) by lia.
     rewrite <- add_mod_idemp_r. rewrite <- mul_mod_idemp_r.

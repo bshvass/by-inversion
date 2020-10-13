@@ -25,7 +25,7 @@ Section __.
   
   Lemma fold_left_assoc (a b : A) ls :
   op a (fold_left op ls b) = fold_left op ls (op a b).
-  Proof.
+  Proof. 
     revert b; induction ls; intros b; simpl.
     - reflexivity.
     - rewrite IHls. rewrite op_assoc. reflexivity. Qed.
@@ -66,7 +66,11 @@ Section __.
   Proof. unfold big_op_rev, big_op_list.
          rewrite Nat.sub_succ_l, seq_snoc, rev_app_distr, fold_left_assoc, <- le_plus_minus, (id_r (f m)) by auto; simpl; 
            rewrite (id_l (f m)); auto. Qed.
-
+  
+  Lemma big_op_rev_nil n m (mltn : m <= n) :
+    big_op_rev n m = id.
+  Proof. unfold big_op_rev; replace (m - n) with 0 by lia; reflexivity. Qed.
+  
   Lemma big_op_nil n m (mltn : m <= n) :
     big_op n m = id.
   Proof. unfold big_op; replace (m - n) with 0 by lia; reflexivity. Qed.
@@ -77,56 +81,21 @@ End __.
 Instance N_add_associative : Associative Nat.add.
 Proof. split; auto with zarith. Qed.
 
-Instance N_add_monoid : @Monoid _ Nat.add 0 N_add_associative.
+Instance N_add_monoid : Monoid Nat.add 0. 
 Proof. split; auto with zarith. Qed.
 
 Instance Mat_mult_associative : Associative mmult.
 Proof. split; auto with matrix. Qed.
 
-Instance Mat_monoid : @Monoid _ mmult I Mat_mult_associative.
+Instance Mat_monoid : Monoid mmult I.
 Proof. split; auto with matrix. Qed.
 
 Instance Z_add_associative : Associative Z.add.
 Proof. split; auto with zarith. Qed.
 
-Instance Z_add_monoid : @Monoid _ Z.add 0%Z Z_add_associative.
+Instance Z_add_monoid : Monoid Z.add 0%Z. 
 Proof. split; auto with zarith. Qed.
 
-(* Lemma big_mmult_rev_S n f : *)
-(*   big_mmult_rev (S n) f = f n * big_mmult_rev n f. *)
-(* Proof. unfold big_mmult_rev; rewrite seq_snoc, rev_app_distr; reflexivity. Qed. *)
-
-(* Definition big_mmult_rev n (f : nat -> mat) := *)
-(*   fold_right mmult I (map f (rev (seq 0 n))). *)
-
-(* Lemma big_mmult_rev_S n f : *)
-(*   big_mmult_rev (S n) f = f n * big_mmult_rev n f. *)
-(* Proof. unfold big_mmult_rev; rewrite seq_snoc, rev_app_distr; reflexivity. Qed. *)
-
-(* Definition big_sum_rev n f : nat := *)
-(*   fold_right (Nat.add) 0%nat (map f (rev (seq 0 n))). *)
-
-(* Lemma big_sum_rev_S n f : *)
-(*   big_sum_rev (S n) f = (f n + big_sum_rev n f)%nat. *)
-(* Proof. unfold big_sum_rev; rewrite seq_snoc, rev_app_distr; reflexivity. Qed. *)
-
-(* Lemma big_sum_bound1 n f : *)
-(*   (forall i, i <= n -> 1 <= f i) -> n <= big_sum_rev n f. *)
-(* Proof. *)
-(*   intros. *)
-
-(*   induction n. *)
-(*   unfold big_sum_rev. simpl. lia. *)
-
-(*   assert (forall i : nat, i <= n -> 1 <= f i). intros; apply H. lia. *)
-(*   apply IHn in H0. *)
-
-(*   rewrite big_sum_rev_S. *)
-(*   assert (1 <= f n). apply H. lia. lia. Qed. *)
-
-(* Definition big_sum n f : Z := *)
-(*   fold_right Z.add 0%Z (map f (rev (seq 0 n))). *)
-
-(* Lemma big_sum_S n f : *)
-(*   big_sum (S n) f = (f n + big_sum n f)%Z. *)
-(* Proof. unfold big_sum; rewrite seq_snoc, rev_app_distr; reflexivity. Qed. *)
+Notation big_sum := (@big_op _ Z.add 0%Z).
+Notation big_sum_nat := (@big_op _ Nat.add 0%nat).
+Notation big_mmult_rev0 := (fun n f => @big_op_rev _ mmult I f 0 n).

@@ -9,23 +9,6 @@ Local Open Scope mat_scope.
 Local Open Scope vec_scope.
 
 
-Ltac inversion_mat H :=
-  repeat match goal with
-         | [ m : mat |- _ ] => destruct m as [[[? ?] ?] ?]
-         | [ v : vec |- _ ] => destruct v as [? ?]
-         | [ H : context[mmult] |- _ ] => unfold mmult in H; simpl in H
-         | [ H : context[mplus] |- _ ] => unfold mplus in H; simpl in H
-         | [ H : context[mopp] |- _ ] => unfold mopp in H; simpl in H
-         | [ H : context[mminus] |- _ ] => unfold mminus in H; simpl in H
-         | [ H : context[scmat] |- _ ] => unfold scmat in H; simpl in H
-         | [ H : context[vmult] |- _ ] => unfold vmult in H; simpl in H
-         | [ H : context[scvec] |- _ ] => unfold scvec in H; simpl in H
-         | [ H : context[vplus] |- _ ] => unfold vplus in H; simpl in H
-         | [ H : context[v0] |- _ ] => unfold v0 in H; simpl in H
-         (* | [ H : (_, _) = (_, _) |- _ ] => destruct H *)
-         | _ => nra
-         end; inversion H.
-
 Lemma vec_eq_dec (v w : vec) : (v = w) \/ v <> w.
 Proof. auto_mat; destruct (Req_dec r1 r); destruct (Req_dec r2 r0); tauto. Qed.
 
@@ -35,6 +18,10 @@ Proof. auto_mat. Qed.
 
 Lemma vmult_scvec (l : R) (v : vec) (m : mat) :
   m *v (l **v v) = l ** m *v v.
+Proof. auto_mat. Qed.
+
+Lemma scvec_vmult l v m :
+  l **v (m *v v) = l ** m *v v.
 Proof. auto_mat. Qed.
 
 Lemma vmult_I_l v : I *v v = v.
@@ -77,19 +64,6 @@ Proof. unfold vec_norm.
        destruct v as [v1 v2].
        rewrite pow2_sqrt. simpl; nra. nra. Qed.
 
-Lemma vnonzero_norm v :
-  v <> v0 <-> vec_norm v <> 0.
-Proof.
-  split.
-  intros. unfold vec_norm.
-  destruct v as [ v1 v2 ].
-  apply vnonzero in H. intros contra. apply sqrt_eq_0 in contra. nra. nra.
-
-  destruct v as [ v1 v2 ].
-  intros. unfold vec_norm in H.
-  intros contra.
-  inversion_mat contra. subst.
-  replace (0 ^ 2 + 0 ^ 2)%R with 0 in H by nra. rewrite sqrt_0 in H. contradiction. Qed.
 
 Lemma vec_norm_scvec a v : vec_norm (a **v v) = (Rabs a * vec_norm v)%R.
 Proof.
@@ -321,7 +295,7 @@ Lemma mat_norm_spec m v :
 Proof.
   intros. rewrite <- Rabs_pos_eq by apply mat_norm_nonneg.
 
-  apply (le_pow 2). simpl; nra.
+  apply (le_pow 2). lia.
   rewrite mat_norm_eig.
   assert (Psym : sym (m ^T * m)) by (unfold sym; auto_mat).
   pose proof spectral _ Psym as [e1 [e2 [[e1non0 eig1] [[e2non0 eig2] [ort12 [norm1 norm2]]]]]].

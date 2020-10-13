@@ -1,35 +1,45 @@
 From Coq Require Import Bool ZArith Znumtheory micromega.Lia.
 
-From BY Require Import Zpower_nat.
+From BY Require Import Zpower_nat InductionPrinciples.
 
 Local Open Scope Z.
 
 Import Z.
 
+Lemma mod_pos a b (H : 0 <= b) : 0 <= a mod b.
+  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|apply mod_pos_bound]; lia. Qed.
+
+Lemma mod_pos_wbound a b (H : 0 <= b) : 0 <= a mod b <= b.
+  split; [apply mod_pos; lia|].
+  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|pose proof mod_pos_bound a b ltac:(lia)]; lia. Qed.
+
+Lemma mod_neg a b (H : b <= 0) : a mod b <= 0.
+  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|apply mod_neg_bound]; lia. Qed.
+
+Lemma mod_neg_wbound a b (H : b <= 0) : b <= a mod b <= 0.
+  split; [|apply mod_neg; lia].
+  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|pose proof mod_neg_bound a b ltac:(lia)]; lia. Qed.
+
 Lemma mod_lemma a b (H : b <= a < 2*b) : a mod b = a - b.
 Proof.
-  symmetry. destruct (b <=? 0) eqn:E.
-  - apply leb_le in E. apply mod_unique_neg with 1; lia.
-  - apply leb_gt in E. apply mod_unique_pos with 1; lia. Qed.
+  symmetry; destruct (Z_le_dec b 0); [apply mod_unique_neg with 1|apply mod_unique_pos with 1]; lia. Qed.
 
 Lemma mod_half a b (H : 0 <= b <= a) : a mod b <= a / 2.
 Proof.
-  destruct (eqb_spec b 0) as [->|?].
+  destruct (eq_dec b 0) as [->|?].
   - rewrite Zdiv.Zmod_0_r. apply div_pos; lia.
-  - pose proof (mod_pos_bound a b ltac:(lia)).    
+  - pose proof (mod_pos_bound a b ltac:(lia)).
     pose proof (mul_succ_div_gt a 2 ltac:(lia)).
     destruct (ltb_spec b (succ (a / 2))).
     + lia.
-    + assert (a < 2*b) by lia. 
+    + assert (a < 2*b) by lia.
       rewrite mod_lemma; lia. Qed.
 
 Lemma log2_half a (H : 0 < a) : log2 (a / 2) = log2 a - 1 \/ a = 1.
 Proof.
   rewrite <- div2_div, div2_spec, log2_shiftr by assumption.
-  unfold max; destruct (compare_spec 0 (log2 a - 1)).
-  - left. assumption.
-  - left. reflexivity.
-  - right. assert (log2 a = 0) by (pose proof log2_nonneg a; lia).
+  unfold max; destruct (compare_spec 0 (log2 a - 1)); auto.
+  - right; assert (log2 a = 0) by (pose proof log2_nonneg a; lia).
     apply log2_null in H1; lia. Qed.
 
 Lemma even_mul_2_l a : even (2 * a) = true.
@@ -43,7 +53,7 @@ Proof.
   split.
   - intros. apply even_spec in H. destruct H as [x]. exists x; lia.
   - intros [x ->]. apply even_mul_2_r. Qed.
-  
+
 Lemma odd_gcd a : odd a = true <-> gcd a 2 = 1.
 Proof.
   split; intros.
@@ -62,8 +72,6 @@ Lemma rel_prime_pow a b n (Hn : (1 <= n)%nat) : rel_prime a b <-> rel_prime a (b
 Proof.
   split; intro.
   - induction n.
-    (* rewrite Zpower.Zpower_nat_Zpower; [|lia]. *)
-    (* induction (abs_nat n). *)
     + apply rel_prime_sym; apply rel_prime_1.
     + destruct n.
       * rewrite Zpower_nat_1_r; assumption.
@@ -78,11 +86,10 @@ Proof. pose proof rel_prime_pow a 2 n Hn. pose proof odd_rel_prime a. tauto. Qed
 Lemma odd_pow2 n (H : (0 < n)%nat) : odd (2 ^+ n) = false.
 Proof.
   rewrite mul_base_pull; [|lia]; rewrite odd_mul; reflexivity. Qed.
-  
+
 Lemma odd_mod_pow2 a n (H : (0 < n)%nat) : odd (a mod 2 ^+ n) = odd a.
 Proof.
-  rewrite Zdiv.Zmod_eq_full. rewrite odd_sub. rewrite odd_mul, odd_pow2. 
-  rewrite andb_false_r, xorb_false_r. reflexivity.
+  rewrite Zdiv.Zmod_eq_full, odd_sub, odd_mul, odd_pow2, andb_false_r, xorb_false_r. reflexivity.
   lia. apply Zpower_nat_nonzero. lia. Qed.
 
 Lemma mod_equiv a b m (H : m <> 0) : a mod m = b mod m <-> (m | a - b).
@@ -127,7 +134,7 @@ Proof.
   - reflexivity.
   - rewrite <- negb_even in E. apply negb_false_iff in E. apply even_div in E.
     destruct E as [x]. destruct H0 as [z].
-    assert (2 | b).  exists (z * x).  lia. apply even_div in H2. rewrite <- negb_odd in H2. 
+    assert (2 | b).  exists (z * x).  lia. apply even_div in H2. rewrite <- negb_odd in H2.
     apply negb_true_iff in H2. congruence. Qed.
 
 Lemma gcd_odd_r a b : odd b = true -> odd (gcd a b) = true.
@@ -144,25 +151,37 @@ Proof. intros [x]; exists (a * x); lia. Qed.
 
 Lemma mod2_dec a : { a mod 2 = 0 } + { a mod 2 = 1 }.
 Proof. pose proof Zmod_even a; destruct (even a); auto. Qed.
-  
-Fixpoint fixp f n :=
-  match n with
-  | 0%nat => f 0%nat
-  | S n => if (f (S n)) =? 0 then f n else fixp f n
-  end.
 
-Lemma fixp_Sn f n :
-  fixp f (S n) = if (f (S n)) =? 0 then f n else fixp f n.
-Proof. reflexivity. Qed.
-  
+(* Fixpoint fixp f n := *)
+(*   match n with *)
+(*   | 0%nat => f 0%nat *)
+(*   | S n => if (f (S n)) =? 0 then f n else fixp f n *)
+(*   end. *)
+
+(* Lemma fixp_Sn f n : *)
+(*   fixp f (S n) = if (f (S n)) =? 0 then f n else fixp f n. *)
+(* Proof. reflexivity. Qed. *)
+
 Lemma min (f : nat -> Z) (H0 : f 0%nat <> 0) (H : exists N, f N = 0) :
   exists K, f K <> 0 /\ f (S K) = 0.
 Proof.
-  destruct H as [N]. 
+  destruct H as [N].
   induction N.
-  - lia. 
+  - lia.
   - destruct (eqb_spec (f N) 0).
     + apply IHN. assumption.
     + exists N. split.
       * assumption.
       * apply H. Qed.
+
+Lemma gcd_rel_prime a b c : gcd a b = 1 -> gcd a c = gcd a (b * c).
+Proof.
+  intros. symmetry. apply gcd_unique.
+  - apply gcd_nonneg.
+  - apply gcd_divide_l.
+  - apply divide_mul_r. apply gcd_divide_r.
+  - intros q qa qbc.
+    apply gauss in qbc.
+    + apply gcd_greatest; assumption.
+    + apply Zgcd_1_rel_prime. apply rel_prime_div with (p:=a).
+      apply Zgcd_1_rel_prime. assumption. assumption. Qed.

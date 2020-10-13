@@ -19,14 +19,14 @@ Lemma ord2_even g (Hg : even g = true) : (0 < ord2 g)%nat.
 Proof.
   destruct (eq_dec g 0) as [e|e]; [rewrite e; cbn; lia|].
   apply pval_lower_bound. assumption. lia.
-  simpl. apply even_divide. assumption. Qed.
+  apply even_divide. assumption. Qed.
 
 Lemma ord2_odd g (Hg : odd g = true) : (ord2 g = 0)%nat.
 Proof.
   apply pval_unique. apply odd_nonzero. assumption. lia.
   split.
   - apply divide_1_l.
-  - simpl; intros H. apply even_div in H. rewrite <- negb_even, H in Hg. inversion Hg. Qed.
+  - simpl; intros contra. apply even_div in contra. rewrite <- negb_even, contra in Hg. inversion Hg. Qed.
 
 Lemma odd_split2 g (Hg : g <> 0) : odd (split2 g) = true.
 Proof.
@@ -88,11 +88,9 @@ Proof.
     apply mod_pos_bound. lia.
   - unfold q. replace (ord2 g) with e by reflexivity.
     apply Zmod_divide. lia.
-    rewrite <- Zminus_mod_idemp_l.
-    rewrite Zmult_mod_idemp_l. rewrite <- mul_assoc.
-    rewrite <- Zmult_mod_idemp_r.
-    rewrite (mul_comm _ (split2 g)). rewrite mod_inv_spec, mul_1_r.
-    rewrite Zminus_mod_idemp_l. rewrite sub_diag, mod_0_l. reflexivity. lia. assumption. lia. Qed.
+    rewrite <- Zminus_mod_idemp_l, Zmult_mod_idemp_l, <- mul_assoc, <- Zmult_mod_idemp_r.
+    rewrite (mul_comm _ (split2 g)), mod_inv_spec, mul_1_r, Zminus_mod_idemp_l.
+    rewrite sub_diag, mod_0_l. reflexivity. lia. assumption. lia. Qed.
 
 Theorem q_unique f g (Hf : odd f = true) (Hg : g <> 0) q' :
   (odd q' = true) /\ (1 <= q' < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | q' * (split2 g) - f) -> q' = q f g.
@@ -263,7 +261,8 @@ Section __.
           rewrite R_recurrence.
           apply divide_sub_r.
           apply divide_mul_r. assumption.
-          apply divide_mul_r. assumption.  apply R_nonzero_S. assumption. assumption. assumption.
+          apply divide_mul_r. assumption.
+          apply R_nonzero_S. assumption. assumption. assumption.
           apply odd_rel_prime_pow.
           pose proof (ord2_even _ (R_even i R0_nonzero R1_even)). lia. assumption.
     - set (g' := split2 (R_ t)).
@@ -301,5 +300,4 @@ Section __.
         split; apply H5.
         rewrite <- abs_eq. apply divide_antisym_abs; assumption.
         unfold g. apply gcd_nonneg. Qed.
-
 End __.

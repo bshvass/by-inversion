@@ -32,7 +32,7 @@ Proof. induction n.
        - intros; rewrite Zpower_nat_succ_r; nia. Qed.
 
 Lemma Zpower_nat_mul_l a b : a * a ^+ b = a ^+ (S b).
-Proof. apply Zpower_nat_succ_r. Qed. 
+Proof. apply Zpower_nat_succ_r. Qed.
 
 Lemma Zpower_nat_mul_r a b : a ^+ b * a = a ^+ (S b).
 Proof. rewrite Zpower_nat_succ_r; lia. Qed.
@@ -46,3 +46,11 @@ Proof. intros; exists (a ^+ (n - 1)); rewrite Zpower_nat_mul_r; apply f_equal; l
 Lemma Zpower_nat_divide a n m : (m <= n)%nat -> (a ^+ m | a ^+ n).
 Proof. intros; exists (a ^+ (n - m)); rewrite <- Zpower_nat_is_exp; apply f_equal; lia. Qed.
 
+Lemma Zpower_nat_mul a b c : (a * b) ^+ c = a ^+ c * b ^+ c.
+Proof. induction c; [reflexivity|simpl; lia]. Qed.
+
+Lemma Zpower_nat_log2 a : 0 < a -> 2 ^+ (Z.to_nat (Z.log2 a)) <= a.
+Proof. rewrite Zpower_nat_Z, Z2Nat.id. apply Z.log2_spec. apply Z.log2_nonneg. Qed.
+
+Lemma Zpower_nat_log2_up a : 1 < a -> a <= 2 ^+ (Z.to_nat (Z.log2_up a)).
+Proof. rewrite Zpower_nat_Z, Z2Nat.id. apply Z.log2_up_spec. apply Z.log2_up_nonneg. Qed.

@@ -5,14 +5,31 @@ Import RinvImpl.
 Local Open Scope R.
 Local Coercion INR : nat >-> R.
 
+Lemma inv0 : / 0 = 0.
+  rewrite Rinv_def.
+  destruct (Req_appart_dec 0 R0). reflexivity.
+  destruct o; pose proof (Rlt_irrefl R0); contradiction. Qed.
+
 Lemma Rinv_pos_nonneg c : 0 < c -> 0 < / c.
 Proof.
   intros. replace (/ c) with (1 * (/ c)) by lra.
   apply Rlt_mult_inv_pos; lra. Qed.
 
-Lemma inv_pos c : 0 < c -> 0 <= / c.
+Lemma Rinv_neg_nonpos c : c < 0 -> / c < 0.
 Proof.
-  now intros; apply Rlt_le; apply Rinv_pos_nonneg. Qed.
+  intros. replace (/ c) with (-(1 * (/ (-c)))).
+  replace 0 with (- 0) by lra.
+  apply Ropp_lt_contravar.
+  apply Rlt_mult_inv_pos. lra. lra. rewrite <- Ropp_inv_permute. lra. lra. Qed.
+
+Lemma inv_pos c : 0 <= c -> 0 <= / c.
+Proof.
+  destruct (Req_dec c 0); [subst; rewrite inv0; lra|].
+  intros; apply Rlt_le. pose proof Rinv_pos_nonneg c. lra. Qed.
+
+Lemma inv_neg c : c <= 0 -> / c <= 0.
+  destruct (Req_dec c 0); [subst; rewrite inv0; lra|].
+  intros; apply Rlt_le. pose proof Rinv_neg_nonpos c. lra. Qed.
 
 Lemma Rle_div_r a b c : 0 < c ->  a <= b / c <-> c * a <= b.
 Proof.
@@ -32,19 +49,41 @@ Proof.
   field_simplify in H0; lra.
   left. apply Rinv_pos_nonneg; assumption. Qed.
 
+Lemma Rmult_le_compat_neg_r: forall r r1 r2 : R, r <= 0 -> r1 <= r2 -> r2 * r <= r1 * r.
+Proof. intros. nra. Qed.
+
+Lemma Rle_div_neg_r a b c : c < 0 ->  a <= b / c <-> b <= c * a.
+Proof.
+  split; intros.
+  replace b with (c * (b / c)) by (field; lra).
+  apply Rmult_le_compat_neg_l; lra.
+  apply (Rmult_le_compat_neg_r (/ c)) in H0.
+  field_simplify in H0; lra.
+  left. apply Rinv_neg_nonpos; assumption. Qed.
+
+Lemma Rle_div_neg_l a b c : b < 0 -> a / b <= c <-> b * c <= a.
+Proof.
+  split; intros.
+  replace a with (b * (a / b)) by (field; lra).
+  apply Rmult_le_compat_neg_l; lra.
+  apply (Rmult_le_compat_neg_r (/ b)) in H0.
+  field_simplify in H0; lra.
+  left. apply Rinv_neg_nonpos; assumption. Qed.
 
 Lemma eq_div a b c : c <> 0 -> a / c = b <-> a = b * c.
 Proof.
   split; intros; subst; field; assumption. Qed.
 
-Lemma le_pow (n : nat) a b (Hn : 0 < n) : a ^ n <= b ^ n -> a <= Rabs b.
+Lemma le_pow (n : nat) a b (Hn : (0 < n)%nat) : a ^ n <= b ^ n -> a <= Rabs b.
 Proof.
   destruct (Rle_lt_dec a 0) as [Ha|Ha]; intros.
   - eapply Rle_trans. apply Ha. apply Rabs_pos.
   - assert (0 < a ^ n) by (apply pow_lt; assumption).
     destruct (Req_EM_T b 0).
-    + subst. rewrite pow_i in H. lra. apply INR_lt. replace (INR 0%nat) with 0 by reflexivity. assumption.
-    + apply Rabs_no_R0 in n0.
+    + subst. rewrite pow_i in H. lra. lia.
+    +
+      apply lt_INR in Hn. replace (INR 0) with (IZR 0) in Hn by reflexivity.
+      apply Rabs_no_R0 in n0.
       pose proof (Rabs_pos b).
       assert (0 < Rabs b) by lra.
       rewrite <- (Rabs_pos_eq (b ^ _)) in H by lra.
@@ -52,8 +91,29 @@ Proof.
       rewrite <- (Rpower_1 a), <- Rpower_1 by assumption.
       replace 1 with (n * / n) by (field; lra).
       rewrite <- !Rpower_mult.
-      apply Rle_Rpower_l. apply Rlt_le, Rinv_pos_nonneg; assumption.
+      apply Rle_Rpower_l. apply Rlt_le, Rinv_pos_nonneg. lra.
       rewrite !Rpower_pow by lra. lra. Qed.
+
+Lemma lt_pow (n : nat) a b (Hn : 0 < n) : a ^ n < b ^ n -> a < Rabs b.
+Proof.
+  destruct (Rlt_dec a 0) as [Ha|Ha]; intros.
+  - eapply Rlt_le_trans. apply Ha. apply Rabs_pos.
+  - assert (0 <= a ^ n) by (apply pow_le; lra).
+    destruct (Req_EM_T b 0).
+    + subst. rewrite pow_i in H. lra. apply INR_lt. replace (INR 0%nat) with 0 by reflexivity. assumption.
+    + apply Rabs_no_R0 in n0.
+      pose proof (Rabs_pos b).
+      assert (0 < Rabs b) by lra.
+      rewrite <- (Rabs_pos_eq (b ^ _)) in H by lra.
+      rewrite <- RPow_abs in H.
+      destruct (Req_dec 0 a).
+      * subst. assumption.
+      * rewrite <- (Rpower_1 a), <- Rpower_1 by lra.
+        replace 1 with (n * / n) by (field; lra).
+        rewrite <- !Rpower_mult.
+        apply Rlt_Rpower_l. apply Rinv_pos_nonneg; assumption.
+        rewrite !Rpower_pow by lra. split. apply pow_lt. lra.
+        lra. Qed.
 
 Lemma mult_pow2 x : x * x = x ^ 2.
 Proof. field. Qed.
@@ -109,18 +169,24 @@ Proof.
 Lemma inv_mul a b (Ha : a <> 0) (Hb : b <> 0) : / (a * b) = / a * / b.
 Proof. field; auto. Qed.
 
-Lemma inv0 : / 0 = 0.
-  rewrite Rinv_def.
-  destruct (Req_appart_dec 0 R0). reflexivity.
-  destruct o; pose proof (Rlt_irrefl R0); contradiction. Qed.
-
 Lemma div_0_r a : a / 0 = 0.
   now unfold Rdiv; rewrite inv0, Rmult_0_r. Qed.
 Lemma div_0_l a : 0 / a = 0.
   now unfold Rdiv; rewrite Rmult_0_l. Qed.
 
-Lemma div_pos a b : 0 <= a -> 0 < b -> 0 <= a / b.
-Proof. intros; rewrite div_mul_inv; apply Rle_mult_inv_pos; assumption. Qed.
+Lemma div_pos_pos a b : 0 <= a -> 0 <= b -> 0 <= a / b.
+Proof. destruct (Req_dec b 0); [subst; rewrite div_0_r; lra|].
+       intros; rewrite div_mul_inv; apply Rle_mult_inv_pos; lra. Qed.
+
+Lemma div_neg_pos a b : a <= 0 -> b <= 0 -> 0 <= a / b.
+Proof. destruct (Req_dec b 0); [subst; rewrite div_0_r; lra|].
+       intros; rewrite div_mul_inv. pose proof inv_neg b H1. nra. Qed.
+
+Lemma div_pos_nonneg a b : (0 < a -> 0 < b -> 0 < a / b).
+Proof. apply Rdiv_lt_0_compat. Qed.
+
+Lemma div_neg_nonneg a b : (a < 0 -> b < 0 -> 0 < a / b).
+Proof. intros Ha Hb. pose proof Rinv_neg_nonpos b Hb. rewrite div_mul_inv. nra. Qed.
 
 Lemma add_pos a b : 0 <= a -> 0 <= b -> 0 <= a + b.
 Proof. lra. Qed.
@@ -147,3 +213,7 @@ Proof.
 
 Lemma Rle_div a b c : 0 <= c -> a <= b -> a / c <= b / c.
 Proof. intros. apply Rmult_le_compat_r. apply inv_pos'. assumption. assumption. Qed.
+
+Lemma Rlt_div a b c : 0 < c -> a < b -> a / c < b / c.
+Proof.
+  intros. apply Rmult_lt_compat_r. apply Rinv_pos_nonneg. assumption. assumption. Qed.

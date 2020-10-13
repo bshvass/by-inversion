@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas BigOp PadicVal Matrix.
+From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas BigOp PadicVal Matrix Rlemmas IZR Log Floor.
 
 Import Z.
 Local Open Scope Z.
@@ -12,9 +12,6 @@ Arguments Z.sub : simpl never.
 Arguments Z.add : simpl never.
 
 Local Coercion of_nat : nat >-> Z.
-
-Notation big_sum := (@big_op _ Z.add 0%Z).
-Notation big_sum_nat := (@big_op _ Nat.add 0%nat).
 
 Section __.
 
@@ -52,7 +49,7 @@ Section __.
       rewrite Zpower_nat_mul_l. apply Zpower_nat_nonzero. lia.
       rewrite Zpower_nat_mul_l. apply Zpower_nat_nonneg. lia.
       lia. lia. Qed.
- 
+
   Lemma divstep_lemma1 i j (i_bound : (1 <= i)%nat) (sum_bound : (1 <= j + i < S e)%nat) :
     divstep_iter i f (g / 2 ^+ i) j = (j + i, f, g / 2 ^+ (j + i)).
   Proof.
@@ -69,13 +66,13 @@ Section __.
       rewrite <- Zpower_nat_is_exp. replace ((j + i) + (ord2 g - (j + i)))%nat with (ord2 g) by lia.
       apply pval_spec. apply g_non0. lia.
 
-      rewrite Zmod_even. rewrite <- negb_odd. 
-      
+      rewrite Zmod_even. rewrite <- negb_odd.
+
       rewrite H, H0. simpl. apply f_equal2; [apply f_equal2|]. lia. lia.
 
       rewrite mul_0_l, add_0_r, Zdiv_Zdiv. apply f_equal. ring.
       apply Zpower_nat_nonneg. lia. lia.     lia. Qed.
-  
+
   Lemma divstep_lemma2 i j (j_bound : (0 <= j + i < S e)%nat) :
     divstep_iter (1 - e + i) (split2 g) (z i) j = (j + 1 - e + i, split2 g, z (j + i)).
   Proof.
@@ -94,7 +91,7 @@ Section __.
     rewrite <- Nat2Z.inj_0.
     apply Z.ltb_lt. apply inj_lt. apply ord2_even. apply g_even. rewrite H.
     rewrite odd_split2. reflexivity. apply g_non0. Qed.
-  
+
   Lemma z_div j :
     2 ^+ (S j) * z j  = sum j * split2 g - f.
   Proof.
@@ -107,9 +104,9 @@ Section __.
     - simpl. replace (2 * (2 * 2 ^+ j) * ((z j + z j mod 2 * split2 g) / 2)) with
                  (((2 ^+ S j) * z j) + (2 * 2 ^+ j) * (z j mod 2 * split2 g)).
 
-      rewrite IHj. 
+      rewrite IHj.
       rewrite big_op_S_r. lia. lia.
-      
+
       rewrite (mul_comm 2 (2 * _)).
       rewrite <- (mul_assoc _ 2).
       rewrite <- Z_div_exact_2. simpl. ring. lia.
@@ -136,7 +133,7 @@ Section __.
       assert (2 * 2 ^+ j = 2 ^+ (S j)) by reflexivity. nia. lia. Qed.
 
   Notation q' := (1 + big_sum (fun i => 2 * 2 ^+ i * (z i mod 2)) 0%nat e).
-  
+
   Lemma q'_div :
     (2 ^+ (S e) | q' * split2 g - f).
   Proof. eexists. symmetry. rewrite mul_comm. apply z_div. Qed.
@@ -152,16 +149,6 @@ Section __.
   Lemma q'q : q' = q f g.
   Proof. apply q_unique. apply f_odd. apply g_non0.
          split; [|split]. apply q'_odd. apply q'_bound. apply q'_div. Qed.
-
-  (* Lemma z_spec : exists q', odd q' = true /\ (1 <= q' < 2 ^+ (S e)) /\ 2 ^+ (S e) * z e = q' * split2 g - f. *)
-  (* Proof. *)
-  
-  (*   induction e eqn:E. *)
-  (*   - exists 1. repeat split. lia. rewrite Nat.mul_0_r. unfold z. rewrite Zpower_nat_1. *)
-  (*     rewrite <- Z_div_exact_full_2. lia. lia. apply mod_divide. lia. *)
-  (*     apply even_divide. rewrite even_sub. *)
-  (*     rewrite <- !negb_odd. rewrite f_odd. rewrite odd_split2. reflexivity. apply g_non0. *)
-  (*   -  *)
 
   Theorem G1 :
     divstep_iter 1%nat f (g / 2) (2 * e) = (1 , split2 g , (- (f mod2 g)) / 2 ^+ S e).
@@ -179,274 +166,262 @@ Section __.
     rewrite divstep_iter_S'.
     fold (split2 g).
     rewrite divstep_lemma3.
-    replace (1 - e) with (1 - e + of_nat 0) by lia. 
+    replace (1 - e) with (1 - e + of_nat 0) by lia.
     rewrite divstep_lemma2.
     apply f_equal2; [apply f_equal2|]. lia. reflexivity.
     rewrite Nat.add_0_r.
     rewrite z_eq. rewrite q'q. reflexivity. lia. lia. lia. Qed.
-
 End __.
 
-Context {R0 R1 : Z}.
-Context {R0_odd : odd R0 = true}
-        {R1_even : even R1 = true}
-        {R1_non0 : R1 <> 0}.
+Section __.
+  Variables (R0 R1 : Z).
+  Hypothesis R0_odd : odd R0 = true.
+  Hypothesis R1_even : even R1 = true.
+  Hypothesis R1_non0 : R1 <> 0.
 
-Local Notation R_ i := (R_ R0 R1 i).
-Local Notation e i := (ord2 (R_ i)).
+  Local Notation R_ i := (R_ R0 R1 i).
+  Local Notation e i := (ord2 (R_ i)).
+  Local Notation w j := (big_sum_nat (fun i => e (S i)) 0 j).
 
-Theorem G2 j (H : R_ j <> 0) :
-  divstep_iter 1 R0 (R1 / 2) (2 * (big_sum_nat (fun i => e (S i)) 0 j))%nat =
-  (1, split2 (R_ j), (R_ (S j)) / 2).
-Proof.
-  induction j.
-  - simpl. rewrite split2_odd by apply R0_odd. reflexivity.
-  - rewrite R_S_S. Compute (10 mod2 0).
-    replace (R_ (S j) =? 0) with false by (symmetry; apply Z.eqb_neq; lia).
-    rewrite big_op_S_r.
-    rewrite Nat.mul_add_distr_l.
-    rewrite divstep_iter_add.
-    rewrite IHj.
-    rewrite Zdiv_Zdiv, Zpower_nat_mul_r. 
-    eapply G1.
+  Theorem G2 j (H : R_ j <> 0) :
+    divstep_iter 1 R0 (R1 / 2) (2 * (w j))%nat =
+    (1, split2 (R_ j), (R_ (S j)) / 2).
+  Proof.
+    induction j.
+    - simpl. rewrite split2_odd by apply R0_odd. reflexivity.
+    - rewrite R_S_S. Compute (10 mod2 0).
+      replace (R_ (S j) =? 0) with false by (symmetry; apply Z.eqb_neq; lia).
+      rewrite big_op_S_r.
+      rewrite Nat.mul_add_distr_l.
+      rewrite divstep_iter_add.
+      rewrite IHj.
+      rewrite Zdiv_Zdiv, Zpower_nat_mul_r.
+      eapply G1.
 
-    apply Zpower_nat_nonneg. lia. lia. apply R_nonzero_S. apply odd_nonzero. apply R0_odd.
-    assumption. lia. Unshelve. apply odd_split2.
-    apply R_nonzero_S. apply odd_nonzero. apply R0_odd.
-    assumption. apply R_even. apply odd_nonzero. apply R0_odd.
-    apply R1_even. assumption. Qed.
+      apply Zpower_nat_nonneg. lia. lia. apply R_nonzero_S. apply odd_nonzero. apply R0_odd.
+      assumption. lia. Unshelve. apply odd_split2.
+      apply R_nonzero_S. apply odd_nonzero. apply R0_odd.
+      assumption. apply R_even. apply odd_nonzero. apply R0_odd.
+      apply R1_even. assumption. Qed.
 
-(* Local Notation t := (Nat.max 67 (Z.to_nat (up (log_1024_633 (vec_norm (IZR R0, IZR R1))))))%nat. *)
+  Theorem G3 :
+    (exists t G, divstep_iter 1 R0 (R1 / 2) (2 * (big_sum_nat (fun i => e (S i)) 0 t))%nat = (1, G, 0) /\ abs G = gcd R0 R1) /\
+    forall d f n, divstep_iter 1 R0 (R1 / 2) n = (d, f, 0) -> abs f = gcd R0 R1.
+  Proof. apply and_lemma.
+         destruct (F26_cor2 R0_odd R1_even) as [t [Rt_non0 RSt_0]]. exists t, (split2 (R_ t)); split.
+         rewrite G2. rewrite RSt_0. rewrite Z.div_0_l. reflexivity. lia. assumption. apply E3. apply R0_odd. apply R1_even.
+         apply RSt_0. apply Rt_non0.
 
-Theorem G3 :
-  (exists t G, divstep_iter 1 R0 (R1 / 2) (2 * (big_sum_nat (fun i => e (S i)) 0 t))%nat = (1, G, 0) /\ abs G = gcd R0 R1) /\
-  forall d f n, divstep_iter 1 R0 (R1 / 2) n = (d, f, 0) -> abs f = gcd R0 R1.
-Proof. apply and_lemma. 
-  destruct (F26_cor2 R0_odd R1_even) as [t [Rt_non0 RSt_0]]. exists t, (split2 (R_ t)); split.
-  rewrite G2. rewrite RSt_0. rewrite Z.div_0_l. reflexivity. lia. assumption. apply E3. apply R0_odd. apply R1_even.
-  apply RSt_0. apply Rt_non0. 
+         intros.
+         destruct H as [t [G [H1 H2]]].
+         set (w := big_sum_nat (fun i : nat => e (S i)) 0 t) in *.
+         assert ((d + (2 * w)%nat, f, 0) = (1 + n, G, 0)).
+         rewrite <- (divstep_iter_0 1 R0 (R1 / 2) 1 G (2 * w)) by assumption.
+         rewrite <- (divstep_iter_0 1 R0 (R1 / 2) d f n) by assumption.
+         rewrite Nat.add_comm. reflexivity. inversion H. assumption. Qed.
 
-  intros.
-  destruct H as [t [G [H1 H2]]].
-  set (w := big_sum_nat (fun i : nat => e (S i)) 0 t) in *.
-  assert ((d + (2 * w)%nat, f, 0) = (1 + n, G, 0)).
-  rewrite <- (divstep_iter_0 1 R0 (R1 / 2) 1 G (2 * w)) by assumption.
-  rewrite <- (divstep_iter_0 1 R0 (R1 / 2) d f n) by assumption.
-  rewrite Nat.add_comm. reflexivity. inversion H. assumption. Qed.
+  Local Open Scope R.
+  Local Coercion IZR : Z >-> R.
+  Local Notation b := (log 2 (vec_norm (IZR R0, IZR R1))).
 
-(* Compute (repeat 5%Z) 20000%nat. *)
+  Lemma b_spec : Rpower 2 b = vec_norm (IZR R0, IZR R1).
+  Proof.
+    apply Rpower_log.
+    epose proof (vec_norm_nonneg (IZR R0, IZR R1)).
+    epose proof (proj1 (vnonzero R0 R1)) _.
+    epose proof (proj1 (vnonzero_norm _)) H0. lra. lra.
+    Unshelve. left. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
 
-Ltac test_all :=
-  repeat match goal with
-         | [ H : ?lower <= ?a < ?upper |- _ ] =>
-           try lia; destruct (Z.eq_dec a lower) as [e|]; [rewrite e; reflexivity|];
-           assert (1 + lower <= a < upper) by lia; clear H
-         end; lia.
+  Theorem G4 : exists x y, divstep_iter 1 R0 (R1 / 2) (to_nat (floor (19 * b / 17))) = (x, y, 0%Z).
+  Proof. Admitted.
 
-Fixpoint test_all_fix a bound fuel :=
-  match fuel with
-  | 0%nat => true
-  | S fuel => if (a ^ 2 <? bound) then  test_all_fix (a + 1) bound fuel else false
-  end.
-
-Fixpoint old_alg a b n fuel acc bound acc1 acc2 :=
-  if (a ^ 2 >=? acc) && (negb (a =? 0)) then (acc,acc1,acc2) else
-    match fuel with
-    | 0%nat => (-1 ,acc1, acc2)
-    | S fuel => match a ^ 2 + b ^ 2 >=? 2 ^ bound with
-               | true => if b <=? 0
-                        then old_alg a (b + 2) n fuel acc bound acc1 acc2
-                        else old_alg (a + 2) (Z.land ((- sqrt (2 ^ (2 * bound) - (a + 2) ^ 2))) (-2)) n fuel acc bound acc1 acc2
-               | false => if (fix needs_n_steps d a b n :=
-                               match n with
-                               | 0%nat => true
-                               | S n => if b =? 0 then false else
-                                         let '(d', a', b') := divstep d a b in needs_n_steps d' a' b' n
-                               end) 1 a (Z.shiftr b 1) n
-                         then if (acc =? -1) || (a^2 + b ^2 <=? acc)
-                              then old_alg a (b + 2) n fuel (a ^ 2 + b ^ 2) bound a b
-                              else old_alg a (b + 2) n fuel acc bound acc1 acc2
-                         else old_alg a (b + 2) n fuel acc bound acc1 acc2
-               end
-    end.
-
-Fixpoint needs_n_steps d a b n :=
-  match n with
-  | 0%nat => true
-  | S n => if b =? 0
-          then false
-          else let '(d', a', b') := divstep d a b in needs_n_steps d' a' b' n
-  end.
-
-(* Fixpoint min_needs_n_list_clever a b fuel := *)
-(*   match fuel with *)
-(*   | 0 => [] *)
-(*           | S fuel  *)
-
-(* Require Import String. *)
-
-(* Local Open Scope string_scope. *)
-
-Fixpoint min_needs_n_steps a b n (acc : Z) fuel :=
-  match fuel with
-  | 0%nat => -1
-  | S fuel =>  if (a ^ 2 >=? acc) && (negb (acc =? -1)%Z)
-              then acc
-              else if (a ^ 2 + b ^ 2 >=? acc) && (negb (acc =? -1)%Z)
-                   then min_needs_n_steps (a + 2) 0 n acc fuel
-                   else if needs_n_steps 1 a (b / 2) n || needs_n_steps 1 a ((- b) / 2) n
-                        then min_needs_n_steps (a + 2) 0 n
-                                               (if (acc =? -1)%Z
-                                                then (a ^ 2 + b ^ 2)
-                                                else (min (a ^ 2 + b ^ 2) acc)) fuel
-                        else min_needs_n_steps a (b + 2) n acc fuel 
-  end.
-
-Require Import Program.
-
-Program Fixpoint min_needs_n_steps_nat a b n (acc : Z) fuel {measure fuel (N.lt)} :=
-  match fuel with
-  | 0%N => -1
-  | _ =>  if (a ^ 2 >=? acc) && (negb (acc =? -1)%Z)
-              then acc
-              else if (a ^ 2 + b ^ 2 >=? acc) && (negb (acc =? -1)%Z)
-                   then min_needs_n_steps_nat (a + 2) 0 n acc (N.pred fuel)
-                   else if needs_n_steps 1 a (b / 2) n || needs_n_steps 1 a ((- b) / 2) n
-                        then min_needs_n_steps_nat (a + 2) 0 n
-                                               (if (acc =? -1)%Z
-                                                then (a ^ 2 + b ^ 2)
-                                                else (min (a ^ 2 + b ^ 2) acc)) (N.pred fuel)
-                        else min_needs_n_steps_nat a (b + 2) n acc (N.pred fuel)
-  end.
-
-Solve Obligations with try lia.
-Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
-
-(* Fixpoint enum a b n acc := *)
-(*   match n with *)
-(*   | 0 => (a, b) *)
-(*   | S n => if (a + 2) ^ 2 + b ^ 2 >=? a ^ 2 + (b + 2) ^ 2 *)
-(*           then enum (a + 2) 0 *)
-
-Require Import Coq.Numbers.Cyclic.Int63.Int63.
-Check int.
-
-Local Open Scope int63.
-
-Definition asr a := set_digit (lsr a 1) 62 (get_digit a 62).
-
-Definition divstep_int (d f g : int) :=
-  if (get_digit (opp d) 62) && (negb (is_even g))
-  then (1 - d, g, asr (g - f))
-  else (1 + d, f, asr (g + (g land 1) * f)).
-
-Fixpoint needs_n_steps_int (d a b : int) n :=
-  match n with
-  | 0%nat => true
-  | S n => if (b == 0)
-          then false
-          else let '(d', a', b') := divstep_int d a b in needs_n_steps_int d' a' b' n
-  end.
-
-Local Coercion to_Z : int >-> Z.
-Definition test_needs_n_steps_int d a b n := (needs_n_steps_int d a b n) == (needs_n_steps d a b n).
-
-Definition int_min a b := if a < b then a else b.
-
-Program Fixpoint min_needs_n_steps_nat_int (a b : int) n (acc : int) fuel {measure fuel (N.lt)} :=
-  match fuel with
-  | 0%N => 1 << 61
-  | _ =>  if (leb acc (mul a a))
-              then acc
-              else if (leb acc (add (mul a a) (mul b b)))
-                   then min_needs_n_steps_nat_int (a + 2) 0 n acc (N.pred fuel)
-                   else if needs_n_steps_int 1 a (b >> 1) n || needs_n_steps_int 1 a (opp (b >> 1)) n
-                        then min_needs_n_steps_nat_int (a + 2) 0 n (int_min (a * a + b * b) acc) (N.pred fuel)
-                        else min_needs_n_steps_nat_int a (b + 2) n acc (N.pred fuel)
-  end.
-
-Solve Obligations with try lia.
-Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
-
-Definition bignumber_int:=(min_needs_n_steps_nat_int 1 0 35 (1 << 62) (2 ^ 43)).
-Definition bignumber:=(min_needs_n_steps_nat 1 0 30 (-1) (2 ^ 43)).
-
-(* Time Compute min_needs_n_steps_nat_int 1 0 30 (1 << 61) (2 ^ 42). (* 7839829 // 27sec *) *)
-(* Time Compute min_needs_n_steps_nat 1 0 30 (-1) (2 ^ 42). (* 7839829 // 255sec *) *)
-
-(* Time Eval vm_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22). *)
-(* Time Eval native_compute in min_needs_n_steps_nat 1 0 22 (-1) (2 ^ 22). *)
-
-(* Require Import ExtrOcamlIntConv.  (* Should convert coq's numbers to ocaml numbers. *) *)
-(* Require Import ExtrOcamlZBigInt. *)
-Require Import ExtrOCamlInt63.
-
-(* " NB: The extracted code should be linked with nums.cm(x)a from ocaml's stdlib and with the wrapper big.ml that simplifies the use of Big_int (it can be found in the sources of Coq). " 
-https://ocaml.org/releases/4.04/htmlman/libnum.html
-*)
-
-(* For precision we should change to Int63 and use 
-Requrie Import ExtrOCamlInt63. 
-This would also compute faster in Coq, I understand.
- *)
-
-(* Extract Constant Int63.land => "land". *)
-(* Extract Constant Int63.lxor => "lxor". *)
-(* Extract Constant Int63.lor => "lor". *)
-
-(* Extract Constant Int63.sub => "sub_int". *)
-(* Extract Constant Int63.add => "add_int". *)
-(* Extract Constant Int63.mul => "mult_int". *)
-(* Extract Constant Int63.ltb => "lt_int". *)
-(* Extract Constant Int63.leb => "le_int". *)
-(* Extract Constant Int63.lsl => "lshift_left". *)
-(* Extract Constant Int63.lsr => "lshift_right". *)
-(* Extract Constant Int63.eqb => "eq_int". *)
-(* Extract Constant Int63.int => "int". *)
-
-(* Extraction "test" bignumber. *)
-Extraction "test" bignumber_int.
-(* Time Eval native_compute in min_needs_n_steps_nat 1 0 25 (-1) (2 ^ 22). *)
-
-(* Time Compute min_needs_n_steps_nat_alt 1 0 25 (-1) ((2 ^ 30)%N). *)
-
-(* Fixpoint table_maker d a b n table fuel := *)
-(*   match fuel with *)
-(*   | 0%nat => [(-1,-1)] *)
-(*   | S fuel => match table with *)
-(*              | [] => if needs_n_steps d a b 0 *)
-(*                     then table_maker d a b ((a ^ 2 + b ^ 2, 0)) *)
-(*                                      else table_maker  *)
-(*                                   |  *)
+  Notation it := (to_nat
+                    (if Rle_dec b 21
+                     then floor (19 * b / 17)
+                     else if Rle_dec b 46
+                          then floor ((49 * b + 23) / 17)
+                          else floor (49 * b / 17))).
 
 
-(* Compute min_needs_n_steps 1 (Z.land (- sqrt (2 ^ 30 - 1 ^ 2)) (-2)) 6 (2 ^ 30) (-1) 15 0 0. *)
-  
-(* Fixpoint enum_all a b l divstep_fuel fuel := *)
-(*   match fuel with *)
-(*   | 0%nat => [] *)
-(*   | S fuel => match a ^ 2 + b ^ 2 >=? 2 ^ 42 with *)
-(*           | true => enum_all (a + 1) 0 l divstep_fuel fuel *)
-(*           | false => (fix divstep_needed a b fuel := *)
-(*                        match fuel with *)
-(*                        | 0%nat => [(0, 0)] *)
-(*                     | S fuel => ) *)
+  Lemma IZR_lt_le (a b : Z) : a < b -> a + 1 <= b.
+  Proof. intros. apply lt_IZR in H. autorewrite with pull_izr. apply IZR_le. lia. Qed.
 
-(* Local Notation b := ((log2 (sqrt (R0 ^ 2 + R1 ^ 2)))). *)
+  Lemma Q2R_alpha_high n : Q2R (alpha_high n) = (633 / 1024) ^ n.
+  Proof.
+    unfold alpha_high.
+    rewrite !RMicromega.Q2RpowerRZ.
+    rewrite <- !pow_powerRZ.
+    rewrite !Q2R_div. apply f_equal2. lra. reflexivity. unfold Qeq. simpl. lia. right. lia. Qed.
 
-(* Theorem G4 : exists x y, divstep_iter 1 R0 (R1 / 2) (19 * b / 17) = (x, y, 0). *)
-(* Proof. Admitted. *)
+  Lemma inv_div_1 a : / a = 1 / a.
+  Proof. lra. Qed.
 
-(* Notation it := (if b <=? 21 *)
-(*                  then 19 * b / 7 *)
-(*                  else if b <=? 46 *)
-(*                       then (49 * b + 23) / 17 *)
-(*                       else 49 * b). *)
+  Local Open Scope R.
 
-(* Theorem G6 : exists x y, divstep_iter 1 R0 (R1 / 2) (to_nat it) = (x, y, 0). *)
-(* Proof. *)
-(*   destruct (le_dec b 21). *)
+  Theorem G6 : exists x y, divstep_iter 1 R0 (R1 / 2) it = (x, y, 0%Z).
+  Proof.
+    destruct (Rle_dec b 21) eqn:E.
+    destruct G4 as [x [y]]. eauto.
 
-(*   assert (H : b <=? 21 = true) by (apply Z.leb_le; apply Z2Nat.inj_le; lia); rewrite H. apply G4. *)
-  
-  
+    assert (log 2 633 < 456 / 49).
+    { apply log_upper_bound. lra. lra.
+
+      rewrite <- Rabs_pos_eq.
+      apply (lt_pow 49). replace 0 with (INR 0). apply lt_INR. lia. reflexivity.
+
+      rewrite <- (Rpower_pow 49 (Rpower _ _)).
+      rewrite Rpower_mult. replace (456 / 49 * (INR 49)) with 456.
+      replace 456 with (INR 456%nat).
+      rewrite Rpower_pow. lra. lra. apply INR_IZR_INZ.
+      replace (INR 49%nat) with 49. lra. symmetry; apply INR_IZR_INZ.
+      apply Rpower_pos_nonneg.
+      apply Rlt_le. apply Rpower_pos_nonneg. }
+
+    assert (ineq1 : (59 < floor ((49 * b) / 17))%Z).
+    { apply lt_IZR. apply floor_lower_bound. nra. }
+    assert (ineq2 : (floor ((49 * b) / 17) <= it)%Z).
+    { apply le_IZR. rewrite E.
+      destruct (Rle_dec b 46); rewrite Z2Nat.id by (apply le_IZR; apply floor_pos; lra).
+      - apply floor_inc. lra.
+      - reflexivity. }
+    assert (ineq3 : (60 <= it)%Z). lia.
+
+    destruct (@F26_cor2 R0 R1 R0_odd R1_even) as [t [H1 H2]].
+    pose proof E3 R0 R1 t R0_odd R1_even H2 H1.
+    pose proof G2 t H1.
+
+    enough (2 * w t <= it)%nat.
+    { eapply divstep_iter_0'.
+      rewrite E in H4. apply H4. rewrite G2. rewrite H2. reflexivity. assumption. }
+
+    destruct (le_dec (2 * w t) it); [assumption|].
+
+    rewrite E in *.
+
+    epose proof F6 (split2 (R_ t)) (R_ (S t)) _. Unshelve.
+    pose proof (@F25 R0 R1 t R0_odd H1).
+    pose proof Rle_trans _ _ _ H4 H5.
+
+    assert (31 <= w t)%Z. lia.
+
+    epose proof log_inc 2 _ _ _ (conj _ H6).
+    rewrite log_1 in H8. rewrite log_mult in H8.
+
+    assert (log 2 (1 / (Q2R (alpha (w t)))) <= b).
+    { rewrite log_div, log_1. lra. lra. replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. apply RMicromega.Q2R_0. }
+
+    Require Import Qpower.
+
+    assert (it + 1 <= 2 * (w t)). rewrite E.
+    rewrite <- mult_IZR.
+    apply IZR_lt_le. apply IZR_lt. lia.
+
+    assert (34 / 49 < log 2 (1024 / 633)).
+
+    {  rewrite log_div.
+
+       replace 1024 with (2 ^ 10) by lra.
+       rewrite log_pow_id.
+
+       replace (INR 10%nat) with 10. lra. symmetry; apply INR_IZR_INZ. lra. lra. lra. lra. }
+
+
+    destruct (le_dec 67 (w t)).
+    - rewrite alpha67 in H9 by assumption.
+      rewrite Q2R_alpha_high in H9.
+
+      assert (w t * log 2 ( 1024 / 633 ) <= b).
+      replace (IZR (of_nat (w t))) with (INR (w t)).
+      rewrite <- log_pow. replace ((1024 / 633) ^ w t) with (1 / (633 / 1024) ^ w t). assumption.
+      rewrite !pow_div. field. split. apply Rfunctions.pow_nonzero. lra. apply Rfunctions.pow_nonzero. lra. lra. lra.
+      apply div_pos_nonneg. lra. lra.
+
+      apply INR_IZR_INZ.
+      assert (67 <= w t)%Z. lia.
+      assert (34 * (w t) / 49 < b). nra.
+
+      assert (2 * (w t) < 49 * b / 17).
+      nra. assert (it + 1 < 49 * b / 17). lra.
+
+      assert ((floor (49 * b / 17)) <= floor ((49 * b + 23) / 17)).
+      apply floor_inc. nra.
+
+      assert (it <= floor ((49 * b + 23) / 17)).
+      rewrite E. destruct (Rle_dec b 46). apply IZR_le. lia.
+      apply IZR_le. apply le_IZR in H17. lia.
+
+      assert (floor (49 * b / 17) + 1 < 49 * b / 17). rewrite E in *. apply IZR_le in ineq2.
+      lra.
+      pose proof floor_spec (49 * b / 17). lra.
+
+    - assert (Q2R (alpha (w t)) < Rpower 2 (- (34 * (w t) - 23) / 49)).
+      rewrite <- Rabs_pos_eq. apply (lt_pow 49).
+
+
+      Ltac zlra := rewrite !INR_IZR_INZ; autorewrite with pull_izr; apply IZR_lt; lia.
+      Ltac zlra2 :=
+        match goal with
+        | _ => progress autorewrite with pull_izr
+        | [ |- _ <= _ ] => apply IZR_le
+        | [ |- _ < _ ] => apply IZR_lt
+        end; lia.
+
+      zlra.
+
+      rewrite <- !Rpower_pow.
+      rewrite Rpower_mult. replace (- (34 * w t - 23) / 49 * INR 49) with (- (34 * w t - 23)).
+
+      rewrite !INR_IZR_INZ.
+      rewrite Rpower_Ropp.
+
+      rewrite inv_div_1.
+
+      autorewrite with pull_izr.
+      rewrite <- !powerRZ_Rpower.
+
+      replace 2 with (Q2R 2).
+      rewrite <- !RMicromega.Q2RpowerRZ.
+
+      replace 1 with (Q2R 1).
+      rewrite <- Q2R_div.
+
+      apply Qlt_Rlt. apply alpha31. lia.
+
+      apply Qpower_nonzero. qia_goal. lra. left; qia_goal.
+      right. lia. lra. lra. replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
+      rewrite !INR_IZR_INZ. field. apply Rpower_pos_nonneg.
+      replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
+
+      apply Rlt_le. apply Rpower_pos_nonneg.
+
+      assert ((34 * w t - 23) / 49 <= b).
+      etransitivity. shelve. apply H9.
+      assert (2 * (w t) <= (49 * b + 23) / 17). lra.
+      assert (it + 1 <= (49 * b + 23) / 17). lra.
+
+      destruct (Rle_dec b 46) eqn:E2.
+      rewrite E in *.
+      rewrite Z2Nat.id in H10.
+      pose proof (floor_spec ((49 * b + 23) / 17)) as [spec1 spec2]. lra.
+      apply le_IZR. apply floor_pos. apply div_pos_pos. lra. lra.
+      rewrite E in *.
+      assert (floor (49 * 46 / 17) <= it).
+      rewrite E, E2. rewrite Z2Nat.id. apply floor_inc. lra.
+      apply le_IZR. apply floor_pos. lra. assert (2 * (w t) <= 132). rewrite <- mult_IZR. zlra2.
+
+      assert (132 = floor (49 * 46 / 17)). apply IZR_eq.
+      apply floor_eq. lra. lra.
+
+      rewrite E, E2 in *. lra.
+    - replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
+    - epose proof proj1 (vnonzero_norm (IZR R0, IZR R1)) _.
+      pose proof vec_norm_nonneg (IZR R0, IZR R1). lra.
+    - apply vnonzero. left. apply IZR_neq. apply psplit_non0. lia. assumption.
+      Unshelve. lra. lra. apply log_le_lower_bound. lra.
+      rewrite <- (Ropp_involutive (_ / _)). rewrite Rpower_Ropp. apply Rle_div_r.
+      replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
+      apply Rle_div_l. apply Rpower_pos_nonneg. replace (- ((34 * w t - 23) / 49)) with (- (34 * w t - 23) / 49). lra. lra.
+
+      apply vnonzero. left. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
+
+End __.

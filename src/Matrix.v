@@ -141,6 +141,23 @@ Ltac auto_mat :=
          | _ => nra
          end.
 
+Ltac inversion_mat H :=
+  repeat match goal with
+         | [ m : mat |- _ ] => destruct m as [[[? ?] ?] ?]
+         | [ v : vec |- _ ] => destruct v as [? ?]
+         | [ H : context[mmult] |- _ ] => unfold mmult in H; simpl in H
+         | [ H : context[mplus] |- _ ] => unfold mplus in H; simpl in H
+         | [ H : context[mopp] |- _ ] => unfold mopp in H; simpl in H
+         | [ H : context[mminus] |- _ ] => unfold mminus in H; simpl in H
+         | [ H : context[scmat] |- _ ] => unfold scmat in H; simpl in H
+         | [ H : context[vmult] |- _ ] => unfold vmult in H; simpl in H
+         | [ H : context[scvec] |- _ ] => unfold scvec in H; simpl in H
+         | [ H : context[vplus] |- _ ] => unfold vplus in H; simpl in H
+         | [ H : context[v0] |- _ ] => unfold v0 in H; simpl in H
+         (* | [ H : (_, _) = (_, _) |- _ ] => destruct H *)
+         | _ => nra
+         end; inversion H.
+
 Lemma mmult_I_l m : I * m = m.
 Proof. auto_mat. Qed.
 
@@ -161,6 +178,20 @@ Lemma vnonzero v1 v2 :
   v1 <> 0 \/ v2 <> 0 <-> [v1 ; v2] <> v0.
 Proof. split. intros [v10n | v20] v_not0; inversion v_not0; contradiction.
        destruct (Req_dec v1 0); destruct (Req_dec v2 0); subst; try tauto. Qed.
+
+Lemma vnonzero_norm v :
+  v <> v0 <-> vec_norm v <> 0.
+Proof.
+  split.
+  intros. unfold vec_norm.
+  destruct v as [ v1 v2 ].
+  apply vnonzero in H. intros contra. apply sqrt_eq_0 in contra. nra. nra.
+
+  destruct v as [ v1 v2 ].
+  intros. unfold vec_norm in H.
+  intros contra.
+  inversion_mat contra. subst.
+  replace (0 ^ 2 + 0 ^ 2)%R with 0 in H by nra. rewrite sqrt_0 in H. contradiction. Qed.
 
 Lemma mat_norm_vmult m v :
   vec_norm (m *v v) <= mat_norm m * vec_norm v.
@@ -185,10 +216,10 @@ Proof.
 
   rewrite <- Rabs_pos_eq by (assert_pow; assert_sqrt; nra).
 
-  apply (le_pow 2). simpl; lra.
+  apply (le_pow 2). lia. 
 
   rewrite Rpow_mult_distr, pow2_sqrt by (assert_pow; nra).
-
+ 
   psatz R. Qed.
 
 Lemma mat_norm_nonneg m :
@@ -197,3 +228,6 @@ Proof. auto_mat. apply sqrt_pos. Qed.
 
 Lemma vec_norm_nonneg v :  0 <= vec_norm v.
 Proof. auto_mat. apply sqrt_pos. Qed.
+
+Lemma vec_norm_pos_nonneg v (vnon0 : v <> v0) : 0 < vec_norm v.
+Proof. pose proof vnonzero_norm v. pose proof vec_norm_nonneg v. apply H in vnon0. lra. Qed.
