@@ -7,6 +7,7 @@ src/Section9.v
 src/Tactics.v
 src/Spectral.v
 src/BigOp.v
+src/MatrixZ.v
 src/Matrix.v
 src/SetoidRewrite.v
 src/IZR.v
