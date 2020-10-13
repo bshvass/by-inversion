@@ -3,6 +3,7 @@ src/Divstep.v
 src/AppendixE.v
 src/AppendixF.v
 src/AppendixG.v
+src/AppendixEusingInt.v
 src/Section9.v
 src/Tactics.v
 src/Spectral.v
@@ -18,5 +19,14 @@ src/Rlemmas.v
 src/Zlemmas.v
 src/Zpower_nat.v
 src/SsrIntRingTactic.v
+src/BYInv.v
 src/Comp2/Definitions.v
-
+src/Comp2/Definition.v
+src/Comp2/SmallValues.v
+src/Comp2/Extraction.v
+src/Comp2/MediumValues.v
+src/Log.v
+src/Rtail.v
+src/Floor.v
+src/Section11.v
+src/TheoremE1.v
