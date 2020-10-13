@@ -1,2 +1,2 @@
 Install csdp, on linux
-  sudo apt-get coinor-csdp
+  sudo apt-get install coinor-csdp
