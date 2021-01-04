@@ -1,6 +1,6 @@
 Require Import ZArith micromega.Lia.
 
-From BY Require Import Zpower_nat AppendixE.
+From BY Require Import Zpower_nat AppendixE PadicVal.
 
 Local Open Scope Z.
 

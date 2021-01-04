@@ -13,13 +13,13 @@ src/Matrix.v
 src/MatrixZ.v
 src/ModInv.v
 src/PadicVal.v
+src/Q.v
 src/Rlemmas.v
 src/Rtail.v
 src/Section11.v
 src/Section9.v
 src/SetoidRewrite.v
 src/Spectral.v
-src/SsrIntRingTactic.v
 src/Tactics.v
 src/Zlemmas.v
 src/Zpower_nat.v

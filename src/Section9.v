@@ -8,6 +8,8 @@ Local Open Scope vec_scope.
 
 Import Z.
 
+Notation big_mmult_rev := (fun n m f => @big_op_rev _ mmult I f n m).
+
 Theorem _9_1_1 d f g (n m : nat) : (m <= n)%nat -> Z.odd f = true ->
     2 ^+ (n - m) **v [ fn d f g n ; gn d f g n ]=
     big_mmult_rev m n (fun i => Tn d f g i) *v [ fn d f g m ; gn d f g m ].

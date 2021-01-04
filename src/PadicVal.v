@@ -5,6 +5,11 @@ From BY Require Import Zpower_nat Zlemmas.
 Local Open Scope Z.
 Import Z.
 
+(*************************************************************************)
+(** Specification and implementation of the p-adic valuation on integers *)
+(** (note that p-adic valuation can be extended to Q)                    *)
+(*************************************************************************)
+
 Fixpoint pval_aux n p a :=
   match n with
   | 0%nat => 0%nat
@@ -12,6 +17,11 @@ Fixpoint pval_aux n p a :=
           then S (pval_aux n p (a / p))
           else 0%nat
   end.
+
+Definition pval p a :=
+  pval_aux (S (to_nat (log2 (abs a)))) p (abs a).
+
+Definition psplit p a := a / (p ^+ (pval p a)).
 
 Lemma pval_aux_spec n p a
       (H : log2 a < of_nat n)
@@ -35,9 +45,6 @@ Proof.
     + rewrite Zpower_nat_0_r, Zpower_nat_1_r. split.
       * apply Z.divide_1_l.
       * intro. apply mod_divide in H0. lia. lia. Qed.
-
-Definition pval p a :=
-  pval_aux (S (to_nat (log2 (abs a)))) p (abs a).
 
 Lemma pval_spec p a (Ha : a <> 0) (Hp : 1 < p) :
   (p ^+ (pval p a) | a) /\ ~ (p ^+ (S (pval p a)) | a).
@@ -77,8 +84,6 @@ Proof.
 Lemma pval_opp p a : pval p (-a) = pval p a.
 Proof. unfold pval; rewrite abs_opp; reflexivity. Qed.
 
-Definition psplit p a := a / (p ^+ (pval p a)).
-
 Lemma psplit_opp p a (Ha : a <> 0) (Hp : 1 < p) : - psplit p a = psplit p (-a).
 Proof.
   unfold psplit. rewrite Z_div_zero_opp_full, pval_opp; [reflexivity|].
@@ -109,3 +114,34 @@ Proof.
   destruct contra as [contra1|contra2].
   - epose proof divide_pos_le (p ^+ pval p a) a ltac:(lia) _. lia. Unshelve. apply pval_spec; assumption.
   - epose proof Zpower_nat_nonneg p (pval p a) _. lia. Unshelve. lia. Qed.
+
+(*********************************************************)
+(** Specific notations and theorems for 2-adic valuation *)
+(*********************************************************)
+
+Notation ord2 g := (pval 2 g).
+Notation split2 g := (psplit 2 g).
+
+Lemma ord2_even g (Hg : even g = true) : (0 < ord2 g)%nat.
+Proof.
+  destruct (eq_dec g 0) as [e|e]; [rewrite e; cbn; lia|].
+  apply pval_lower_bound. assumption. lia.
+  apply even_divide. assumption. Qed.
+
+Lemma ord2_odd g (Hg : odd g = true) : (ord2 g = 0)%nat.
+Proof.
+  apply pval_unique. apply odd_nonzero. assumption. lia.
+  split.
+  - apply divide_1_l.
+  - simpl; intros contra. apply even_div in contra. rewrite <- negb_even, contra in Hg. inversion Hg. Qed.
+
+Lemma odd_split2 g (Hg : g <> 0) : odd (split2 g) = true.
+Proof.
+  apply odd_gcd; apply Zgcd_1_rel_prime; apply rel_prime_sym.
+  apply prime_rel_prime; [apply prime_2|apply psplit_spec; lia]. Qed.
+
+Lemma split2_odd g (Hg : odd g = true) : split2 g = g.
+Proof. unfold split2; rewrite ord2_odd by assumption; apply div_1_r. Qed.
+
+Lemma split2_0 : split2 0 = 0.
+Proof. reflexivity. Qed.

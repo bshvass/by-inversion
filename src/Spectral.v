@@ -8,6 +8,11 @@ Local Open Scope list_scope.
 Local Open Scope mat_scope.
 Local Open Scope vec_scope.
 
+(************************************************************************************************)
+(** This files contains a formal proof of the spectral theorem of 2x2 matrices over the R type  *)
+(** It furthermore contains proofs of properties of the operator norm on 2x2 matrices which use *)
+(** eigenvalues and the spectral theorem.                                                       *)
+(************************************************************************************************)
 
 Lemma vec_eq_dec (v w : vec) : (v = w) \/ v <> w.
 Proof. auto_mat; destruct (Req_dec r1 r); destruct (Req_dec r2 r0); tauto. Qed.
@@ -30,7 +35,6 @@ Proof. auto_mat. Qed.
 Lemma vmult_mminus_distr_r m1 m2 v :
   (m1 - m2) *v v = m1 *v v -v m2 *v v.
 Proof. auto_mat. Qed.
-
 
 Lemma mnonzero m11 m12 m21 m22 :
   m11 <> 0 \/ m12 <> 0 \/ m21 <> 0 \/ m22 <> 0 <-> [ m11 , m12 ; m21 , m22 ] <> m0.
@@ -64,7 +68,6 @@ Proof. unfold vec_norm.
        destruct v as [v1 v2].
        rewrite pow2_sqrt. simpl; nra. nra. Qed.
 
-
 Lemma vec_norm_scvec a v : vec_norm (a **v v) = (Rabs a * vec_norm v)%R.
 Proof.
   unfold vec_norm. destruct v as [v1 v2]. simpl.
@@ -75,6 +78,8 @@ Proof.
   apply f_equal2. reflexivity.
   apply f_equal. nra. nra. Qed.
 
+Lemma vec_norm_nonneg v :  0 <= vec_norm v.
+Proof. auto_mat. apply sqrt_pos. Qed.
 
 Lemma det_zero m :
   det m = 0 -> exists v, v <> v0 /\ m *v v = v0.
@@ -290,7 +295,7 @@ Lemma max_inequality a b c d :
   (d <= c -> 0 <= a -> 0 <= b -> a + b = 1 -> a * c + b * d <= c)%R.
 Proof. nra. Qed.
 
-Lemma mat_norm_spec m v :
+Lemma mat_norm_spec1 m v :
   vec_norm v = 1 -> vec_norm (m *v v) <= mat_norm m.
 Proof.
   intros. rewrite <- Rabs_pos_eq by apply mat_norm_nonneg.
@@ -318,11 +323,40 @@ Proof.
   rewrite (inner_sym e2 e1) in H.
   rewrite <- !inner_vec_norm, ort12, norm1, norm2 in H. nra. Qed.
 
+Lemma e1_norm :
+  vec_norm [1; 0] = 1.
+Proof.
+  unfold vec_norm. rewrite pow_i, pow1, Rplus_0_r, sqrt_1 by lia. reflexivity. Qed.
+
+Lemma mat_norm_spec2 m a :
+  (forall v, vec_norm v = 1 -> vec_norm (m *v v) <= a) -> (mat_norm m <= a).
+Proof.
+  intros.
+  assert (0 <= a).
+  { specialize (H [1; 0] e1_norm). etransitivity. apply vec_norm_nonneg. apply H. }
+  rewrite <- Rabs_pos_eq by assumption.
+  apply (le_pow 2). lia.
+
+  rewrite mat_norm_eig.
+  assert (Psym : sym (m ^T * m)) by (unfold sym; auto_mat).
+  pose proof spectral _ Psym as [e1 [e2 [[e1non0 eig1] [[e2non0 eig2] [ort12 [norm1 norm2]]]]]].
+  specialize (H e1 norm1).
+  rewrite <- (Rabs_pos_eq (vec_norm _)) in H by apply vec_norm_nonneg.
+  apply pow_maj_Rabs with (n:=2%nat) in H.
+  rewrite inner_vec_norm, trans_adj in H.
+  rewrite <- !mmult_vmult in H.
+  rewrite eig1 in H. rewrite !inner_mult_l in H.
+  rewrite <- !inner_vec_norm, norm1 in H. lra. Qed.
+
 Lemma vmult_v0 m : m *v v0 = v0.
 Proof. auto_mat. Qed.
 
 Lemma vec_norm_v0 : vec_norm v0 = 0.
 Proof. auto_mat; field_simplify (0 * (0 * 1) + 0 * (0 * 1))%R; apply sqrt_0. Qed.
+
+(***************************************************************)
+(** Note that this theorem has an equational proof in Matrix.v *)
+(***************************************************************)
 
 Lemma mat_norm_vmult m v :
   vec_norm (m *v v) <= mat_norm m * vec_norm v.
@@ -333,8 +367,27 @@ Proof.
     rewrite vmult_scvec. rewrite scmat_vmult.
     rewrite !vec_norm_scvec. rewrite (Rmult_comm (mat_norm m)).
     rewrite normal_vec_norm.
-    pose proof mat_norm_spec m _ (normal_vec_norm _ H).
+    pose proof mat_norm_spec1 m _ (normal_vec_norm _ H).
     pose proof Rabs_pos (vec_norm v). nra. assumption.
     unfold normal_vec. rewrite scvec_scvec.
     replace (vec_norm v * / vec_norm v)%R with 1%R. auto_mat.
     field. apply vnonzero_norm. assumption. Qed.
+
+(*************************************************************************)
+(** Note that this theorem DOES NOT have an equational proof in Matrix.v *)
+(** Neither does mat_norm_spec2 (which this is a corollary of.           *)
+(** The reason for this is plainly that the norm of a product of         *)
+(** matrices have a terribly unhandy equation which several sqrt term.   *)
+(** I am certain that you can come up with a pure algebraic proof of     *)
+(** this theorem though I am uncertaing how it looks.                    *)
+(*************************************************************************)
+
+Lemma mat_norm_mmult n m :
+  mat_norm (n * m) <= mat_norm n * mat_norm m.
+Proof.
+  apply mat_norm_spec2.
+  intros.
+  rewrite mmult_vmult, mat_norm_vmult.
+  pose proof (mat_norm_vmult m v). rewrite H in H0.
+  pose proof (mat_norm_nonneg n).
+  pose proof (mat_norm_nonneg m). nra. Qed.

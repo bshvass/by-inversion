@@ -174,4 +174,3 @@ Proof. split; auto with matrix. Qed.
 Instance Mat_monoid : Monoid mmult I.
 Proof. split; auto with matrix. Qed.
 
-Notation big_mmult_rev := (fun n m f => @big_op_rev _ mmult I f n m).

@@ -2,7 +2,7 @@ From Coq Require Import Bool List.
 From Coq Require Import ZArith Znumtheory micromega.Lia.
 From Coq Require Import Reals Rbase micromega.Lra.
 
-From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Matrix IZR.
+From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Matrix IZR Rlemmas.
 
 Import Z RinvImpl.
 
@@ -12,42 +12,11 @@ Local Open Scope Z.
 Lemma and_lemma (P Q : Prop) (H1 : P) (H2 : P -> Q) : P /\ Q.
 Proof. tauto. Qed.
 
-Notation ord2 g := (pval 2 g).
-Notation split2 g := (psplit 2 g).
-
-Lemma ord2_even g (Hg : even g = true) : (0 < ord2 g)%nat.
-Proof.
-  destruct (eq_dec g 0) as [e|e]; [rewrite e; cbn; lia|].
-  apply pval_lower_bound. assumption. lia.
-  apply even_divide. assumption. Qed.
-
-Lemma ord2_odd g (Hg : odd g = true) : (ord2 g = 0)%nat.
-Proof.
-  apply pval_unique. apply odd_nonzero. assumption. lia.
-  split.
-  - apply divide_1_l.
-  - simpl; intros contra. apply even_div in contra. rewrite <- negb_even, contra in Hg. inversion Hg. Qed.
-
-Lemma odd_split2 g (Hg : g <> 0) : odd (split2 g) = true.
-Proof.
-  apply odd_gcd; apply Zgcd_1_rel_prime; apply rel_prime_sym.
-  apply prime_rel_prime; [apply prime_2|apply psplit_spec; lia]. Qed.
-
-Lemma split2_odd g (Hg : odd g = true) : split2 g = g.
-Proof. unfold split2; rewrite ord2_odd by assumption; apply div_1_r. Qed.
-
-Lemma split2_0 : split2 0 = 0.
-Proof. reflexivity. Qed.
+(**********************************************************)
+(** Specification and implementation of q, mod2 and div2 **)
+(**********************************************************)
 
 Definition q f g := ((f * (mod_inv (split2 g) (2 ^+ (S (ord2 g))))) mod (2 ^+ (S (ord2 g))))%Z.
-
-Lemma q_0_r a : q a 0 = 0.
-Proof. unfold q; cbn; rewrite Z.mul_0_r; reflexivity. Qed.
-
-Lemma q_0_l a : q 0 a = 0.
-Proof.
-  unfold q. rewrite Z.mul_0_l, Z.mod_0_l. reflexivity.
-  apply Zpower_nat_nonzero; lia. Qed.
 
 Definition div_2 f g : R :=
   q f g / 2 ^+ ord2 g.
@@ -58,68 +27,84 @@ Definition mod_2 f g : Z :=
 Notation "a 'mod2' b" := (mod_2 a b) (at level 50).
 Notation "a 'div2' b" := (div_2 a b) (at level 30).
 
-Lemma mod2_0_r a : a mod2 0 = a.
-Proof. unfold mod_2; rewrite q_0_r, Z.sub_0_r; reflexivity. Qed.
+Section __.
+  Context ( f g : Z )
+          ( f_odd : odd f = true ).
 
-Lemma mod2_0_l a : 0 mod2 a = 0.
-Proof. unfold mod_2; rewrite q_0_l, Z.mul_0_l; reflexivity. Qed.
+  Lemma q_0_r a : q a 0 = 0.
+  Proof. unfold q; cbn; rewrite Z.mul_0_r; reflexivity. Qed.
 
-Lemma div2_mod2 f g (g0 : (g <> 0)%Z) : IZR f = ((f div2 g) * g + (f mod2 g))%R.
-Proof.
-  unfold div_2, mod_2, split2. rewrite minus_IZR, mult_IZR, div_IZR. field.
-  apply IZR_neq. apply Zpower_nat_nonzero. lia.
-  apply pval_spec. lia. lia. Qed.
+  Lemma q_0_l a : q 0 a = 0.
+  Proof.
+    unfold q. rewrite Z.mul_0_l, Z.mod_0_l. reflexivity.
+    apply Zpower_nat_nonzero; lia. Qed.
 
-Theorem q_spec f g (Hf : odd f = true) (Hg : g <> 0) :
-  (odd (q f g) = true) /\ (1 <= q f g < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | (q f g) * (split2 g) - f).
-Proof.
-  set (e := ord2 g).
-  assert (H1 : 1 < 2 ^+ (S e)) by (apply Zpower_nat_gt1; lia).
-  assert (H2 : rel_prime (split2 g) (2 ^+ (S e))).
-  { apply rel_prime_pow. lia. apply Zgcd_1_rel_prime. apply odd_gcd. apply odd_split2. assumption. }
-  apply and_lemma; [|split].
-  - unfold q.
-    rewrite odd_mod_pow2.
-    rewrite odd_mul, Hf, andb_true_l. apply odd_gcd. apply Zgcd_1_rel_prime.
-    apply (rel_prime_pow _ _ (S e)). lia. apply prime_inv. lia.
-    exists (split2 g). rewrite mul_comm. apply mod_inv_spec. assumption. lia. lia.
-  - assert (q f g <> 0) by (apply odd_nonzero; assumption).
-    enough (0 <= q f g < 2 ^+ S e). lia.
-    apply mod_pos_bound. lia.
-  - unfold q. replace (ord2 g) with e by reflexivity.
-    apply Zmod_divide. lia.
-    rewrite <- Zminus_mod_idemp_l, Zmult_mod_idemp_l, <- mul_assoc, <- Zmult_mod_idemp_r.
-    rewrite (mul_comm _ (split2 g)), mod_inv_spec, mul_1_r, Zminus_mod_idemp_l.
-    rewrite sub_diag, mod_0_l. reflexivity. lia. assumption. lia. Qed.
+  Lemma mod2_0_r a : a mod2 0 = a.
+  Proof. unfold mod_2; rewrite q_0_r, Z.sub_0_r; reflexivity. Qed.
 
-Theorem q_unique f g (Hf : odd f = true) (Hg : g <> 0) q' :
-  (odd q' = true) /\ (1 <= q' < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | q' * (split2 g) - f) -> q' = q f g.
-Proof.
-  pose proof (q_spec f g ltac:(auto) ltac:(auto)) as [q_odd [q_bound q_div]].
-  intros [q'_odd [q'_bound q'_div]].
-  assert (2 ^+ (S (ord2 g)) | (q f g) - q').
-  apply (Gauss _ (split2 g)). replace ((split2 g) * ((q f g) - q')) with ((q f g) * (split2 g) - f - (q' * (split2 g) - f)) by ring.
-  apply divide_sub_r; auto.
-  apply rel_prime_sym. apply rel_prime_pow. lia.
-  apply odd_rel_prime. apply odd_split2. assumption.
-  apply mod_equiv in H. rewrite !mod_small in H; lia. lia. Qed.
+  Lemma mod2_0_l a : 0 mod2 a = 0.
+  Proof. unfold mod_2; rewrite q_0_l, Z.mul_0_l; reflexivity. Qed.
 
-Theorem E1 f (Hf : odd f = true) g (Hg : g <> 0) :
-  exists! q, (odd q = true) /\ (1 <= q < 2 ^+ S (ord2 g)) /\ (2 ^+ (S (ord2 g)) | q * (split2 g) - f).
-Proof. exists (q f g); split; [apply q_spec; assumption|symmetry; apply q_unique; assumption]. Qed.
+  Lemma div2_mod2 (g0 : (g <> 0)%Z) : IZR f = ((f div2 g) * g + (f mod2 g))%R.
+  Proof.
+    unfold div_2, mod_2, split2. rewrite minus_IZR, mult_IZR, div_IZR. field.
+    apply IZR_neq. apply Zpower_nat_nonzero. lia.
+    apply pval_spec; lia. Qed.
 
-Lemma mod2_div f g (Hf : odd f = true) (Hg : g <> 0) : (2 ^+ (S (ord2 g)) | f mod2 g).
-Proof.
-  unfold mod_2. apply Zdivide_opp_r_rev.
-  replace (- (f - q f g * split2 g)) with ((q f g) * (split2 g) - f) by ring.
-  apply q_spec; assumption. Qed.
+  Theorem q_spec (Hg : g <> 0) :
+    (odd (q f g) = true) /\ (1 <= q f g < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | (q f g) * (split2 g) - f).
+  Proof.
+    set (e := ord2 g).
+    assert (H1 : 1 < 2 ^+ (S e)) by (apply Zpower_nat_gt1; lia).
+    assert (H2 : rel_prime (split2 g) (2 ^+ (S e))).
+    { apply rel_prime_pow. lia. apply Zgcd_1_rel_prime. apply odd_gcd. apply odd_split2; assumption. }
+    apply and_lemma; [|split].
+    - unfold q.
+      rewrite odd_mod_pow2.
+      rewrite odd_mul, f_odd, andb_true_l. apply odd_gcd. apply Zgcd_1_rel_prime.
+      apply (rel_prime_pow _ _ (S e)). lia. apply prime_inv. lia.
+      exists (split2 g). rewrite mul_comm. apply mod_inv_spec. assumption. lia. lia.
+    - assert (q f g <> 0) by (apply odd_nonzero; assumption).
+      enough (0 <= q f g < 2 ^+ S e). lia.
+      apply mod_pos_bound. lia.
+    - unfold q. replace (ord2 g) with e by reflexivity.
+      apply Zmod_divide. lia.
+      rewrite <- Zminus_mod_idemp_l, Zmult_mod_idemp_l, <- mul_assoc, <- Zmult_mod_idemp_r.
+      rewrite (mul_comm _ (split2 g)), mod_inv_spec, mul_1_r, Zminus_mod_idemp_l.
+      rewrite sub_diag, mod_0_l. reflexivity. lia. assumption. lia. Qed.
 
-Lemma mod2_div' f g (Hf : odd f = true) (Hg : g <> 0) : (2 ^+ (ord2 g) | f mod2 g).
-Proof. transitivity (2 ^+ (S (ord2 g))). exists 2. reflexivity. apply mod2_div; assumption. Qed.
+  Theorem q_unique (Hg : g <> 0) q' :
+    (odd q' = true) /\ (1 <= q' < 2 ^+ (S (ord2 g))) /\ (2 ^+ (S (ord2 g)) | q' * (split2 g) - f) -> q' = q f g.
+  Proof.
+    pose proof (q_spec ltac:(auto)) as [q_odd [q_bound q_div]].
+    intros [q'_odd [q'_bound q'_div]].
+    assert (2 ^+ (S (ord2 g)) | (q f g) - q').
+    apply (Gauss _ (split2 g)). replace ((split2 g) * ((q f g) - q')) with ((q f g) * (split2 g) - f - (q' * (split2 g) - f)) by ring.
+    apply divide_sub_r; auto.
+    apply rel_prime_sym. apply rel_prime_pow. lia.
+    apply odd_rel_prime. apply odd_split2. assumption.
+    apply mod_equiv in H. rewrite !mod_small in H; lia. lia. Qed.
+
+  Theorem E1 (Hg : g <> 0) :
+    exists! q, (odd q = true) /\ (1 <= q < 2 ^+ S (ord2 g)) /\ (2 ^+ (S (ord2 g)) | q * (split2 g) - f).
+  Proof. exists (q f g); split; [apply q_spec; assumption|symmetry; apply q_unique; assumption]. Qed.
+
+  Lemma mod2_div (Hg : g <> 0) : (2 ^+ (S (ord2 g)) | f mod2 g).
+  Proof.
+    unfold mod_2. apply Zdivide_opp_r_rev.
+    replace (- (f - q f g * split2 g)) with ((q f g) * (split2 g) - f) by ring.
+    apply q_spec; assumption. Qed.
+
+  Lemma mod2_div' (Hg : g <> 0) : (2 ^+ (ord2 g) | f mod2 g).
+  Proof. transitivity (2 ^+ (S (ord2 g))). exists 2. reflexivity. apply mod2_div; assumption. Qed.
+End __.
+
+(********************************************************************************)
+(** This section defines the Rj number sequence and proves its relation to gcd. *)
+(********************************************************************************)
 
 Section __.
-
-  Variables (R0 R1 : Z).
+  Context (R0 R1 : Z).
 
   Fixpoint R_ i :=
     match i with
@@ -260,9 +245,9 @@ Section __.
         * eapply Gauss.
           rewrite R_recurrence.
           apply divide_sub_r.
-          apply divide_mul_r. assumption.
-          apply divide_mul_r. assumption.
-          apply R_nonzero_S. assumption. assumption. assumption.
+          apply divide_mul_r; assumption.
+          apply divide_mul_r; assumption.
+          apply R_nonzero_S; assumption. assumption.
           apply odd_rel_prime_pow.
           pose proof (ord2_even _ (R_even i R0_nonzero R1_even)). lia. assumption.
     - set (g' := split2 (R_ t)).
@@ -281,18 +266,17 @@ Section __.
         * intros. destruct k as [| [|k] ]; [assumption|assumption|].
           rewrite !Nat.pred_succ in *.
           eapply Gauss.
-          rewrite R_recurrence'.
+          rewrite R_recurrence'; try assumption.
           apply divide_sub_r.
-          apply divide_mul_r. assumption.
-          apply divide_mul_r. assumption.
+          apply divide_mul_r; assumption.
+          apply divide_mul_r; assumption.
 
-          apply R_nonzero with (i := t). assumption. assumption. lia. assumption.
+          apply R_nonzero with (i := t); try lia; assumption.
 
           apply odd_rel_prime_pow.
-          pose proof (ord2_even _ (R_even k R0_nonzero R1_even)). lia.
-          apply odd_split2. assumption.
-
-      + rewrite R_zero with (i := S t). apply divide_0_r. assumption. assumption. lia.
+          pose proof (ord2_even _ (R_even k R0_nonzero R1_even)); lia.
+          apply odd_split2; assumption.
+      + rewrite R_zero with (i := S t). apply divide_0_r; assumption. assumption. lia. lia.
       + assert (g' | g).
         apply gcd_divide_iff.
         replace R0 with (R_ 0) by reflexivity.

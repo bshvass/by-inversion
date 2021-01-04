@@ -87,10 +87,10 @@ Proof.
     { unfold b. Rpos. apply F6. apply vnonzero. right. apply IZR_neq. assumption. }
 
   assert (eq1 : (Rpower 4 b = (f ^+ 2 + 4 * g ^+ 2)%Z)%R).
-  { replace 4%R with (2 * 2)%R by lra. rewrite <- Rpower_mult_distr. unfold b. rewrite Rpower_log. unfold vec_norm.
+  { replace 4%R with (2 * 2)%R by lra. rewrite <- Rpower_mult_distr by lra. unfold b. rewrite Rpower_log. unfold vec_norm.
     rewrite sqrt_sqrt. unfold R0, R1.
     autorewrite with push_izr. lra. nra.
-    apply vec_norm_pos_nonneg. apply vnonzero. right. apply IZR_neq. assumption. lra. lra. lra. }
+    apply vec_norm_pos_nonneg. apply vnonzero. right. apply IZR_neq. assumption. lra. lra. }
 
   assert (bbound : (b <= IZR d + log 4 5)%R).
   { apply IZR_le in fgbound. rewrite <- eq1 in fgbound.
@@ -100,32 +100,32 @@ Proof.
 
   assert (nlem : (n <= m)%nat).
   { replace m with (to_nat (of_nat m)) by lia. apply Z2Nat.inj_le.
-    destruct_if; try apply floor_posZ.
+    destruct_if; try apply floor_pos.
     Rpos. Rpos. Rpos. lia.
     destruct_if.
     { assert (H1 : floor (19 * b / 17) <= floor (49 * b / 17)).
-      { apply floor_incZ. nra. }
+      { apply floor_inc. nra. }
       assert (H2 : (floor (49 * b / 17)) <= floor (49 * (d + log 4 5) / 17)).
-      { apply floor_incZ. nra. }
+      { apply floor_inc. nra. }
       assert (H3 : floor (49 * (d + log 4 5) / 17) <= floor ((49 * d + 57) / 17)).
-      { apply floor_incZ. lra. }
+      { apply floor_inc. lra. }
       lia. }
     { destruct (lt_dec d 46)%nat.
       { assert (H1 : floor ((49 * b + 23) / 17) <= floor ((49 * (d + log 4 5) + 23) / 17)).
-        { apply floor_incZ. lra. }
+        { apply floor_inc. lra. }
         assert (H2 : floor ((49 * (d + log 4 5) + 23) / 17) <= floor ((49 * d + 80) / 17)).
-        { apply floor_incZ. lra. }
+        { apply floor_inc. lra. }
         rewrite <- floor_div in mbound. autorewrite with push_izr in mbound. lia. }
       { apply Nat.nlt_ge in n1. apply le_INR in n1. rewrite !INR_IZR_INZ in n1. simpl in n1.
         assert (H1 : floor ((49 * b + 23) / 17) <= floor ((49 * d + 23) / 17)).
-        { apply floor_incZ. lra. }
+        { apply floor_inc. lra. }
         assert (floor ((49 * d + 23) / 17) <= floor ((49 * d + 57) / 17)).
-        { apply floor_incZ. lra. }
+        { apply floor_inc. lra. }
         lia. } }
     { assert (floor (49 * b / 17) <= floor (49 * (d + log 4 5) / 17)).
-      { apply floor_incZ. lra. }
+      { apply floor_inc. lra. }
       assert (floor (49 * (d + log 4 5) / 17) <= floor ((49 * d + 57) / 17)).
-      { apply floor_incZ. lra. }
+      { apply floor_inc. lra. }
       lia. } }
 
   destruct (G6 R0 R1 R0_odd R1_even R1_non0) as [x [y eq]]. fold b in eq.

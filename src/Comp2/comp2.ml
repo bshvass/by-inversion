@@ -6,9 +6,22 @@ let rec to_nat n =
   then O
   else S (to_nat (n - 1))
 
-let rec printws n acc _ =
-  if n = -1
+let rec printws n acc =
+  let t = Sys.time() in
+  let res = w (to_nat (acc)) in
+  Printf.printf "W%i = %s (in %fs)\n" acc (Uint63.to_string res) (Sys.time() -. t);
+  Stdlib.flush stdout;
+  if n = 0
   then ()
-  else printws (n - 1) (acc + 1) (print_string(String.concat (Uint63.to_string(w (to_nat (acc)))) [String.concat (string_of_int acc) ["W"; " = "]; "\n"]))
+  else printws (n - 1) (acc + 1)
 
-let _ = printws (int_of_string(Sys.argv.(1))) 0 ()
+let rec printintlist l acc =
+  match l with
+  | Nil -> ()
+  | Cons (h,l) -> Printf.printf "W%i = %s\n" acc (Uint63.to_string h);
+                  printintlist l (acc + 1)
+  
+let _ =
+  if 2 < Array.length Sys.argv
+  then printintlist (table (Uint63.of_int(int_of_string(Sys.argv.(1))))) 0
+  else printws (int_of_string(Sys.argv.(1))) 0

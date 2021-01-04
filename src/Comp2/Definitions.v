@@ -3,7 +3,10 @@ Require Import Coq.ZArith.ZArith.
 Require Import Coq.Bool.Bool.
 Require Import Coq.micromega.Lia.
 Require Import Coq.Numbers.Cyclic.Int63.Int63.
+Require Import Coq.Lists.List.
 Require Import Coq.Program.Program.
+
+Import ListNotations.
 
 Local Open Scope int63.
 
@@ -42,3 +45,55 @@ Solve Obligations with try lia.
 Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
 
 Definition W n := min_needs_n_steps_nat_int 1 0 n sint_max steps.
+
+(** Below is the faster version which combines computations  *)
+
+Fixpoint divsteps_aux steps fuel d a b :=
+  match fuel with
+  | 0%nat => steps
+  | S fuel => if (b == 0)
+             then steps
+             else let '(d', a', b') := divstep_int d a b in divsteps_aux (S steps) fuel d' a' b'
+  end.
+
+Definition divsteps := divsteps_aux 0 100.
+
+Definition max_list := Eval compute in repeat sint_max 60.
+
+Program Fixpoint table_b (a a2 b : int) (bound : int) (acc : list int) fuel {measure fuel (N.lt)} :=
+  match fuel with
+  | 0%N => acc
+  | _ => let length := a2 + b * b in
+        if (leb length bound)
+        then
+          let steps := divsteps 1 a (b >> 1) in
+          let steps_opp := divsteps 1 a (opp (b >> 1)) in
+          let n := max steps steps_opp in
+          let new_list := (fix aux l i acc2 :=
+                             match l with
+                             | [] => acc2
+                             | a :: l => aux l (S i) (acc2 ++ [(if (length < a) && (i <=? n) then length else a)])
+                             end) acc 0%nat [] in
+          table_b a a2 (b + 2) bound new_list (N.pred fuel)
+        else
+          acc
+  end.
+
+Solve Obligations with try lia.
+Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
+
+Program Fixpoint table_a (a b : int) (bound : int) (acc : list int) fuel_a fuel_b {measure fuel_a (N.lt)} :=
+  match fuel_a with
+  | 0%N => acc
+  | _ =>  let a2 := a * a in
+         if (leb a2 bound)
+         then
+           table_a (a + 2) 0 bound (table_b a a2 b bound acc fuel_b) (N.pred fuel_a) fuel_b
+         else
+           acc
+  end.
+
+Solve Obligations with try lia.
+Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N.lt_wf_0)). Defined.
+
+Definition table n := table_a 1 0 (1 << n) max_list steps steps.

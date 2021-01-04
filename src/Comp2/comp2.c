@@ -87,6 +87,7 @@ void table(int bound, __int64_t res[60]) {
   b = 0;
   a2 = 1;
   while (a2 < large_bound) {
+		if (a % 101 == 0) printf("%f%% done\n", (a2 * 100.0) / large_bound);
     a2 = a * a;
     __int64_t length = 0;
     while (length < large_bound) {
@@ -94,7 +95,11 @@ void table(int bound, __int64_t res[60]) {
       int steps = divsteps(1,a,b/2);
       int steps_opp = divsteps(1,a,-b/2);
       int n = ((steps < steps_opp) ? steps_opp : steps);
-      for (int i = 0; i <= n; i++) if (length < res[i]) res[i] = length;
+      for (int i = 0; i <= n; i++) {
+				if (length < res[i]) {
+					res[i] = length;
+				}
+			}
       b += 2;
     }
     b = 0;

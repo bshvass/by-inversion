@@ -182,6 +182,7 @@ Ltac pair_eq :=
   repeat match goal with
          | [ |- (_, _) = (_, _)] => apply f_equal2
          end.
+Notation big_mmult_rev := (fun n m f => @big_op_rev _ mmult I f n m).
 
 Lemma divstep_full_iter_spec d f g m :
   let '(d1, f1, g1, v1, r1) := divstep_full_iter d f g 0 1 m in

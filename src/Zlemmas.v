@@ -152,16 +152,6 @@ Proof. intros [x]; exists (a * x); lia. Qed.
 Lemma mod2_dec a : { a mod 2 = 0 } + { a mod 2 = 1 }.
 Proof. pose proof Zmod_even a; destruct (even a); auto. Qed.
 
-(* Fixpoint fixp f n := *)
-(*   match n with *)
-(*   | 0%nat => f 0%nat *)
-(*   | S n => if (f (S n)) =? 0 then f n else fixp f n *)
-(*   end. *)
-
-(* Lemma fixp_Sn f n : *)
-(*   fixp f (S n) = if (f (S n)) =? 0 then f n else fixp f n. *)
-(* Proof. reflexivity. Qed. *)
-
 Lemma min (f : nat -> Z) (H0 : f 0%nat <> 0) (H : exists N, f N = 0) :
   exists K, f K <> 0 /\ f (S K) = 0.
 Proof.

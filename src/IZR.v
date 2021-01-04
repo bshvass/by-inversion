@@ -17,11 +17,6 @@ Proof.
     rewrite <- mult_IZR, Zmult_comm; apply f_equal.
     apply div_exact. assumption. apply Zdivide_mod; assumption. Qed.
 
-
-
-Lemma Zpower_nat_IZR a b : IZR (a ^+ b) = a ^ b.
-Proof. now rewrite pow_IZR, Zpower_nat_Z. Qed.
-
 Lemma pow2_IZR (a : Z) : (a <> 0)%Z -> 1 <= a ^ 2.
 Proof.
   intros.
@@ -29,13 +24,6 @@ Proof.
   destruct (Rle_dec 1 a). nra.
   destruct (Rle_dec a (-1)). nra.
   exfalso. apply H. apply H0. lra. Qed.
-
-Lemma neq_IZR (a b : Z) : IZR a <> IZR b -> a <> b.
-Proof. intros H contra; apply H; apply f_equal; assumption. Qed.
-
-Hint Rewrite <- plus_IZR mult_IZR minus_IZR opp_IZR Zpower_nat_IZR : pull_izr.
-Hint Rewrite plus_IZR mult_IZR minus_IZR opp_IZR Zpower_nat_IZR : push_izr.
-
 
 Lemma Rdiv_div a b : (a / b)%Z <= a / b.
 Proof.

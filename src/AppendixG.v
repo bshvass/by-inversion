@@ -2,22 +2,21 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas BigOp PadicVal Matrix Rlemmas IZR Log Floor.
+From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas BigOp PadicVal Matrix Rlemmas IZR Log Floor Q.
 
 Import Z.
 Local Open Scope Z.
 
-Arguments Z.mul : simpl never.
-Arguments Z.sub : simpl never.
-Arguments Z.add : simpl never.
-
 Local Coercion of_nat : nat >-> Z.
 
+(******************************************************************)
+(** This files relates the gcd algorithm with iterating divsteps. *)
+(** Note that it contains one admitted computational lemma.       *)
+(******************************************************************)
+
 Section __.
-
-  Context {f g : Z}.
-
-  Context {f_odd : odd f = true}
+  Context {f g : Z}
+          {f_odd : odd f = true}
           {g_even : even g = true}
           {g_non0 : g <> 0}.
 
@@ -71,39 +70,36 @@ Section __.
       rewrite H, H0. simpl. apply f_equal2; [apply f_equal2|]. lia. lia.
 
       rewrite mul_0_l, add_0_r, Zdiv_Zdiv. apply f_equal. ring.
-      apply Zpower_nat_nonneg. lia. lia.     lia. Qed.
+      apply Zpower_nat_nonneg; lia. lia. lia. Qed.
 
   Lemma divstep_lemma2 i j (j_bound : (0 <= j + i < S e)%nat) :
     divstep_iter (1 - e + i) (split2 g) (z i) j = (j + 1 - e + i, split2 g, z (j + i)).
   Proof.
     induction j.
     - reflexivity.
-    - simpl.
-      rewrite IHj. unfold divstep.
+    - simpl; rewrite IHj; unfold divstep.
       assert (0 <? j + 1 - e + i = false). apply Z.ltb_ge. lia.
-      rewrite H. simpl. apply f_equal2; [apply f_equal2|]. lia. lia. reflexivity. lia. Qed.
+      rewrite H. simpl. apply f_equal2; [apply f_equal2|]; lia. lia. Qed.
 
   Lemma divstep_lemma3 :
     divstep e f (split2 g) = (1 - e, split2 g, z 0).
   Proof.
     unfold divstep.
-    assert (0 <? e = true).
-    rewrite <- Nat2Z.inj_0.
-    apply Z.ltb_lt. apply inj_lt. apply ord2_even. apply g_even. rewrite H.
-    rewrite odd_split2. reflexivity. apply g_non0. Qed.
+    assert (0 <? e = true) by
+        (rewrite <- Nat2Z.inj_0; apply Z.ltb_lt; apply inj_lt; apply ord2_even; apply g_even).
+    rewrite H, odd_split2; auto. Qed.
 
   Lemma z_div j :
     2 ^+ (S j) * z j  = sum j * split2 g - f.
   Proof.
     induction j; intros.
     - rewrite big_op_nil by lia; simpl.
-      rewrite mul_1_r. rewrite <- Z_div_exact_2. ring. lia.
-      rewrite Zmod_even.
-      rewrite even_sub. rewrite <- !negb_odd.
-      rewrite odd_split2, f_odd.  reflexivity. apply g_non0.
-    - simpl. replace (2 * (2 * 2 ^+ j) * ((z j + z j mod 2 * split2 g) / 2)) with
-                 (((2 ^+ S j) * z j) + (2 * 2 ^+ j) * (z j mod 2 * split2 g)).
-
+      rewrite mul_1_r, <- Z_div_exact_2. ring. lia.
+      rewrite Zmod_even, even_sub, <- !negb_odd.
+      rewrite odd_split2, f_odd; auto.
+    - simpl.
+      replace (2 * (2 * 2 ^+ j) * ((z j + z j mod 2 * split2 g) / 2)) with
+          (((2 ^+ S j) * z j) + (2 * 2 ^+ j) * (z j mod 2 * split2 g)).
       rewrite IHj.
       rewrite big_op_S_r. lia. lia.
 
@@ -111,17 +107,17 @@ Section __.
       rewrite <- (mul_assoc _ 2).
       rewrite <- Z_div_exact_2. simpl. ring. lia.
       destruct (mod2_dec (z j)).
-      + rewrite e. rewrite mul_0_l. rewrite add_0_r. assumption.
+      + rewrite e, mul_0_l, add_0_r; auto.
       + rewrite <- Zplus_mod_idemp_l. rewrite e. rewrite mul_1_l.
         apply mod_divide. lia. apply even_divide. rewrite even_add.
-        rewrite <- (negb_odd (split2 _)). rewrite odd_split2. reflexivity. apply g_non0. Qed.
+        rewrite <- (negb_odd (split2 _)). rewrite odd_split2; auto. Qed.
 
   Lemma sum_odd j :
     odd (sum j) = true.
   Proof.
     induction j.
     - reflexivity.
-    - rewrite big_op_S_r, add_assoc, odd_add, IHj, !odd_mul. reflexivity. lia. Qed.
+    - rewrite big_op_S_r, add_assoc, odd_add, IHj, !odd_mul; try reflexivity; lia. Qed.
 
   Lemma sum_bound j :
     1 <= sum j < 2 ^+ (S j).
@@ -174,10 +170,10 @@ Section __.
 End __.
 
 Section __.
-  Variables (R0 R1 : Z).
-  Hypothesis R0_odd : odd R0 = true.
-  Hypothesis R1_even : even R1 = true.
-  Hypothesis R1_non0 : R1 <> 0.
+  Context (R0 R1 : Z)
+          (R0_odd : odd R0 = true)
+          (R1_even : even R1 = true)
+          (R1_non0 : R1 <> 0).
 
   Local Notation R_ i := (R_ R0 R1 i).
   Local Notation e i := (ord2 (R_ i)).
@@ -191,15 +187,14 @@ Section __.
     - simpl. rewrite split2_odd by apply R0_odd. reflexivity.
     - rewrite R_S_S. Compute (10 mod2 0).
       replace (R_ (S j) =? 0) with false by (symmetry; apply Z.eqb_neq; lia).
-      rewrite big_op_S_r.
-      rewrite Nat.mul_add_distr_l.
+      rewrite big_op_S_r, Nat.mul_add_distr_l.
       rewrite divstep_iter_add.
       rewrite IHj.
       rewrite Zdiv_Zdiv, Zpower_nat_mul_r.
       eapply G1.
-
       apply Zpower_nat_nonneg. lia. lia. apply R_nonzero_S. apply odd_nonzero. apply R0_odd.
-      assumption. lia. Unshelve. apply odd_split2.
+      assumption. lia.
+      Unshelve. apply odd_split2.
       apply R_nonzero_S. apply odd_nonzero. apply R0_odd.
       assumption. apply R_even. apply odd_nonzero. apply R0_odd.
       apply R1_even. assumption. Qed.
@@ -208,10 +203,9 @@ Section __.
     (exists t G, divstep_iter 1 R0 (R1 / 2) (2 * (big_sum_nat (fun i => e (S i)) 0 t))%nat = (1, G, 0) /\ abs G = gcd R0 R1) /\
     forall d f n, divstep_iter 1 R0 (R1 / 2) n = (d, f, 0) -> abs f = gcd R0 R1.
   Proof. apply and_lemma.
-         destruct (F26_cor2 R0_odd R1_even) as [t [Rt_non0 RSt_0]]. exists t, (split2 (R_ t)); split.
-         rewrite G2. rewrite RSt_0. rewrite Z.div_0_l. reflexivity. lia. assumption. apply E3. apply R0_odd. apply R1_even.
+         destruct (@F26_cor2 R0 R1 R0_odd R1_even) as [t [Rt_non0 RSt_0]]. exists t, (split2 (R_ t)); split.
+         rewrite G2. rewrite RSt_0. rewrite Z.div_0_l. reflexivity. lia. assumption. apply E3. assumption. assumption.
          apply RSt_0. apply Rt_non0.
-
          intros.
          destruct H as [t [G [H1 H2]]].
          set (w := big_sum_nat (fun i : nat => e (S i)) 0 t) in *.
@@ -226,13 +220,18 @@ Section __.
 
   Lemma b_spec : Rpower 2 b = vec_norm (IZR R0, IZR R1).
   Proof.
-    apply Rpower_log.
+    apply Rpower_log; try lra.
     epose proof (vec_norm_nonneg (IZR R0, IZR R1)).
     epose proof (proj1 (vnonzero R0 R1)) _.
-    epose proof (proj1 (vnonzero_norm _)) H0. lra. lra.
+    epose proof (proj1 (vnonzero_norm _)) H0. lra.
     Unshelve. left. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
 
-  Theorem G4 : exists x y, divstep_iter 1 R0 (R1 / 2) (to_nat (floor (19 * b / 17))) = (x, y, 0%Z).
+  (****************************************************************************)
+  (** The following lemma is computational. It can almost be done inside coq. *)
+  (** We have extracted OCaml code which can run in managable time.           *)
+  (****************************************************************************)
+
+  Theorem G4 : b <= 21 -> exists x y, divstep_iter 1 R0 (R1 / 2) (to_nat (floor (19 * b / 17))) = (x, y, 0%Z).
   Proof. Admitted.
 
   Notation it := (to_nat
@@ -246,13 +245,6 @@ Section __.
   Lemma IZR_lt_le (a b : Z) : a < b -> a + 1 <= b.
   Proof. intros. apply lt_IZR in H. autorewrite with pull_izr. apply IZR_le. lia. Qed.
 
-  Lemma Q2R_alpha_high n : Q2R (alpha_high n) = (633 / 1024) ^ n.
-  Proof.
-    unfold alpha_high.
-    rewrite !RMicromega.Q2RpowerRZ.
-    rewrite <- !pow_powerRZ.
-    rewrite !Q2R_div. apply f_equal2. lra. reflexivity. unfold Qeq. simpl. lia. right. lia. Qed.
-
   Lemma inv_div_1 a : / a = 1 / a.
   Proof. lra. Qed.
 
@@ -260,14 +252,13 @@ Section __.
 
   Theorem G6 : exists x y, divstep_iter 1 R0 (R1 / 2) it = (x, y, 0%Z).
   Proof.
-    destruct (Rle_dec b 21) eqn:E.
-    destruct G4 as [x [y]]. eauto.
+    destruct (Rle_dec b 21) eqn:E; [apply G4; assumption|].
 
     assert (log 2 633 < 456 / 49).
     { apply log_upper_bound. lra. lra.
 
       rewrite <- Rabs_pos_eq.
-      apply (lt_pow 49). replace 0 with (INR 0). apply lt_INR. lia. reflexivity.
+      apply (lt_pow 49). replace 0 with (INR 0). lia. reflexivity.
 
       rewrite <- (Rpower_pow 49 (Rpower _ _)).
       rewrite Rpower_mult. replace (456 / 49 * (INR 49)) with 456.
@@ -280,8 +271,8 @@ Section __.
     assert (ineq1 : (59 < floor ((49 * b) / 17))%Z).
     { apply lt_IZR. apply floor_lower_bound. nra. }
     assert (ineq2 : (floor ((49 * b) / 17) <= it)%Z).
-    { apply le_IZR. rewrite E.
-      destruct (Rle_dec b 46); rewrite Z2Nat.id by (apply le_IZR; apply floor_pos; lra).
+    { rewrite E.
+      destruct (Rle_dec b 46); rewrite Z2Nat.id by (apply floor_pos; lra).
       - apply floor_inc. lra.
       - reflexivity. }
     assert (ineq3 : (60 <= it)%Z). lia.
@@ -299,7 +290,7 @@ Section __.
     rewrite E in *.
 
     epose proof F6 (split2 (R_ t)) (R_ (S t)) _. Unshelve.
-    pose proof (@F25 R0 R1 t R0_odd H1).
+    pose proof (@F25 R0 R1 R0_odd R1_even t H1).
     pose proof Rle_trans _ _ _ H4 H5.
 
     assert (31 <= w t)%Z. lia.
@@ -307,10 +298,8 @@ Section __.
     epose proof log_inc 2 _ _ _ (conj _ H6).
     rewrite log_1 in H8. rewrite log_mult in H8.
 
-    assert (log 2 (1 / (Q2R (alpha (w t)))) <= b).
-    { rewrite log_div, log_1. lra. lra. replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. apply RMicromega.Q2R_0. }
-
-    Require Import Qpower.
+    assert (log 2 (1 / (alpha (w t))) <= b).
+    { rewrite log_div, log_1. lra. lra. apply alpha_pos_nonneg. }
 
     assert (it + 1 <= 2 * (w t)). rewrite E.
     rewrite <- mult_IZR.
@@ -328,7 +317,6 @@ Section __.
 
     destruct (le_dec 67 (w t)).
     - rewrite alpha67 in H9 by assumption.
-      rewrite Q2R_alpha_high in H9.
 
       assert (w t * log 2 ( 1024 / 633 ) <= b).
       replace (IZR (of_nat (w t))) with (INR (w t)).
@@ -343,30 +331,28 @@ Section __.
       assert (2 * (w t) < 49 * b / 17).
       nra. assert (it + 1 < 49 * b / 17). lra.
 
-      assert ((floor (49 * b / 17)) <= floor ((49 * b + 23) / 17)).
+      assert ((floor (49 * b / 17)) <= floor ((49 * b + 23) / 17))%Z.
       apply floor_inc. nra.
 
       assert (it <= floor ((49 * b + 23) / 17)).
       rewrite E. destruct (Rle_dec b 46). apply IZR_le. lia.
-      apply IZR_le. apply le_IZR in H17. lia.
+      apply IZR_le. lia.
 
       assert (floor (49 * b / 17) + 1 < 49 * b / 17). rewrite E in *. apply IZR_le in ineq2.
       lra.
       pose proof floor_spec (49 * b / 17). lra.
 
-    - assert (Q2R (alpha (w t)) < Rpower 2 (- (34 * (w t) - 23) / 49)).
-      rewrite <- Rabs_pos_eq. apply (lt_pow 49).
+    - pose proof alpha31 (w t) ltac:(lia).
 
+      assert ((alpha (w t) < Rpower 2 (- (34 * (w t) - 23) / 49))).
+      rewrite <- Rabs_pos_eq. apply (lt_pow 49). lia.
 
-      Ltac zlra := rewrite !INR_IZR_INZ; autorewrite with pull_izr; apply IZR_lt; lia.
-      Ltac zlra2 :=
+      Ltac zlra :=
         match goal with
         | _ => progress autorewrite with pull_izr
         | [ |- _ <= _ ] => apply IZR_le
         | [ |- _ < _ ] => apply IZR_lt
         end; lia.
-
-      zlra.
 
       rewrite <- !Rpower_pow.
       rewrite Rpower_mult. replace (- (34 * w t - 23) / 49 * INR 49) with (- (34 * w t - 23)).
@@ -376,21 +362,16 @@ Section __.
 
       rewrite inv_div_1.
 
+      replace (34 * w t - 23) with (INR (34 * w t - 23)).
+      rewrite Rpower_pow.
+      replace (IZR 49%nat) with (INR 49).
+      rewrite Rpower_pow. assumption. apply alpha_pos_nonneg. apply INR_IZR_INZ. lra.
       autorewrite with pull_izr.
-      rewrite <- !powerRZ_Rpower.
+      rewrite !INR_IZR_INZ.
+      apply IZR_eq. lia.
 
-      replace 2 with (Q2R 2).
-      rewrite <- !RMicromega.Q2RpowerRZ.
-
-      replace 1 with (Q2R 1).
-      rewrite <- Q2R_div.
-
-      apply Qlt_Rlt. apply alpha31. lia.
-
-      apply Qpower_nonzero. qia_goal. lra. left; qia_goal.
-      right. lia. lra. lra. replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
       rewrite !INR_IZR_INZ. field. apply Rpower_pos_nonneg.
-      replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
+      apply alpha_pos_nonneg.
 
       apply Rlt_le. apply Rpower_pos_nonneg.
 
@@ -403,25 +384,26 @@ Section __.
       rewrite E in *.
       rewrite Z2Nat.id in H10.
       pose proof (floor_spec ((49 * b + 23) / 17)) as [spec1 spec2]. lra.
-      apply le_IZR. apply floor_pos. apply div_pos_pos. lra. lra.
+      apply floor_pos. apply div_pos_pos. lra. lra.
       rewrite E in *.
       assert (floor (49 * 46 / 17) <= it).
-      rewrite E, E2. rewrite Z2Nat.id. apply floor_inc. lra.
-      apply le_IZR. apply floor_pos. lra. assert (2 * (w t) <= 132). rewrite <- mult_IZR. zlra2.
+      rewrite E, E2. rewrite Z2Nat.id. apply IZR_le. apply floor_inc. lra.
+      apply floor_pos. lra. assert (2 * (w t) <= 132). rewrite <- mult_IZR. zlra.
 
       assert (132 = floor (49 * 46 / 17)). apply IZR_eq.
       apply floor_eq. lra. lra.
 
       rewrite E, E2 in *. lra.
-    - replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
+    - apply alpha_pos_nonneg.
     - epose proof proj1 (vnonzero_norm (IZR R0, IZR R1)) _.
       pose proof vec_norm_nonneg (IZR R0, IZR R1). lra.
     - apply vnonzero. left. apply IZR_neq. apply psplit_non0. lia. assumption.
       Unshelve. lra. lra. apply log_le_lower_bound. lra.
       rewrite <- (Ropp_involutive (_ / _)). rewrite Rpower_Ropp. apply Rle_div_r.
-      replace 0 with (Q2R 0). apply Qlt_Rlt. apply alpha_pos_nonneg. lra.
-      apply Rle_div_l. apply Rpower_pos_nonneg. replace (- ((34 * w t - 23) / 49)) with (- (34 * w t - 23) / 49). lra. lra.
+      apply alpha_pos_nonneg.
+      apply Rle_div_l. apply Rpower_pos_nonneg. replace (- ((34 * w t - 23) / 49)) with (- (34 * w t - 23) / 49).
+      lra.
+      lra.
 
       apply vnonzero. left. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
-
 End __.
