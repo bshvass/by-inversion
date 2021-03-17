@@ -72,7 +72,7 @@ Program Fixpoint table_b (a a2 b : int) (bound : int) (acc : list int) fuel {mea
           let new_list := (fix aux l i acc2 :=
                              match l with
                              | [] => acc2
-                             | a :: l => aux l (S i) (acc2 ++ [(if (length < a) && (i <=? n) then length else a)])
+                             | a :: l => aux l (S i) (acc2 ++ [(if (length < a) && (i <=? n)%nat then length else a)])
                              end) acc 0%nat [] in
           table_b a a2 (b + 2) bound new_list (N.pred fuel)
         else

@@ -1,6 +1,7 @@
 -R src BY
 src/AppendixE.v
 src/AppendixF.v
+src/AppendixFQ.v
 src/AppendixG.v
 src/BYInv.v
 src/BigOp.v
@@ -23,6 +24,9 @@ src/Spectral.v
 src/Tactics.v
 src/Zlemmas.v
 src/Zpower_nat.v
+src/Comp1/Definitions.v
+src/Comp1/Mem.v
+src/Comp1/Qmin_list.v
 src/Comp2/Definition.v
 src/Comp2/Definitions.v
 src/Comp2/Extraction.v

@@ -168,7 +168,7 @@ Lemma mmult_assoc (a b c : mat) :
   (a * b) * c = a * (b * c).
 Proof. auto_mat. Qed.
 
-Hint Resolve mmult_I_l mmult_I_r mmult_assoc : matrix.
+Global Hint Resolve mmult_I_l mmult_I_r mmult_assoc : matrix.
 
 Lemma mmult_vmult m1 m2 v :
   (m1 * m2) *v v = m1 *v (m2 *v v).
@@ -219,7 +219,7 @@ Proof.
   apply (le_pow 2). lia.
 
   rewrite Rpow_mult_distr, pow2_sqrt by (assert_pow; nra).
-
+  (* Admitted.  *)
   psatz R. Qed.
 
 Lemma mat_norm_nonneg m :

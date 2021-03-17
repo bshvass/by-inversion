@@ -1,14 +1,13 @@
 From Coq Require Import Arith ZArith micromega.Lia.
 
-Lemma strong_induction P : P 0 -> (forall n, (forall m, (m <= n) -> P m) -> P (S n)) -> forall k, P k.
+Lemma strong_induction P : (forall n, (forall m, (m < n) -> P m) -> P n) -> forall k, P k.
 Proof.
   intros; generalize (Nat.le_refl k); generalize k at -2.
-  induction k; intros. apply le_n_0_eq in H; subst; assumption.
-  destruct k0; [assumption|]. apply X0; intros. apply IHk; lia. Qed.
+  induction k; intros. apply X. lia. destruct k0. apply X. lia. apply X. intros. apply IHk. lia. Qed.
 
 Lemma induction2 P : P 0%nat -> P 1%nat -> (forall n, P n -> P (S n) -> P (S (S n))) -> forall k, P k.
 Proof.
-  intros; induction k using strong_induction; [assumption | destruct k; try assumption].
+  intros; induction k using strong_induction; [destruct k as [|k]; [assumption|destruct k]; [assumption|]].
   apply X1; apply X2; lia. Qed.
 
 Lemma induction_at n (P : nat -> Prop) : P n -> (forall m, (n <= m)%nat -> (P m -> P (S m))) -> (forall m, (n <= m)%nat -> P m).
@@ -47,12 +46,11 @@ Proof.
 
 Local Open Scope Z.
 
-Lemma strong_natlike_ind (P : Z -> Prop) : P 0 -> (forall x, 0 < x -> (forall y, 0 <= y < x -> P y) -> P x) -> forall x : Z, 0 <= x -> P x.
+Lemma strong_natlike_ind (P : Z -> Prop) : (forall x, (forall y, 0 <= y < x -> P y) -> P x) -> forall x : Z, 0 <= x -> P x.
 Proof.
-  intros P0 Hind x. remember (Z.abs_nat x). revert x Heqn Hind.
+  intros Hind x. remember (Z.abs_nat x). revert x Heqn Hind.
   induction n using strong_induction; intros.
-  - assert (x = 0) by lia; subst; assumption.
-  - apply Hind; [lia|]; intros; apply H with (m := Z.abs_nat y); try assumption; lia. Qed.
+  apply Hind. intros; apply H with (m := Z.abs_nat y); try assumption; lia. Qed.
 
 Lemma rev_1_natlike_ind (P : Z -> Prop) x : P x -> (forall y, (0 < y <= x) -> P y -> P (Z.pred y)) -> (forall y, (0 <= y) -> (y <= x) -> P y).
 Proof.

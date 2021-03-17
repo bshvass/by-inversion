@@ -227,36 +227,28 @@ Proof.
 
 (* The following couple of definitions should probably be somewhere else *)
 
-Fixpoint map_seq {A:Type} (f : nat -> A) n m :=
-  match m with
-  | 0%nat => (f n%nat) :: nil
-  | S m => f (S m) :: (map_seq f n m)
+Fixpoint map_seq {A:Type} (f : nat -> A) start len :=
+  match len with
+  | 0%nat => nil
+  | S len => f start :: (map_seq f (S start) len)
   end.
 
-Lemma map_seq_nonnil {A:Type} (f : nat -> A) n m : map_seq f n m <> nil.
+Lemma map_seq_spec {A:Type} (f : nat -> A) start len :
+  map_seq f start len = map f (seq start len).
 Proof.
-  destruct m. simpl. congruence.
-  simpl. congruence. Qed.
+  revert start; induction len; [reflexivity|].
+  intros; cbn; rewrite IHlen. reflexivity. Qed.
+  
+Lemma map_seq_nonnil {A:Type} (f : nat -> A) n m : (0 < m)%nat -> map_seq f n m <> nil.
+Proof. destruct m. lia. simpl. congruence. Qed.
 
-Lemma map_seq_spec {A:Type} (f : nat -> A) n m :
-  forall i, (n <= i <= m)%nat -> In (f i) (map_seq f n m).
-Proof.
-  induction m; intros.
-  -  simpl. assert (i = 0)%nat by lia. subst. left.
-     assert (n = 0)%nat by lia. subst.
-     reflexivity.
-  - destruct (Nat.eq_dec i (S m)).
-    + subst. left. reflexivity.
-    + right. apply IHm. lia. Qed.
+Lemma map_seq_In {A:Type} (f : nat -> A) n m :
+  forall i, (n <= i < n + m)%nat -> In (f i) (map_seq f n m).
+Proof. rewrite map_seq_spec. intros; apply in_map; apply in_seq; assumption. Qed.
 
-Lemma map_seq_in {A:Type} (f : nat -> A) n m x :
+Lemma In_map_seq {A:Type} (f : nat -> A) n m x :
   In x (map_seq f n m) -> exists i, f i = x.
-Proof.
-  induction m; intros.
-  - destruct H. eexists. apply H. destruct H.
-  - destruct H.
-    + eexists. apply H.
-    + apply IHm in H. assumption. Qed.
+Proof. intros. rewrite map_seq_spec in H. apply in_map_iff in H as [i []]. exists i. assumption. Qed.
 
 Definition Rmin a b := if Rle_dec a b then a else b.
 
@@ -312,7 +304,7 @@ Proof.
 (* Now the interesting definitions begin again *)
 
 Definition beta_aux (w : nat) :=
-  map_seq (alpha_quot w) 0%nat 67%nat.
+  map_seq (alpha_quot w) 0%nat 68%nat.
 
 Definition beta w := Rmin_list (beta_aux w).
 
@@ -322,18 +314,18 @@ Proof.
   intros. apply Rmin_list_spec.
   unfold beta_aux.
   destruct (le_dec i 67).
-  - apply map_seq_spec; lia.
+  - apply map_seq_In; lia.
   - replace (alpha_quot w i) with (alpha_quot w 67%nat).
-    apply map_seq_spec. lia.
+    apply map_seq_In. lia.
     rewrite !alpha_quot_spec. reflexivity. lia. lia. Qed.
 
 Lemma beta_spec2 w :
   exists i, beta w = alpha_quot w i.
 Proof.
-  epose proof Rmin_list_spec2 (map_seq (alpha_quot w) 0%nat 67%nat) _ as [x []].
-  unfold beta, beta_aux. apply map_seq_in in H. rewrite H0.
+  epose proof Rmin_list_spec2 (map_seq (alpha_quot w) 0%nat 68%nat) _ as [x []].
+  unfold beta, beta_aux. apply In_map_seq in H. rewrite H0.
   destruct H. exists x0. congruence.
-  Unshelve. apply map_seq_nonnil. Qed.
+  Unshelve. apply map_seq_nonnil; lia. Qed.
 
 Lemma beta_pos w :
   0 <= beta w.
@@ -346,7 +338,7 @@ Definition beta_quot w j :=
   beta (w + j) * 2 ^ j * 70 / 169.
 
 Definition gamma_aux w e :=
-  map_seq (beta_quot w) e 67%nat.
+  map_seq (beta_quot w) e 68%nat.
 
 Definition gamma w e := Rmin_list (gamma_aux w e).
 
@@ -354,15 +346,15 @@ Definition gamma_spec w e :
   gamma w e <= beta (w + e) * 2 ^ e * 70 / 169.
 Proof.
   apply Rmin_list_spec.
-  unfold gamma_aux, beta_quot. do 67 right; left. reflexivity. Qed.
+  unfold gamma_aux, beta_quot. left. reflexivity. Qed.
 
 Definition gamma_spec2 w e :
   exists i, gamma w e = beta_quot w i.
 Proof.
-  epose proof Rmin_list_spec2 (map_seq (beta_quot w) e 67%nat) _ as [x []].
-  unfold gamma, gamma_aux. apply map_seq_in in H. rewrite H0.
+  epose proof Rmin_list_spec2 (map_seq (beta_quot w) e 68%nat) _ as [x []].
+  unfold gamma, gamma_aux. apply In_map_seq in H. rewrite H0.
   destruct H. exists x0. congruence.
-  Unshelve. apply map_seq_nonnil. Qed.
+  Unshelve. apply map_seq_nonnil. lia. Qed.
 
 Lemma gamma_pos w e :
   0 <= gamma w e.
@@ -413,6 +405,7 @@ Proof.
   intros.
   revert Hq He. revert e q.
   induction j using strong_induction; intros.
+  destruct j.
   - rewrite big_op_nil, big_op_rev_nil by lia; simpl.
     rewrite !Rmult_1_r, !Rmult_0_r, !Rplus_0_r, !Rplus_0_l, !minus_diag, !Rmult_0_r, Rplus_0_r.
     rewrite sqrt_0. rewrite <- sqrt_1 at 3. apply Rle_sqrt; lra.
