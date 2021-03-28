@@ -6,7 +6,7 @@ Require Import List.
 Require Import Orders.
 Require Import OrdersEx.
 Require Import OrdersAlt.
-From BY Require Import Q AppendixF Qmin_list.
+From BY Require Import Q AppendixF Qmin_list MatrixQ.
 
 Import ListNotations.
 
@@ -118,9 +118,103 @@ Definition gammaQ_mem g_map bq_map b_map q_map a_map w e :=
              (ZZMap.add (w, e) res g_map, bq_map, b_map, q_map, a_map, res)
         else let res := 2 ^ e * ((633/1024) ^ (w + e)) * (70/169) * 633^5 / (2^30 * 165219) in
              (ZZMap.add (w, e) res g_map, bq_map, b_map, q_map, a_map, res)
-  end.  
+  end.
+
+Definition alphaQ_mem_test w := snd (alphaQ_mem init_a_map w).
+Definition betaQ_mem_test w := snd (betaQ_mem init_b_map init_q_map init_a_map w).
+Definition gammaQ_mem_test w e := snd (gammaQ_mem init_g_map init_bq_map init_b_map init_q_map init_a_map w e).
 
 Time Eval vm_compute in snd (gammaQ_mem init_g_map init_bq_map init_b_map init_q_map init_a_map 50 50).
+
+Local Open Scope mat_scope.
+
+Local Coercion inject_Z : Z >-> Q.
+
+Definition M (e q : Z) := [ 0 , 1 / (2 ^ e) ; - 1 / (2 ^ e) , q / (2 ^ (2 * e)) ]%Q.
+
+Definition scaledM (e q : Z) := [ 0 , 2 ^ e ; - (2 ^ e) , inject_Z q ]%Q.
+
+Notation "a <=? b" := (match a ?= b with Gt => false | _ => true end).
+Notation "a <? b" := (match a ?= b with Lt => true | _ => false end).
+Notation "a =? b" := (match a ?= b with Eq => true | _ => false end).
+
+Definition has_at_most_norm (P : mat) N :=
+  let '(a, b, c, d) := P in
+  let X := (2 * N ^ 2 - a - d) in
+  (0 <=? X) && ((a - d) ^ 2 + 4 * b ^ 2 <=? X ^ 2).
+
+Definition has_at_most_norm_new (P : mat) N :=
+  let '(P11, P12, P21, P22) := P in
+  let a := P11 ^ 2 + P21 ^ 2 in
+  let b := P11 * P21 + P12 * P22 in
+  let c := P11 * P21 + P12 * P22 in
+  let d := P12 ^ 2 + P22 ^ 2 in
+  let X := (2 * N ^ 2 - a - d) in
+  (0 <=? X) && ((a - d) ^ 2 + 4 * b ^ 2 <=? X ^ 2).
+
+Fixpoint children_aux m c w e fuel a_map b_map g_map bq_map aq_map :=
+  let mm := mmult (mtrans m) m in
+  let '(a_map, alpha_w) := alphaQ_mem a_map w in
+  let '(b_map, aq_map, a_map, beta_w) := betaQ_mem b_map aq_map a_map w in
+  if (0 <? w) && has_at_most_norm mm (4^w * beta_w)
+  then Some (c, 1)
+  else if negb (has_at_most_norm mm (4^w * alpha_w))
+       then None
+       else
+         match fuel with
+         | 0%nat => None
+         | S fuel =>
+           let '(g_map, bq_map, b_map, aq_map, a_map, gamma_w_e) := gammaQ_mem g_map bq_map b_map aq_map a_map w e in
+           if has_at_most_norm mm (4^w * gamma_w_e)
+           then Some (c, 2)
+           else children_aux m
+                             (((fix aux c n := match n with
+                                               | 0%nat => c
+                                               | S n => let q := (2 * n + 1)%nat in (e+w, mmult (scaledM e (Z.of_nat q)) m) :: aux c n
+                                               end) [] (Z.to_nat (2 ^ e))) ++  c)
+                             w (e + 1)%Z fuel a_map b_map g_map bq_map aq_map
+         end.
+
+Fixpoint depth_first_verify_aux m (nodes w : Z) fuel a_map b_map g_map bq_map aq_map (max_nodes : Z) :=
+  let mm := mmult (mtrans m) m in
+  let '(a_map, alpha_w) := alphaQ_mem a_map w in
+  let '(b_map, aq_map, a_map, beta_w) := betaQ_mem b_map aq_map a_map w in  
+  if negb (has_at_most_norm mm ((4^w) * alpha_w)) then None
+  else if (0 <? w) && has_at_most_norm mm ((4^w) * beta_w)
+       then Some (a_map, b_map, g_map, bq_map, aq_map, nodes, max_nodes)
+       else (fix inner_loop e nodes fuel a_map b_map g_map bq_map aq_map max_nodes :=
+               let b := (max_nodes <? nodes)%Z in (* 100million *)
+               let max_nodes := if b then nodes else max_nodes in               
+               match fuel with
+               | 0%nat => None
+               | S fuel => let '(g_map, bq_map, b_map, aq_map, a_map, gamma_w_e) := gammaQ_mem g_map bq_map b_map aq_map a_map w e in
+                          if has_at_most_norm mm ((4^w) * gamma_w_e)
+                          then Some (a_map, b_map, g_map, bq_map, aq_map, nodes, max_nodes)
+                          else match
+                              (fix verify_children cnodes a_map b_map g_map bq_map aq_map n max_nodes :=
+                                  match n with
+                                  | 0%nat => Some (a_map, b_map, g_map, bq_map, aq_map, cnodes, max_nodes)
+                                  | S n => let q := ((2 * n) + 1)%nat in
+                                          match
+                                            depth_first_verify_aux (mmult (scaledM e (Z.of_nat q)) m) 1 (e + w)%Z fuel a_map b_map g_map bq_map aq_map max_nodes with
+                                          | None => None
+                                          | Some (a_map, b_map, g_map, bq_map, aq_map, nodes, max_nodes) =>
+                                            verify_children (nodes + cnodes)%Z a_map b_map g_map bq_map aq_map n max_nodes
+                                          end
+                                  end) 0%Z a_map b_map g_map bq_map aq_map (Z.to_nat (2 ^ e)) max_nodes with
+                              | None => None
+                              | Some (a_map, b_map, g_map, bq_map, aq_map, cnodes, max_nodes) =>
+                                inner_loop (e + 1)%Z (cnodes + nodes)%Z fuel a_map b_map g_map bq_map aq_map max_nodes
+                            end
+               end) 1%Z nodes fuel a_map b_map g_map bq_map aq_map max_nodes.
+
+Definition children m w fuel :=
+  children_aux m [] w 1 fuel init_a_map init_b_map init_g_map init_bq_map init_q_map.
+
+Definition depth_first_verify :=
+  match depth_first_verify_aux I 1 0 1000 init_a_map init_b_map init_g_map init_bq_map init_q_map 1 with None => (-1)%Z | Some (a_map, b_map, g_map, bq_map, aq_map, nodes) => nodes end.
+
+Extraction "definitions" depth_first_verify.
 
 (* Inductive inS : nat -> mat -> Prop := *)
 (* | IS : inS 0%nat I *)

@@ -11,6 +11,7 @@ src/IZR.v
 src/InductionPrinciples.v
 src/Log.v
 src/Matrix.v
+src/MatrixQ.v
 src/MatrixZ.v
 src/ModInv.v
 src/PadicVal.v

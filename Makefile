@@ -17,6 +17,14 @@ ocaml:
 	ocamlfind ocamlopt -O3 -c table.mli table.ml -linkpkg -package coq.kernel -rectypes -thread && \
 	ocamlfind ocamlopt -O3 -c comp2.ml  -linkpkg -package coq.kernel -rectypes -thread && \
 	ocamlfind ocamlopt -O3 -o ../../bin/comp2ocaml definition.cmx comp2.cmx -linkpkg -package coq.kernel -rectypes -thread
+extocaml1:
+	cd src/Comp1 && coqc Definitions.v -R ../../src BY
+ocaml1:
+	mkdir -p bin && \
+	cd src/Comp1 && \
+	ocamlfind ocamlopt -O3 -c definitions.mli definitions.ml -rectypes && \
+	ocamlfind ocamlopt -O3 -c comp1.ml -rectypes && \
+	ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml definitions.cmx comp1.cmx -rectypes
 c:
 	mkdir -p bin && \
 	gcc -O3 -o bin/comp2c src/Comp2/comp2.c
@@ -33,6 +41,9 @@ test-c-2:
 	make c && \
 	(time ./bin/comp2c 39 all) && \
 	terminal-notifier -message 'Make test-c is done' -sound default
+test-ocaml1:
+	make ocaml1 && \
+	time ./bin/comp1ocaml
 test-ocaml:
 	mkdir -p bin && \
 	make ocaml && \
