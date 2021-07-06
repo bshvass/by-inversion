@@ -2,10 +2,13 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import Rlemmas Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas BigOp Spectral PadicVal Log InductionPrinciples BigOp.
+From BY Require Import Rlemmas Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas Hierarchy Impl Spectral PadicVal Log InductionPrinciples ListLemmas.
 
 Local Open Scope mat_scope.
 Local Open Scope R.
+Local Open Scope group_scope.
+Local Open Scope ring_scope.
+Local Open Scope lmodule_scope.
 
 Local Coercion INR : nat >-> R.
 Local Coercion IZR : Z >-> R.
@@ -25,7 +28,9 @@ Proof.
   intros vnon0. apply vnonzero in vnon0.
   unfold vec_norm. rewrite <- Rabs_pos_eq by apply sqrt_pos.
   apply (le_pow 2). lia. field_simplify.
-  destruct vnon0 as [H|H]; apply neq_IZR in H; apply pow2_IZR in H; rewrite pow2_sqrt; nra. Qed.
+  replace 0 with (IZR 0)in vnon0.
+  destruct vnon0 as [H|H];  apply neq_IZR in H; apply pow2_IZR in H; rewrite pow2_sqrt; nra. reflexivity.
+Qed.
 
 Theorem F12 (P : mat) (N : R) :
   let '(P11, P12, P21, P22) := P in
@@ -38,7 +43,9 @@ Theorem F12 (P : mat) (N : R) :
                    /\ (a - d) ^ 2 + 4 * b ^ 2 <= (2 * N ^ 2 - a - d) ^ 2.
 Proof.
   pose proof (mat_norm_nonneg P).
-  destruct P as [[[P11 P12] P21] P22]; unfold mat_norm; assert_pow; assert_sqrt.
+  destruct P as [[[P11 P12] P21] P22].
+  unfold mat_norm; rify.
+  assert_pow; assert_sqrt.
   split; intros.
   - assert (0 <= N) by lra.
     rewrite <- (Rabs_pos_eq (sqrt _)) in H10 by lra.
@@ -61,16 +68,16 @@ Proof.
   assert (q < 2 * 2 ^ e).
   { rewrite <- tech_pow_Rmult in qbound; lra. }
   assert (2 ^ e <> 0) by (apply pow_nonzero; lra).
-  unfold mat_norm; simpl.
+  unfold mat_norm; rify; simpl.
   rewrite !Rmult_0_l, !Rplus_0_l, !Rmult_1_r, Nat.add_0_r.
   replace (e + e)%nat with (2 * e)%nat by ring.
   rewrite !mult_pow2. rewrite Rpow_mult_distr, !pow_div, pow1, <- !pow_mult; try (apply pow_nonzero; lra).
-  replace ((-1) ^ 2) with 1 by lra.
+  replace ((-1) ^ 2) with 1%R by lra.
   replace (2 * e * 2)%nat with (e * 4)%nat by ring.
-  field_simplify (1 / 2 ^ (e * 2) * (q ^ 2 / 2 ^ (e * 4))); [|split; apply pow_nonzero; lra].
+  field_simplify (1 / 2 ^ (e * 2) * (q ^ 2 / 2 ^ (e * 4)))%R; [|split; apply pow_nonzero; lra].
 
   assert (q ^ 2 < 4 * 2 ^ (e * 2)).
-  { replace (4 * 2 ^ (e * 2)) with ((2 * 2 ^ e) ^ 2).
+  { replace (4 * 2 ^ (e * 2))%R with ((2 * 2 ^ e) ^ 2)%R.
     apply pow_maj_Rabs_lt. lia.
     rewrite Rabs_pos_eq. lra. lra.
     rewrite pow_mult, Rpow_mult_distr. lra. }
@@ -81,7 +88,7 @@ Proof.
     apply Rmult_lt_compat_r.
     apply Rinv_pos_nonneg. apply pow_lt. lra. assumption.
 
-    replace (4 * 2 ^ (e * 2) / 2 ^ (e * 4)) with (4 * (2 ^ (e * 2) / 2 ^ (e * 4))) by (field; try apply pow_nonzero; lra).
+    replace (4 * 2 ^ (e * 2) / 2 ^ (e * 4)) with (4 * (2 ^ (e * 2) / 2 ^ (e * 4)))%R by (field; try apply pow_nonzero; lra).
     rewrite div_pow_inv.
     replace (e * 4 - e * 2)%nat with (e * 2)%nat by lia. field. apply pow_nonzero; lra. lra. nia. }
 
@@ -96,7 +103,7 @@ Proof.
   { unfold Rdiv. rewrite inv_mul. rewrite (Rmult_comm (/ _)). rewrite <- (Rmult_assoc (q ^ 2)).
   unfold Rdiv.
 
-  transitivity (4 * ((4 / 2 ^ (e * 2)) * / 2 ^ (e * 2))). nra.
+  transitivity (4 * ((4 / 2 ^ (e * 2)) * / 2 ^ (e * 2)))%R. nra.
   field_simplify. rewrite <- pow_mult.
   replace (e * 2 * 2)%nat with (e * 4)%nat by lia. lra.
   apply pow_nonzero; lra.
@@ -110,7 +117,7 @@ Proof.
     apply pow_nonzero; lra.
     apply pow_nonzero; lra. }
 
-  assert (((4 / 2 ^ (e * 2)) ^ 2) + 16 / 2 ^ (e * 4) = 32 / 2 ^ (e * 4)) by nra.
+  assert (((4 / 2 ^ (e * 2)) ^ 2) + 16 / 2 ^ (e * 4) = 32 / 2 ^ (e * 4))%R by nra.
 
   assert (sqrt
     ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + q ^ 2 / 2 ^ (e * 4)) +
@@ -139,14 +146,14 @@ Proof.
   { apply sqrt_le_1_alt. apply Rle_div_r. lra.
     replace (2 *
              ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)) +
-                       sqrt ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 + 4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4))))) / 2)) with
+                       sqrt ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 + 4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4))))) / 2))%R with
         ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)) +
-                  sqrt ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 + 4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4)))))) by lra.
+                  sqrt ((- (q ^ 2 / 2 ^ (e * 4))) ^ 2 + 4 * (q ^ 2 / (2 ^ (e * 2) * 2 ^ (e * 4))))))%R by lra.
     apply Rplus_le_compat_l.
     apply sqrt_le_1_alt. lra. }
 
   apply (Rle_trans _ _ _ H8).
-  replace (1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)))
+  replace (1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)))%R
     with (6 / 2 ^ (e * 2)) by lra.
 
   right.
@@ -159,13 +166,13 @@ Proof.
   rewrite <- (Rpower_sqrt (2 ^ _)).
   rewrite <- (Rpower_pow (_ * 4) _).
   rewrite Rpower_mult.
-  replace ((e * 4)%nat * / 2) with (INR (e * 2)).
+  replace ((e * 4)%nat * / 2)%R with (INR (e * 2))%R.
   rewrite Rpower_pow.
   rewrite sqrt32.
   rewrite pow_div. rewrite <- pow_mult.
   rewrite <- Rdiv_plus_distr.
-  replace ((1 + sqrt 2) ^ 2 / 2 ^ (e * 2) * 2) with
-      ((2 * (1 + sqrt 2) ^ 2) / 2 ^ (e * 2)).
+  replace ((1 + sqrt 2) ^ 2 / 2 ^ (e * 2) * 2)%R with
+      ((2 * (1 + sqrt 2) ^ 2) / 2 ^ (e * 2))%R.
   apply f_equal2. field_simplify. rewrite pow2_sqrt. field. lra. reflexivity.
   field. apply pow_nonzero. lra. apply pow_nonzero. lra. lra.
 
@@ -227,29 +234,6 @@ Proof.
 
 (* The following couple of definitions should probably be somewhere else *)
 
-Fixpoint map_seq {A:Type} (f : nat -> A) start len :=
-  match len with
-  | 0%nat => nil
-  | S len => f start :: (map_seq f (S start) len)
-  end.
-
-Lemma map_seq_spec {A:Type} (f : nat -> A) start len :
-  map_seq f start len = map f (seq start len).
-Proof.
-  revert start; induction len; [reflexivity|].
-  intros; cbn; rewrite IHlen. reflexivity. Qed.
-  
-Lemma map_seq_nonnil {A:Type} (f : nat -> A) n m : (0 < m)%nat -> map_seq f n m <> nil.
-Proof. destruct m. lia. simpl. congruence. Qed.
-
-Lemma map_seq_In {A:Type} (f : nat -> A) n m :
-  forall i, (n <= i < n + m)%nat -> In (f i) (map_seq f n m).
-Proof. rewrite map_seq_spec. intros; apply in_map; apply in_seq; assumption. Qed.
-
-Lemma In_map_seq {A:Type} (f : nat -> A) n m x :
-  In x (map_seq f n m) -> exists i, f i = x.
-Proof. intros. rewrite map_seq_spec in H. apply in_map_iff in H as [i []]. exists i. assumption. Qed.
-
 Definition Rmin a b := if Rle_dec a b then a else b.
 
 Definition Rmin_l a b : Rmin a b <= a.
@@ -270,7 +254,6 @@ Fixpoint Rmin_list l : R :=
 Lemma Rmin_list_cons a b l :
   Rmin_list (a :: b :: l) = Rmin a (Rmin_list (b :: l)).
 Proof. reflexivity. Qed.
-
 
 Lemma Rmin_list_spec l :
   forall a, In a l -> Rmin_list l <= a.
@@ -408,7 +391,7 @@ Proof.
   destruct j.
   - rewrite big_op_nil, big_op_rev_nil by lia; simpl.
     rewrite !Rmult_1_r, !Rmult_0_r, !Rplus_0_r, !Rplus_0_l, !minus_diag, !Rmult_0_r, Rplus_0_r.
-    rewrite sqrt_0. rewrite <- sqrt_1 at 3. apply Rle_sqrt; lra.
+    rewrite sqrt_0. rewrite <- sqrt_1 at 1. apply Rle_sqrt. rify. lra.
   - destruct (fin_dec j
                       (fun i => (mat_norm (big_mmult_rev (fun i => M (e i) (q i)) 0 (S i))) <= (beta ((big_sum_nat e 0 (S i)))))
                       ltac:(intros; apply Rle_dec)) as [[i[]]|].
@@ -453,11 +436,15 @@ Proof.
           rewrite <- big_op_rev_split with (m:=i) by lia.
           etransitivity. apply mat_norm_mmult.
 
-          rewrite big_op_rev_S_r, big_op_rev_nil, mmult_I_l by lia.
+          rewrite big_op_rev_S_r, big_op_rev_nil by lia.
+          rewrite mul_1_l.
 
           pose proof sqrt2_bound.
           pose proof gamma_spec (big_sum_nat e 0 i) (e i).
+          replace Nat.add with monoid_op in H5 by reflexivity.
           rewrite <- big_op_S_r in H5 by lia.
+          replace Natadd_monoid_op with Nat.add in H5 by reflexivity.
+          replace monoid_op with Nat.add in H5 by reflexivity.
 
           pose proof sqrt_pos 2.
           pose proof mat_norm_nonneg (M (e i) (q i)).
@@ -480,12 +467,12 @@ Proof.
           { intros. specialize (IHi ltac:(lia)).
             rewrite <- big_op_split with (m:=i) by lia.
             rewrite <- big_op_rev_split with (m:=i) by lia.
-            rewrite big_op_rev_S_l, big_op_rev_nil, mmult_I_r by lia.
+            rewrite big_op_rev_S_l, big_op_rev_nil, mul_1_r by lia.
             rewrite big_op_S_r, (big_op_nil _ i i), Nat.add_0_l by lia.
             constructor.
             assumption.
             destruct i.
-            { left. rewrite big_op_nil; lia. }
+            { left. rewrite big_op_nil. reflexivity. lia. }
             { right. specialize (n i ltac:(lia)). lra. }
             { specialize (n0 i ltac:(lia)). lra. }
 
@@ -527,9 +514,9 @@ Section __.
 
   Lemma E2_cor i (HR0 : R0 <> 0%Z) (H : R_ (S i) <> 0%Z) :
     [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] =
-    M (e i) (q i) *v [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
+    M (e i) (q i) ⋅ [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
   Proof.
-    unfold M. rewrite E2. unfold vmult. apply f_equal2. field. apply pow_nonzero. lra.
+    unfold M. rewrite E2. cbv [module_left_act vmult_left_act vmult]. apply f_equal2. field.
     apply f_equal2. reflexivity. apply f_equal2.
     unfold div_2. field_simplify. apply f_equal2. reflexivity.
     rewrite Zpower_nat_IZR. rewrite <- pow_add. apply f_equal2. lra. lia. apply pow_nonzero. lra.
@@ -537,15 +524,15 @@ Section __.
 
   Lemma E2_cor2 j (H : R_ j <> 0%Z) :
     [ IZR (split2 (R_ j)) ; IZR (R_ (S j)) ] =
-    (big_mmult_rev (fun i => M (e i) (q i)) 0 j) *v [ IZR R0 ; IZR R1].
+    (big_mmult_rev (fun i => M (e i) (q i)) 0 j) ⋅ [ IZR R0 ; IZR R1].
   Proof.
     assert (R0_nonzero : R0 <> 0%Z) by (apply odd_nonzero; assumption).
     induction j.
-    - simpl. apply f_equal2.
-      rewrite split2_odd. field. assumption.
-      field.
+    - cbv [module_left_act vmult_left_act vmult]. simpl. apply f_equal2.
+      rewrite split2_odd. rify. field. assumption.
+      rify. field.
     - rewrite big_op_rev_S_l.
-      rewrite mmult_vmult.
+      rewrite left_action.
       rewrite <- IHj.
       rewrite E2_cor. reflexivity.
       assumption. assumption. apply R_nonzero_S. assumption. assumption. lia. Qed.
@@ -604,7 +591,7 @@ Section __.
     assert ((IZR R0 , IZR R1) <> v0).
     apply vnonzero. left. apply not_0_IZR.  apply odd_nonzero. assumption.
     apply vnonzero_norm in H4.
-    pose proof (vec_norm_nonneg (IZR R0, IZR R1)). lra. Qed.
+    pose proof (vec_norm_nonneg (IZR R0, IZR R1)). rify_all. lra. Qed.
 
   Lemma IZR_INR_le z n : (Z.to_nat z <= n)%nat -> IZR z <= INR n.
   Proof. intros. rewrite INR_IZR_INZ. apply IZR_le. lia. Qed.

@@ -2,7 +2,7 @@ From Coq Require Import Bool List.
 From Coq Require Import ZArith Znumtheory micromega.Lia.
 From Coq Require Import Reals Rbase micromega.Lra.
 
-From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Matrix IZR Rlemmas.
+From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Hierarchy Impl Matrix IZR Rlemmas.
 
 Import Z RinvImpl.
 
@@ -209,18 +209,28 @@ Section __.
   Proof. rewrite R_recurrence; lia. Qed.
 
   Local Open Scope R.
+  Local Open Scope group_scope.
+  Local Open Scope ring_scope.
+  Local Open Scope lmodule_scope.
   Local Open Scope mat_scope.
+
+  Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
+                                Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *.
+  Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
+                                 Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in H.
+  Ltac rify := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
+                            Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id].
 
   Theorem E2 i (HR0 : R0 <> 0%Z) (H : R_ (S i) <> 0%Z) :
     [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] =
-    [ 0 , 1 / 2 ^ (e (S i)) ; - 1 / 2 ^ (e (S i)) , (split2 (R_ i) div2 (R_ (S i))) / 2 ^ (e (S i))] *v [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
+    [ 0 , 1 / 2 ^ (e (S i)) ; - 1 / 2 ^ (e (S i)) , (split2 (R_ i) div2 (R_ (S i))) / 2 ^ (e (S i))] ⋅ [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
   Proof.
     rewrite R_S_S, ((proj2 (Z.eqb_neq _ _)) H).
-    unfold vmult.
+    cbv [module_left_act vmult_left_act vmult].
     apply f_equal2.
-    - field_simplify; [|apply Rfunctions.pow_nonzero; lra].
+    - rify. field_simplify; [|apply Rfunctions.pow_nonzero; lra].
       unfold split2. rewrite div_IZR, Zpower_nat_IZR by (apply pval_spec; lia). reflexivity.
-    - rewrite div_IZR, Zpower_nat_IZR, opp_IZR, R_eq. field.
+    - rewrite div_IZR, Zpower_nat_IZR, opp_IZR, R_eq. rify. field.
       apply Rfunctions.pow_nonzero. lra.
       apply Zdivide_opp_r; apply mod2_div'; [apply odd_split2|assumption]; apply R_nonzero_S; assumption. Qed.
 

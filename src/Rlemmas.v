@@ -1,6 +1,6 @@
 Require Import Rbase Reals ZArith QArith micromega.Lia micromega.Lra.
 
-Require Import Zpower_nat.
+From BY Require Import Zpower_nat.
 
 Import RinvImpl.
 
@@ -149,7 +149,7 @@ Proof.
 
 Lemma lt_pow (n : nat) a b (Hn : (0 < n)%nat) : a ^ n < b ^ n -> a < Rabs b.
 Proof.
-  destruct (Rlt_dec a 0) as [Ha|Ha]; intros. Search Rpower.
+  destruct (Rlt_dec a 0) as [Ha|Ha]; intros.
   - eapply Rlt_le_trans. apply Ha. apply Rabs_pos.
   - assert (0 <= a ^ n) by (apply pow_le; lra).
     destruct (Req_EM_T b 0).

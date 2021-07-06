@@ -1,6 +1,6 @@
-Require Import ZArith micromega.Lia.
+Require Import ZArith micromega.Lia Reals micromega.Lra.
 
-From BY Require Import Section11 Divstep BigOp MatrixZ Zpower_nat Zlemmas.
+From BY Require Import Section11 Divstep Matrix Hierarchy Impl Zpower_nat Zlemmas Spectral.
 
 Import Z.
 Local Open Scope Z.
@@ -16,6 +16,7 @@ Definition by_inv f g pc :=
   sign * pc * vm mod f.
 
 Theorem by_inv_spec f g pc
+        (G4 : (21 < Log.log 2 (vec_norm (IZR f, (IZR (2 * g)))))%R)
         (fg_rel_prime : gcd f g = 1)
         (fodd : odd f = true)
         (gnon0 : g <> 0)
@@ -28,7 +29,7 @@ Proof.
   set (m:= to_nat (iterations d)). fold m in pc_correct.
 
   pose proof divstep_full_iter_spec 1 f g m.
-  pose proof _11_2 f g fodd gnon0 (to_nat d) m.
+  epose proof _11_2 f g fodd gnon0 (to_nat d) m _.
 
   assert (f ^+ 2 + 4 * g ^+ 2 <= 5 * 4 ^+ (to_nat d)).
   { unfold d in *.
@@ -110,4 +111,6 @@ Proof.
   pose proof le_max_l (log2_up (abs f)) (log2_up (abs g)).
 
   destruct (d <? 46);  unfold d;  apply div_pos; lia. unfold d. etransitivity. apply (log2_up_nonneg (abs f)).
-  apply le_max_l. Qed.
+  apply le_max_l.
+  Unshelve. lra.
+Qed.

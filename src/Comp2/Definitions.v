@@ -14,7 +14,7 @@ Definition steps := Eval vm_compute in 2 ^ 44 : N.
 Definition sint_max := Eval vm_compute in 1 << 62 - 1.
 
 Definition asr a := let b := if (get_digit a 62) then 1 << 62 else 0 in Int63.lor (lsr a 1) b.
-Definition int_min a b := if a < b then a else b.
+Definition int_min a b := if a <? b then a else b.
 
 Definition divstep_int (d f g : int) :=
   if (get_digit (opp d) 62) && (negb (is_even g))
@@ -24,7 +24,7 @@ Definition divstep_int (d f g : int) :=
 Fixpoint needs_n_steps_int (d a b : int) n :=
   match n with
   | 0%nat => true
-  | S n => if (b == 0)
+  | S n => if (b =? 0)
           then false
           else let '(d', a', b') := divstep_int d a b in needs_n_steps_int d' a' b' n
   end.
@@ -51,7 +51,7 @@ Definition W n := min_needs_n_steps_nat_int 1 0 n sint_max steps.
 Fixpoint divsteps_aux steps fuel d a b :=
   match fuel with
   | 0%nat => steps
-  | S fuel => if (b == 0)
+  | S fuel => if (b =? 0)
              then steps
              else let '(d', a', b') := divstep_int d a b in divsteps_aux (S steps) fuel d' a' b'
   end.
@@ -72,7 +72,7 @@ Program Fixpoint table_b (a a2 b : int) (bound : int) (acc : list int) fuel {mea
           let new_list := (fix aux l i acc2 :=
                              match l with
                              | [] => acc2
-                             | a :: l => aux l (S i) (acc2 ++ [(if (length < a) && (i <=? n)%nat then length else a)])
+                             | a :: l => aux l (S i) (acc2 ++ [(if (length <? a) && (i <=? n)%nat then length else a)])
                              end) acc 0%nat [] in
           table_b a a2 (b + 2) bound new_list (N.pred fuel)
         else

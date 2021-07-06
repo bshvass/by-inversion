@@ -1,6 +1,6 @@
 Require Import Rbase Reals ZArith QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-Require Import Rlemmas IZR.
+From BY Require Import Rlemmas IZR.
 
 Local Open Scope Z.
 Local Open Scope R.

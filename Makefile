@@ -1,4 +1,5 @@
 SORT_COQPROJECT = sed 's,[^/]*/,~&,g' | env LC_COLLATE=C sort | sed 's,~,,g' | uniq
+GREP_EXCLUDE = grep -v '^src/Comp2/\(SmallValues\|MediumValues\).v'
 
 all:
 	make -f CoqMakefile
@@ -22,9 +23,9 @@ extocaml1:
 ocaml1:
 	mkdir -p bin && \
 	cd src/Comp1 && \
-	ocamlfind ocamlopt -O3 -c definitions.mli definitions.ml -rectypes && \
-	ocamlfind ocamlopt -O3 -c comp1.ml -rectypes && \
-	ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml definitions.cmx comp1.cmx -rectypes
+	ocamlfind ocamlopt -O3 -linkpkg -package zarith -o ../../bin/comp1ocaml big.ml definitions.mli definitions.ml comp1.ml -rectypes
+# ocamlfind ocamlopt -O3 -c comp1.mli comp1.ml -rectypes && \
+# ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml big.cmx definitions.cmx comp1.cmx -rectypes
 c:
 	mkdir -p bin && \
 	gcc -O3 -o bin/comp2c src/Comp2/comp2.c
@@ -55,4 +56,8 @@ test-ocaml-2:
 	(time ./bin/comp2ocaml 50 all) && \
 	terminal-notifier -message 'Make test-ocaml is done' -sound default
 update-_CoqProject:
-	(echo '-R src BY'; (git ls-files 'src/*.v' | grep -v '^src/Comp2/\(SmallValues\|MediumValues\).v' | $(SORT_COQPROJECT))) > _CoqProject
+	git ls-files --deleted > deleted_files.tmp; \
+	git ls-files 'src/*.v' > files.tmp; \
+	(echo '-R src BY'; grep -vf deleted_files.tmp files.tmp | $(GREP_EXCLUDE) | $(SORT_COQPROJECT)) > _CoqProject; \
+	rm *.tmp
+

@@ -1,4 +1,3 @@
-
 open Definition
 
 let rec to_nat n =
@@ -20,7 +19,7 @@ let rec printintlist l acc =
   | Nil -> ()
   | Cons (h,l) -> Printf.printf "W%i = %s\n" acc (Uint63.to_string h);
                   printintlist l (acc + 1)
-  
+
 let _ =
   if 2 < Array.length Sys.argv
   then printintlist (table (Uint63.of_int(int_of_string(Sys.argv.(1))))) 0

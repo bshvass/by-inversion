@@ -1,6 +1,6 @@
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-Require Import Rlemmas.
+From BY Require Import Rlemmas.
 
 Local Open Scope R.
 Local Coercion INR : nat >-> R.

@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas BigOp PadicVal Matrix Rlemmas IZR Log Floor Q.
+From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas Hierarchy Impl PadicVal Matrix Rlemmas IZR Log Floor Q Spectral.
 
 Import Z.
 Local Open Scope Z.
@@ -35,7 +35,7 @@ Section __.
   Proof.
     induction j; intros.
     - rewrite big_op_nil by lia; simpl.
-      apply f_equal2; ring.
+      apply f_equal2. zify. lia. lia.
     - simpl.
       rewrite big_op_S_r.
       rewrite IHj at 1.
@@ -94,14 +94,14 @@ Section __.
   Proof.
     induction j; intros.
     - rewrite big_op_nil by lia; simpl.
-      rewrite mul_1_r, <- Z_div_exact_2. ring. lia.
+      rewrite mul_1_r, <- Z_div_exact_2. zify; ring. lia.
       rewrite Zmod_even, even_sub, <- !negb_odd.
       rewrite odd_split2, f_odd; auto.
     - simpl.
       replace (2 * (2 * 2 ^+ j) * ((z j + z j mod 2 * split2 g) / 2)) with
           (((2 ^+ S j) * z j) + (2 * 2 ^+ j) * (z j mod 2 * split2 g)).
       rewrite IHj.
-      rewrite big_op_S_r. lia. lia.
+      rewrite big_op_S_r. cbv [monoid_op]. zify. lia. lia.
 
       rewrite (mul_comm 2 (2 * _)).
       rewrite <- (mul_assoc _ 2).
@@ -123,7 +123,7 @@ Section __.
     1 <= sum j < 2 ^+ (S j).
   Proof.
     induction j.
-    - rewrite big_op_nil; simpl; lia.
+    - rewrite big_op_nil; simpl; zify; lia.
     - rewrite big_op_S_r. pose proof mod_pos_bound (z j) 2 ltac:(lia).
       rewrite <- Zpower_nat_mul_l. rewrite add_assoc.
       assert (2 * 2 ^+ j = 2 ^+ (S j)) by reflexivity. nia. lia. Qed.
@@ -222,9 +222,9 @@ Section __.
   Proof.
     apply Rpower_log; try lra.
     epose proof (vec_norm_nonneg (IZR R0, IZR R1)).
-    epose proof (proj1 (vnonzero R0 R1)) _.
-    epose proof (proj1 (vnonzero_norm _)) H0. lra.
-    Unshelve. left. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
+    epose proof (proj1 (vnonzero (IZR R0) (IZR R1))) _.
+    epose proof (proj1 (vnonzero_norm _)) H0. rify_all.  lra.
+    Unshelve. left. replace (@abelian_group_id R _) with (IZR Z0) by reflexivity. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
 
   (****************************************************************************)
   (** The following lemma is computational. It can almost be done inside coq. *)
@@ -250,9 +250,9 @@ Section __.
 
   Local Open Scope R.
 
-  Theorem G6 : exists x y, divstep_iter 1 R0 (R1 / 2) it = (x, y, 0%Z).
+  Theorem G6 (G4 : b > 21) : exists x y, divstep_iter 1 R0 (R1 / 2) it = (x, y, 0%Z).
   Proof.
-    destruct (Rle_dec b 21) eqn:E; [apply G4; assumption|].
+    destruct (Rle_dec b 21) eqn:E; [(* apply G4; assumption *) lra|].
 
     assert (log 2 633 < 456 / 49).
     { apply log_upper_bound. lra. lra.
@@ -396,14 +396,17 @@ Section __.
       rewrite E, E2 in *. lra.
     - apply alpha_pos_nonneg.
     - epose proof proj1 (vnonzero_norm (IZR R0, IZR R1)) _.
-      pose proof vec_norm_nonneg (IZR R0, IZR R1). lra.
-    - apply vnonzero. left. apply IZR_neq. apply psplit_non0. lia. assumption.
+      pose proof vec_norm_nonneg (IZR R0, IZR R1). rify_all. lra.
+    - apply vnonzero. left.
+      change (@abelian_group_id R _) with (IZR Z0).
+      apply IZR_neq. apply psplit_non0. lia. assumption.
       Unshelve. lra. lra. apply log_le_lower_bound. lra.
       rewrite <- (Ropp_involutive (_ / _)). rewrite Rpower_Ropp. apply Rle_div_r.
       apply alpha_pos_nonneg.
       apply Rle_div_l. apply Rpower_pos_nonneg. replace (- ((34 * w t - 23) / 49)) with (- (34 * w t - 23) / 49).
       lra.
       lra.
-
-      apply vnonzero. left. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
+      apply vnonzero. left.
+      change (@abelian_group_id R _) with (IZR Z0).
+      apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
 End __.

@@ -14,7 +14,7 @@ Definition steps := 2 ^ 44 : N.
 Definition sint_max := 1 << 62 - 1.
 
 Definition asr a := set_digit (lsr a 1) 62 (get_digit a 62).
-Definition int_min a b := if a < b then a else b.
+Definition int_min a b := if a <? b then a else b.
 
 Definition divstep_int (d f g : int) :=
   if (get_digit (opp d) 62) && (negb (is_even g))
@@ -24,7 +24,7 @@ Definition divstep_int (d f g : int) :=
 Fixpoint needs_n_steps_int (d a b : int) n :=
   match n with
   | 0%nat => true
-  | S n => if (b == 0)
+  | S n => if (b =? 0)
           then false
           else let '(d', a', b') := divstep_int d a b in needs_n_steps_int d' a' b' n
   end.
@@ -48,7 +48,7 @@ Next Obligation. exact (Acc_intro_generator (50) ltac:(apply measure_wf; apply N
 Fixpoint divsteps_aux steps fuel d a b :=
   match fuel with
   | 0%nat => steps
-  | S fuel => if b == 0
+  | S fuel => if b =? 0
              then steps
              else let '(d', a', b') := divstep_int d a b in divsteps_aux (S steps) fuel d' a' b'
   end.
@@ -70,7 +70,7 @@ Program Fixpoint table_b (a a2 b : int) (bound : int) (acc : list int) fuel {mea
                              | 0%nat => l
                              | S n =>
                                let acci := nth_default sint_max acc i in
-                               aux n (S i) ((if length < acci then length else acci) :: l)
+                               aux n (S i) ((if length <? acci then length else acci) :: l)
                              end) n 0%nat [] in
           table_b a a2 (b + 2) bound new_list (N.pred fuel)
         else

@@ -1,6 +1,6 @@
 Require Import Bool ZArith micromega.Lia.
 
-Require Import MatrixZ BigOp Zlemmas.
+From BY Require Import Matrix Hierarchy Impl Zlemmas.
 
 Import Z.
 
@@ -155,21 +155,25 @@ Proof.
   - rewrite divstep_iter_S. destruct (divstep_iter d f g n) as [[dn fn] gn].
     unfold divstep. destruct (0 <? dn); destruct (odd gn) eqn:gnodd; simpl; assumption. Qed.
 
+Local Open Scope group_scope.
+Local Open Scope ring_scope.
+Local Open Scope lmodule_scope.
+
 Lemma Tn_transition d f g n (fodd : odd f = true) :
-    2 **v [ fn d f g (S n) ; gn d f g (S n) ] = ((Tn d f g n) *v [ fn d f g n ; gn d f g n ]).
+    2 ⋅ [ fn d f g (S n) ; gn d f g (S n) ] = ((Tn d f g n) ⋅ [ fn d f g n ; gn d f g n ]).
 Proof.
-  pose proof fn_odd d f g n fodd as fnodd. auto_mat.
+  pose proof fn_odd d f g n fodd as fnodd. cbv [module_left_act vmult_left_act vmult].
   unfold Tn, fn, gn, Tmat in *. rewrite divstep_iter_S. unfold divstep.
-  destruct (divstep_iter d f g n) as [[dn fn] gn]. rewrite Zmod_odd.
+  destruct (divstep_iter d f g n) as [[dn fn] gn]. rewrite Zmod_odd. zify.
   destruct (0 <? dn); destruct (odd gn) eqn:gnodd; cbn -[Z.mul]; apply f_equal2;
-    rewrite <- ?Z_div_exact_full_2; rewrite ?Zmod_odd, ?odd_sub, ?odd_add, ?odd_mul, ?fnodd, ?gnodd; try lia; reflexivity. Qed.
+    rewrite <- ?Z_div_exact_full_2; rewrite ?Zmod_odd, ?odd_sub, ?odd_add, ?odd_mul, ?fnodd, ?gnodd; try (zify; lia); try reflexivity. Qed.
 
 Lemma Sn_transition d f g n :
-    [ 1 ; dn d f g (S n) ] = (Sn d f g n) *v [ 1 ; dn d f g n ].
+    [ 1 ; dn d f g (S n) ] = (Sn d f g n) ⋅ [ 1 ; dn d f g n ].
 Proof.
   unfold Sn, dn, Smat in *. rewrite divstep_iter_S. unfold divstep.
   destruct (divstep_iter d f g n) as [[dn fn] gn].
-  destruct ((0 <? dn) && odd gn); auto_mat. Qed.
+  destruct ((0 <? dn) && odd gn); cbv [module_left_act vmult_left_act vmult]; auto_mat; zify; lia. Qed.
 
 Lemma divstep_full_spec d f g :
   let '(d1, f1, g1, v1, r1) := divstep_full d f g 0 1 in
@@ -208,16 +212,16 @@ Proof. induction m.
          Arguments sub : simpl never.
          Arguments add : simpl never.
          Arguments mul : simpl never.
-         unfold mmult.
+         cbv [monoid_op mmult_ring_op mmult].
 
          destruct ((0 <? dm) && odd gm) eqn:E.
          inversion full; inversion H0.
-         do 2 eexists; pair_eq; try reflexivity; lia.
+         do 2 eexists; pair_eq; try reflexivity; zify; lia.
 
          destruct (mod2_dec gm). rewrite e in *.
          inversion full; inversion H0.
-         do 2 eexists; pair_eq; try reflexivity; lia.
+         do 2 eexists; pair_eq; try reflexivity; zify; lia.
 
          rewrite e in *.
          inversion full; inversion H0.
-         do 2 eexists; pair_eq; try reflexivity; lia. lia. Qed.
+         do 2 eexists; pair_eq; try reflexivity; zify; lia. lia. Qed.

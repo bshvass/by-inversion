@@ -1,159 +1,71 @@
 From Coq Require Import List Rbase Reals QArith micromega.Lia micromega.Lra.
 
-From BY Require Import Rlemmas Tactics SetoidRewrite Matrix.
+From BY Require Import Rlemmas Tactics SetoidRewrite Hierarchy Matrix Impl.
 
 Local Open Scope R_scope.
+
+Local Open Scope group_scope.
+Local Open Scope ring_scope.
+Local Open Scope lmodule_scope.
+
 Local Open Scope list_scope.
 
 Local Open Scope mat_scope.
 Local Open Scope vec_scope.
 
-(************************************************************************************************)
-(** This files contains a formal proof of the spectral theorem of 2x2 matrices over the R type  *)
-(** It furthermore contains proofs of properties of the operator norm on 2x2 matrices which use *)
-(** eigenvalues and the spectral theorem.                                                       *)
-(************************************************************************************************)
+Definition vec_norm (v : vec) :=
+  let '(v1, v2) := v in
+  sqrt(v1 ^ 2 + v2 ^ 2).
 
-Lemma vec_eq_dec (v w : vec) : (v = w) \/ v <> w.
-Proof. auto_mat; destruct (Req_dec r1 r); destruct (Req_dec r2 r0); tauto. Qed.
+Definition mat_norm (m : mat) :=
+  let '(m11, m12, m21, m22) := m in
+  let a := (m11 ^ 2 + m12 ^ 2)%R in
+  let b := (m11 * m21 + m12 * m22)%R in
+  let c := (m11 * m21 + m12 * m22)%R in
+  let d := (m21 ^ 2 + m22 ^ 2)%R in
+  sqrt ((a + d + sqrt ((a - d) ^ 2 + 4 * b ^ 2)) / 2).
 
-Lemma scmat_vmult (l : R) (v : vec) (m : mat) :
-  l ** m *v v = l **v (m *v v).
-Proof. auto_mat. Qed.
+Definition normal_vec v := (/ vec_norm v) ⋅ v.
 
-Lemma vmult_scvec (l : R) (v : vec) (m : mat) :
-  m *v (l **v v) = l ** m *v v.
-Proof. auto_mat. Qed.
-
-Lemma scvec_vmult l v m :
-  l **v (m *v v) = l ** m *v v.
-Proof. auto_mat. Qed.
-
-Lemma vmult_I_l v : I *v v = v.
-Proof. auto_mat. Qed.
-
-Lemma vmult_mminus_distr_r m1 m2 v :
-  (m1 - m2) *v v = m1 *v v -v m2 *v v.
-Proof. auto_mat. Qed.
-
-Lemma mnonzero m11 m12 m21 m22 :
-  m11 <> 0 \/ m12 <> 0 \/ m21 <> 0 \/ m22 <> 0 <-> [ m11 , m12 ; m21 , m22 ] <> m0.
-Proof. split. intros [m110 | [m120 | [m210 | m220]]] m_not0; inversion m_not0; contradiction.
-       destruct (Req_dec m11 0); destruct (Req_dec m12 0); destruct (Req_dec m21 0); destruct (Req_dec m22 0); subst; try tauto.
-Qed.
-
-Lemma inner_mult_r μ v w :
-  ⟨ v , μ **v w ⟩ = (μ * ⟨ v , w ⟩)%R.
-Proof. auto_mat. Qed.
-
-Lemma inner_mult_l ν v w :
-  ⟨ ν **v v , w ⟩ = (ν * ⟨ v , w ⟩)%R.
-Proof. auto_mat. Qed.
-
-Lemma inner_plus_r u v w :
-  ⟨ u , v +v w ⟩ = (⟨ u , v ⟩ + ⟨ u , w ⟩)%R.
-Proof. auto_mat. Qed.
-
-Lemma inner_plus_l u v w :
-  ⟨ u +v v , w ⟩ = (⟨ u , w ⟩ + ⟨ v , w ⟩)%R.
-Proof. auto_mat. Qed.
-
-Lemma inner_sym u v :
-  ⟨ u , v ⟩ = ⟨ v , u ⟩.
-Proof. auto_mat. Qed.
-
-Lemma inner_vec_norm v :
-  (vec_norm v) ^ 2 = ⟨ v , v ⟩.
-Proof. unfold vec_norm.
-       destruct v as [v1 v2].
-       rewrite pow2_sqrt. simpl; nra. nra. Qed.
-
-Lemma vec_norm_scvec a v : vec_norm (a **v v) = (Rabs a * vec_norm v)%R.
-Proof.
-  unfold vec_norm. destruct v as [v1 v2]. simpl.
-  replace (a * v1 * (a * v1 * 1) + a * v2 * (a * v2 * 1))%R with (a ^ 2 * (v1 ^ 2 + v2 ^ 2))%R by nra.
-  rewrite sqrt_mult_alt.
-  rewrite <- Rsqr_pow2.
-  rewrite sqrt_Rsqr_abs.
-  apply f_equal2. reflexivity.
-  apply f_equal. nra. nra. Qed.
-
-Lemma vec_norm_nonneg v :  0 <= vec_norm v.
-Proof. auto_mat. apply sqrt_pos. Qed.
-
-Lemma det_zero m :
-  det m = 0 -> exists v, v <> v0 /\ m *v v = v0.
-Proof.
-  destruct m as [[[m11 m12] m21] m22].
-  unfold det. intros.
-  destruct (Req_dec m22 0).
-  assert (m12 = 0 \/ m21 = 0). nra.
-  destruct (Req_dec m12 0).
-  - exists [ 0 ; 1]. split. apply vnonzero. right; lra. auto_mat.
-  - assert (m21 = 0) by tauto.
-    exists [ m12 ; -m11]. split. apply vnonzero. left; lra. auto_mat.
-  - exists [ m22 ; - m21 ]. split. apply vnonzero; left; lra. auto_mat. Qed.
-
-Lemma ort_scvec_r u v ν : ort u v -> ort u (ν **v v).
-Proof. unfold ort; intros; rewrite inner_mult_r; nra. Qed.
-
-Lemma ort_scvec_l u v μ : ort u v -> ort (μ **v u) v.
-Proof. unfold ort; intros; rewrite inner_mult_l; nra. Qed.
-
-Lemma ort_scvec u v μ ν : ort u v -> ort (μ **v u) (ν **v v).
-Proof. unfold ort; intros; rewrite inner_mult_l, inner_mult_r; nra. Qed.
-
-Lemma scvec_scvec μ ν v :
-  μ **v (ν **v v) = (μ * ν) **v v.
-Proof. auto_mat. Qed.
-
-Lemma eig_vec_scvec l v m x (xnon0 : x <> 0) :
-  eig_vec l v m -> eig_vec l (x **v v) m.
-Proof.
-  intros [vnon0 eig]. split.
-  auto_mat. apply vnonzero in vnon0. apply vnonzero. nra.
-  rewrite vmult_scvec.
-  rewrite scmat_vmult. rewrite eig.
-  rewrite scvec_scvec. rewrite Rmult_comm.
-  rewrite scvec_scvec. reflexivity. Qed.
-
-Lemma eig_pol l m :
-  det (m - l ** I) = 0 -> eig_val l m.
-Proof.
-  intros. apply det_zero in H.
-  destruct H as [v [vnon0 eq]].
-  unfold det. exists v. split. assumption.
-  inversion_mat eq. auto_mat. psatz R. Qed.
+Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
+                          Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *.
+Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
+                               Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in H.
+Ltac rify := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
+                          Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id].
 
 Lemma inner_nonzero v : v <> v0 -> ⟨ v , v ⟩ <> 0.
-Proof. intros; auto_mat; apply vnonzero in H; simpl; nra. Qed.
+Proof. intros; auto_mat; apply vnonzero in H; simpl. cbv in *. nra. Qed.
 
-Lemma ort_span v w (Hv : v <> v0) (Hw : w <> v0) : ort v w -> forall u, exists μ ν, μ **v v +v ν **v w = u.
+Lemma ort_span v w (Hv : v <> v0) (Hw : w <> v0) : ort v w -> forall u, exists μ ν, μ ⋅ v + ν ⋅ w = u.
 Proof.
   intros.
   exists (⟨ u , v ⟩ / ⟨ v , v ⟩), (⟨ u , w ⟩ / ⟨ w , w ⟩).
 
-  unfold ort in H. auto_mat. field_simplify. apply eq_div.
+  unfold ort in H. auto_mat. unfold inner in *; cbv; cbv in H. apply f_equal2. field_simplify. apply eq_div.
 
   apply vnonzero in Hv.
   apply vnonzero in Hw.
 
+  change 0 with R0 in *.
   destruct Hv; destruct Hw.
-
-  assert (0 < r3 ^ 2 * r1 ^ 2). apply Rmult_lt_0_compat. nra. nra. nra.
-  assert (0 < r3 ^ 2 * r2 ^ 2). apply Rmult_lt_0_compat. nra. nra. nra.
-  assert (0 < r4 ^ 2 * r1 ^ 2). apply Rmult_lt_0_compat. nra. nra. nra.
-  assert (0 < r4 ^ 2 * r2 ^ 2). apply Rmult_lt_0_compat. nra. nra. nra.
+  
+  assert (0 < r3 ^ 2 * r1 ^ 2). apply Rmult_lt_0_compat; nra. nra. 
+  assert (0 < r3 ^ 2 * r2 ^ 2). apply Rmult_lt_0_compat; nra. nra. 
+  assert (0 < r4 ^ 2 * r1 ^ 2). apply Rmult_lt_0_compat; nra. nra. 
+  assert (0 < r4 ^ 2 * r2 ^ 2). apply Rmult_lt_0_compat; nra. nra. 
 
   simpl in H; psatz R.
-
-  split; apply vnonzero in Hv; apply vnonzero in Hw; nra.
+  
+  split; apply vnonzero in Hv; apply vnonzero in Hw; change 0 with R0 in *. 
+  nra. nra.
 
   field_simplify. apply eq_div.
 
   apply vnonzero in Hv.
   apply vnonzero in Hw.
 
+  change 0 with R0 in *.
   destruct Hv; destruct Hw.
 
   assert (0 < r3 ^ 2 * r1 ^ 2). apply Rmult_lt_0_compat; nra. nra.
@@ -163,22 +75,53 @@ Proof.
 
   simpl in H; psatz R.
 
-  split; apply vnonzero in Hv; apply vnonzero in Hw; nra. Qed.
+  split; apply vnonzero in Hv; apply vnonzero in Hw; change 0 with R0 in *; nra. Qed.
 
-Lemma trans_adj m v w : ⟨ v , m *v w ⟩ = ⟨ m ^T *v v , w ⟩.
-Proof. auto_mat. Qed.
-
-Lemma sym_self_adj m v w : sym m -> ⟨ v , m *v w ⟩ = ⟨ m *v v , w ⟩.
-Proof. unfold sym; intros msym. rewrite msym at 2. apply trans_adj. Qed.
-
-Lemma eig_sym_ort μ ν v w m :
-  sym m -> μ <> ν -> eig_vec μ v m -> eig_vec ν w m -> ort v w.
+Lemma vnonzero_norm v :
+  v <> v0 <-> vec_norm v <> 0.
 Proof.
-  intros msym neq [vnon0 veig] [wnon0 weig]. auto_mat.
-  unfold ort.
-  assert (ν * ⟨ (r5, r6), (r3, r4) ⟩ = μ * ⟨ (r5, r6), (r3, r4) ⟩)%R.
-  now rewrite <- inner_mult_r, <- weig, sym_self_adj, veig, inner_mult_l.
-  nra. Qed.
+  split.
+  intros. unfold vec_norm.
+  destruct v as [ v1 v2 ].
+  apply vnonzero in H. intros contra. apply sqrt_eq_0 in contra. rify_all. nra. nra.
+
+  destruct v as [ v1 v2 ].
+  intros. unfold vec_norm in H.
+  intros contra.
+  inversion_mat contra. subst. rify_all.
+  replace (R0 ^ 2 + R0 ^ 2)%R with 0%R in H by nra. rewrite sqrt_0 in H. contradiction. Qed.
+
+Lemma mat_norm_nonneg m :
+  0 <= mat_norm m .
+Proof. auto_mat. apply sqrt_pos. Qed.
+
+Lemma vec_norm_nonneg v :  0 <= vec_norm v.
+Proof. auto_mat. apply sqrt_pos. Qed.
+
+Lemma vec_norm_pos_nonneg v (vnon0 : v <> v0) : 0 < vec_norm v.
+Proof. pose proof vnonzero_norm v. pose proof vec_norm_nonneg v. apply H in vnon0. rify_all. lra. Qed.
+
+(************************************************************************************************)
+(** This files contains a formal proof of the spectral theorem of 2x2 matrices over the R type  *)
+(** It furthermore contains proofs of properties of the operator norm on 2x2 matrices which use *)
+(** eigenvalues and the spectral theorem.                                                       *)
+(************************************************************************************************)
+
+Lemma inner_vec_norm v :
+  (vec_norm v) ^ 2 = ⟨ v , v ⟩.
+Proof. unfold vec_norm.
+       destruct v as [v1 v2].
+       rewrite pow2_sqrt; cbv. nra. nra. Qed.
+
+Lemma vec_norm_scvec a v : vec_norm (a ⋅ v) = (Rabs a * vec_norm v)%R.
+Proof.
+  unfold vec_norm. destruct v as [v1 v2]. simpl. cbv [ring_op Rmult_ring_op]. 
+  replace (a * v1 * (a * v1 * 1) + a * v2 * (a * v2 * 1))%R with (a ^ 2 * (v1 ^ 2 + v2 ^ 2))%R by nra.
+  rewrite sqrt_mult_alt.
+  rewrite <- Rsqr_pow2.
+  rewrite sqrt_Rsqr_abs.
+  apply f_equal2. reflexivity.
+  apply f_equal. nra. nra. Qed.
 
 Definition sym_eig1 (m : mat) :=
   let '(a, b, c, d) := m in
@@ -192,14 +135,14 @@ Lemma sym_eig1_eig m :
   sym m -> eig_val (sym_eig1 m) m.
 Proof.
   intros. auto_mat.
-  inversion H. apply eig_pol. simpl. field_simplify. apply eq_div. lra.
+  inversion H. apply eig_pol. simpl. rify. field_simplify. apply eq_div. lra.
   rewrite pow2_sqrt. nra. psatz R. Qed.
 
 Lemma sym_eig2_eig m :
   sym m -> eig_val (sym_eig2 m) m.
 Proof.
   intros. auto_mat.
-  inversion H. apply eig_pol. simpl. field_simplify. apply eq_div. lra.
+  inversion H. apply eig_pol. simpl. rify. field_simplify. apply eq_div. lra.
   rewrite pow2_sqrt. nra. psatz R. Qed.
 
 Lemma mat_norm_eig m :
@@ -209,7 +152,7 @@ Proof.
   unfold mat_norm.
 
   rewrite pow2_sqrt.
-  auto_mat. rewrite !Rmult_1_r.
+  auto_mat. rify. rewrite !Rmult_1_r.
 
   apply f_equal2. apply f_equal2. lra.
 
@@ -219,7 +162,7 @@ Proof.
   assert_pow. assert_sqrt. nra. Qed.
 
 Lemma m0_scalar_matrix m : ~ scalar_matrix m -> m <> m0.
-Proof. intros. intros contra. apply H. exists 0. auto_mat; inversion contra; nra. Qed.
+Proof. intros. intros contra. apply H. exists 0. auto_mat; inversion contra. rewrite act_0_l. reflexivity. Qed.
 
 Lemma sym_eig12 m :
   ~ scalar_matrix m -> sym m -> sym_eig1 m <> sym_eig2 m.
@@ -229,11 +172,11 @@ Proof.
   unfold sym_eig1, sym_eig2. auto_mat.
   apply mnonzero in mnon0. unfold sym in msym. inversion msym. subst.
   intros contra.
-  assert (sqrt ((r - r2) ^ 2 + 4 * r1 ^ 2) = 0). nra.
-  apply sqrt_eq_0 in H.
-  assert (r - r2 = 0)%R. nra.
-  assert (r1 = 0). nra. assert (r = r2)%R. nra. subst.
-  apply not_sc_mat. exists r2. auto_mat. psatz R. Qed.
+  assert (sqrt ((r - r2) ^ 2 + 4 * r1 ^ 2) = R0). rify. nra.
+  apply sqrt_eq_0 in H. 
+  assert (r - r2 = 0). rify. nra.
+  assert (r1 = 0). rify_all. nra. assert (r = r2)%R. nra. subst.
+  apply not_sc_mat. exists r2. cbv; auto_mat. psatz R. Qed.
 
 Lemma sym_eig12_ineq m :
   sym_eig2 m <= sym_eig1 m.
@@ -246,20 +189,20 @@ Proof.
   destruct (Req_dec m11 m22).
   destruct (Req_dec m12 0).
   destruct (Req_dec m21 0).
-  - left; exists m11. auto_mat.
+  - left; exists m11. subst; cbv; auto_mat.
   - right; intros contra. destruct contra. inversion_mat H2. nra.
-  - right; intros contra. destruct contra. inversion_mat H1. nra.
+  - right; intros contra. destruct contra. inversion_mat H1. rify_all. cbv [ring_op R] in *. nra.
   - right; intros contra. destruct contra. inversion_mat H0. nra. Qed.
 
 Lemma normal_vec_norm v (vnon0 : v <> v0) : vec_norm (normal_vec v) = 1.
 Proof.
   pose proof vec_norm_nonneg v.
   pose proof (proj1 (vnonzero_norm v)) vnon0.
-  unfold normal_vec. rewrite vec_norm_scvec. rewrite Rabs_pos_eq. field. assumption.
+  unfold normal_vec. rewrite vec_norm_scvec. rewrite Rabs_pos_eq. rify. field. assumption.
   apply inv_pos. nra. Qed.
 
 Lemma normal_vec_nonzero v (vnon0 : v <> v0) : normal_vec v <> v0.
-Proof. apply vnonzero_norm. rewrite normal_vec_norm. nra. assumption. Qed.
+Proof. apply vnonzero_norm. rewrite normal_vec_norm. intros contra. apply non_trivial. symmetry; assumption. assumption. Qed.
 
 Theorem spectral m :
   sym m -> exists u v , eig_vec (sym_eig1 m) u m /\ eig_vec (sym_eig2 m) v m /\ ort u v /\ vec_norm u = 1 /\ vec_norm v = 1.
@@ -267,17 +210,20 @@ Proof.
   destruct (is_scalar_matrix m) as [[x]|]; intros msym.
   - inversion_mat H.
     exists [ 1 ; 0 ], [ 0 ; 1 ]. repeat split.
-    + apply vnonzero. nra.
-    + auto_mat.
-      field_simplify ((x * 1 - x * 1) * ((x * 1 - x * 1) * 1) + 4 * (x * 0 * (x * 0 * 1)))%R.
-      rewrite sqrt_0. nra.
-    + apply vnonzero; nra.
-    + auto_mat.
-      field_simplify ((x * 1 - x * 1) * ((x * 1 - x * 1) * 1) + 4 * (x * 0 * (x * 0 * 1)))%R.
-      rewrite sqrt_0. nra.
-    + unfold ort, inner. nra.
-    + unfold vec_norm. replace (1 ^ 2 + 0 ^ 2)%R with 1 by nra. apply sqrt_1.
-    + unfold vec_norm. replace (0 ^ 2 + 1 ^ 2)%R with 1 by nra. apply sqrt_1.
+    + apply vnonzero. rify. nra.
+    + cbv [module_left_act scvec_left_act vmult_left_act].
+      auto_mat.
+       rify. rewrite !Rmult_1_r, !Rmult_0_r, !Rplus_0_r. replace (x - x)%R with 0%R.
+        rewrite Rmult_0_r.
+        rewrite sqrt_0. nra. nra. rify. nra.
+    + auto_mat. intros contra. inversion contra. rify_all. nra.
+    + cbv [module_left_act scvec_left_act vmult_left_act]. auto_mat.
+      rify. nra.  rewrite !Rmult_1_r, !Rmult_0_r, !Rplus_0_r. replace (x - x)%R with 0%R.
+      rewrite Rmult_0_r.
+      rewrite sqrt_0. rify. nra. nra.
+    + unfold ort, inner. rify. nra.
+    + unfold vec_norm. rify. replace (R1 ^ 2 + R0 ^ 2)%R with 1%R by nra. apply sqrt_1.
+    + unfold vec_norm. rify. replace (R0 ^ 2 + R1 ^ 2)%R with 1%R by nra. apply sqrt_1.
   - pose proof sym_eig1_eig m msym as [u eig1].
     pose proof sym_eig2_eig m msym as [v eig2].
     exists (normal_vec u), (normal_vec v).
@@ -296,32 +242,33 @@ Lemma max_inequality a b c d :
 Proof. nra. Qed.
 
 Lemma mat_norm_spec1 m v :
-  vec_norm v = 1 -> vec_norm (m *v v) <= mat_norm m.
+  vec_norm v = 1 -> vec_norm (m ⋅ v) <= mat_norm m.
 Proof.
   intros. rewrite <- Rabs_pos_eq by apply mat_norm_nonneg.
 
   apply (le_pow 2). lia.
   rewrite mat_norm_eig.
-  assert (Psym : sym (m ^T * m)) by (unfold sym; auto_mat).
+  assert (Psym : sym (m ^T * m)) by (unfold sym; cbv; auto_mat). 
   pose proof spectral _ Psym as [e1 [e2 [[e1non0 eig1] [[e2non0 eig2] [ort12 [norm1 norm2]]]]]].
 
   pose proof (ort_span _ _ e1non0 e2non0 ort12) v as [c1 [c2 eq]].
   rewrite <- eq. rewrite inner_vec_norm. rewrite trans_adj.
   rewrite inner_plus_r, !inner_mult_r.
-  rewrite <- !mmult_vmult.
+  rewrite <- !left_action.
   rewrite <- !sym_self_adj by assumption.
   rewrite !inner_plus_l, !inner_mult_l.
   rewrite eig1, eig2. rewrite !inner_mult_r.
   rewrite (inner_sym e2 e1).
-  rewrite <- !inner_vec_norm, ort12, norm1, norm2. field_simplify.
+  rewrite <- !inner_vec_norm, ort12, norm1, norm2. rify. field_simplify.
   apply max_inequality. apply sym_eig12_ineq. nra. nra.
 
   rewrite <- eq in H. apply (f_equal (fun x => pow x 2)) in H.
-  replace (1 ^ 2) with 1 in H by nra.
+  cbv [ring_id Rone_ring_id] in H.
+  replace (R1 ^ 2) with 1%R in H by nra.
   rewrite inner_vec_norm in H.
-  rewrite !inner_plus_l, !inner_plus_r, !inner_mult_l, !inner_mult_r in H.
+  rewrite !inner_plus_l, !inner_plus_r, !inner_mult_l, !inner_mult_r in H. 
   rewrite (inner_sym e2 e1) in H.
-  rewrite <- !inner_vec_norm, ort12, norm1, norm2 in H. nra. Qed.
+  rewrite <- !inner_vec_norm, ort12, norm1, norm2 in H. rify_in H. nra. Qed.
 
 Lemma e1_norm :
   vec_norm [1; 0] = 1.
@@ -329,7 +276,7 @@ Proof.
   unfold vec_norm. rewrite pow_i, pow1, Rplus_0_r, sqrt_1 by lia. reflexivity. Qed.
 
 Lemma mat_norm_spec2 m a :
-  (forall v, vec_norm v = 1 -> vec_norm (m *v v) <= a) -> (mat_norm m <= a).
+  (forall v, vec_norm v = 1 -> vec_norm (m ⋅ v) <= a) -> (mat_norm m <= a).
 Proof.
   intros.
   assert (0 <= a).
@@ -338,40 +285,37 @@ Proof.
   apply (le_pow 2). lia.
 
   rewrite mat_norm_eig.
-  assert (Psym : sym (m ^T * m)) by (unfold sym; auto_mat).
+  assert (Psym : sym (m ^T * m)) by (unfold sym; cbv; auto_mat).
   pose proof spectral _ Psym as [e1 [e2 [[e1non0 eig1] [[e2non0 eig2] [ort12 [norm1 norm2]]]]]].
   specialize (H e1 norm1).
   rewrite <- (Rabs_pos_eq (vec_norm _)) in H by apply vec_norm_nonneg.
   apply pow_maj_Rabs with (n:=2%nat) in H.
   rewrite inner_vec_norm, trans_adj in H.
-  rewrite <- !mmult_vmult in H.
-  rewrite eig1 in H. rewrite !inner_mult_l in H.
-  rewrite <- !inner_vec_norm, norm1 in H. lra. Qed.
+  rewrite <- !left_action in H.
+  rewrite eig1 in H. rewrite inner_mult_l in H.
+  rewrite <- !inner_vec_norm, norm1 in H. rify_all. lra. Qed.
 
-Lemma vmult_v0 m : m *v v0 = v0.
-Proof. auto_mat. Qed.
-
-Lemma vec_norm_v0 : vec_norm v0 = 0.
-Proof. auto_mat; field_simplify (0 * (0 * 1) + 0 * (0 * 1))%R; apply sqrt_0. Qed.
+Lemma vec_norm_v0 : vec_norm 0 = 0.
+Proof. change (@abelian_group_id vec _) with v0. auto_mat. rewrite Rmult_0_l, Rplus_0_l. apply sqrt_0. Qed.
 
 (***************************************************************)
 (** Note that this theorem has an equational proof in Matrix.v *)
 (***************************************************************)
 
 Lemma mat_norm_vmult m v :
-  vec_norm (m *v v) <= mat_norm m * vec_norm v.
+  vec_norm (m ⋅ v) <= mat_norm m * vec_norm v.
 Proof.
-  destruct (vec_eq_dec v v0).
-  - subst. rewrite vmult_v0, vec_norm_v0. nra.
-  - replace v with (vec_norm v **v normal_vec v).
+  destruct (vec_eq_dec v 0).
+  - subst. rewrite act_0_r. rewrite vec_norm_v0. rify. nra.
+  - replace v with (vec_norm v ⋅ normal_vec v).
     rewrite vmult_scvec. rewrite scmat_vmult.
     rewrite !vec_norm_scvec. rewrite (Rmult_comm (mat_norm m)).
     rewrite normal_vec_norm.
-    pose proof mat_norm_spec1 m _ (normal_vec_norm _ H).
-    pose proof Rabs_pos (vec_norm v). nra. assumption.
+    pose proof mat_norm_spec1 m _ (normal_vec_norm _ n).
+    pose proof Rabs_pos (vec_norm v). rify_all. nra. assumption.
     unfold normal_vec. rewrite scvec_scvec.
-    replace (vec_norm v * / vec_norm v)%R with 1%R. auto_mat.
-    field. apply vnonzero_norm. assumption. Qed.
+    rewrite Rinv_r. change (IZR _) with (@ring_id R _). apply act_1_l. apply vnonzero_norm. assumption.
+    Qed.
 
 (*************************************************************************)
 (** Note that this theorem DOES NOT have an equational proof in Matrix.v *)
@@ -387,7 +331,8 @@ Lemma mat_norm_mmult n m :
 Proof.
   apply mat_norm_spec2.
   intros.
-  rewrite mmult_vmult, mat_norm_vmult.
+  rewrite left_action, mat_norm_vmult.
   pose proof (mat_norm_vmult m v). rewrite H in H0.
   pose proof (mat_norm_nonneg n).
-  pose proof (mat_norm_nonneg m). nra. Qed.
+  pose proof (mat_norm_nonneg m). rify_all. nra.
+Qed.
