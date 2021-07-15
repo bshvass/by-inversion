@@ -42,6 +42,10 @@ Proof. repeat split; cbv; intros; try ring. nra. nra. Qed.
 
 Instance R_eq_dec : forall x y : R, decidable (x = y) := Req_EM_T.
 
+Instance Rle_reflexive : Reflexive Rle. red. intros. lra. Qed.
+Instance Rle_transitive : Transitive Rle. red. intros. lra. Qed.
+
+
 Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
                               Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *.
 Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op

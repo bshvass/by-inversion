@@ -4,7 +4,7 @@
 -R src BY
 src/AppendixE.v
 src/AppendixF.v
-src/AppendixFQ.v
+src/AppendixFdefs.v
 src/AppendixG.v
 src/BYInv.v
 src/Divstep.v
@@ -16,22 +16,22 @@ src/InductionPrinciples.v
 src/ListLemmas.v
 src/Log.v
 src/Matrix.v
-src/MatrixZ.v
+src/MatrixQ.v
 src/ModInv.v
 src/PadicVal.v
 src/Q.v
 src/Qmin_list.v
 src/Rlemmas.v
 src/Rtail.v
+src/Rmin_list.v
 src/Section11.v
 src/Section9.v
-src/SetoidRewrite.v
 src/Spectral.v
 src/Tactics.v
 src/Zlemmas.v
 src/Zpower_nat.v
 src/Comp1/Mem.v
-src/Comp1/NoMem.v
+src/Comp1/NoMemNew.v
 src/Comp2/Definition.v
 src/Comp2/Definitions.v
 src/Comp2/Extraction.v

@@ -2,7 +2,7 @@ From Coq Require Import Bool List.
 From Coq Require Import ZArith Znumtheory micromega.Lia.
 From Coq Require Import Reals Rbase micromega.Lra.
 
-From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Hierarchy Impl Matrix IZR Rlemmas.
+From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Hierarchy Impl Matrix IZR Rlemmas Tactics.
 
 Import Z RinvImpl.
 
@@ -213,13 +213,6 @@ Section __.
   Local Open Scope ring_scope.
   Local Open Scope lmodule_scope.
   Local Open Scope mat_scope.
-
-  Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
-                                Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *.
-  Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
-                                 Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in H.
-  Ltac rify := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
-                            Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id].
 
   Theorem E2 i (HR0 : R0 <> 0%Z) (H : R_ (S i) <> 0%Z) :
     [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] =

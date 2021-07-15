@@ -1,6 +1,6 @@
 Require Import Rbase Reals ZArith QArith micromega.Lia micromega.Lra.
 
-From BY Require Import Zpower_nat.
+From BY Require Import Zpower_nat Tactics.
 
 Import RinvImpl.
 
@@ -103,17 +103,6 @@ Proof.
 
 Lemma eq_div a b c : c <> 0 -> a / c = b <-> a = b * c.
 Proof. split; intros; subst; field; assumption. Qed.
-
-Ltac lira :=
-  lra +
-  (autorewrite with push_izr; try apply lt_IZR; lra) +
-  (autorewrite with push_izr; try apply le_IZR; lra) +
-  (autorewrite with pull_izr;
-       try match goal with
-       | [ |- IZR _ < IZR _ ] => try apply IZR_lt
-       | [ |- IZR _ <= IZR _ ] => try apply IZR_le
-       | [ |- IZR _ <> IZR _ ] => try apply IZR_neq
-       end; lia).
 
 Lemma Rpower_inj x y z : 0 < x -> 0 < y -> z <> 0 -> Rpower x z = Rpower y z -> x = y.
 Proof.

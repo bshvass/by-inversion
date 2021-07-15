@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import Rlemmas Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas Hierarchy Impl Spectral PadicVal Log InductionPrinciples ListLemmas.
+From BY Require Import Q Rlemmas Rmin_list AppendixFdefs Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas Hierarchy Impl Spectral PadicVal Log InductionPrinciples ListLemmas NoMemNew.
 
 Local Open Scope mat_scope.
 Local Open Scope R.
@@ -20,8 +20,6 @@ Local Coercion Q2R : Q >-> R.
 (** First we define the M matrices and prove some prelimenary results on these and on general matrices. *)
 (********************************************************************************************************)
 
-Definition M (e : nat) (q : Z) := [ 0 , 1 / (2 ^ e) ; - 1 / (2 ^ e) , q / (2 ^ (2 * e)) ].
-
 Lemma F6 (v1 v2 : Z) :
   [ IZR v1 ; IZR v2 ] <> v0 -> 1 <= vec_norm [ IZR v1 ; IZR v2 ].
 Proof.
@@ -32,35 +30,7 @@ Proof.
   destruct vnon0 as [H|H];  apply neq_IZR in H; apply pow2_IZR in H; rewrite pow2_sqrt; nra. reflexivity.
 Qed.
 
-Theorem F12 (P : mat) (N : R) :
-  let '(P11, P12, P21, P22) := P in
-  let a := P11 ^ 2 + P12 ^ 2 in
-  let b := P11 * P21 + P12 * P22 in
-  let c := P11 * P21 + P12 * P22 in
-  let d := P21 ^ 2 + P22 ^ 2 in
-  mat_norm P <= N <-> (0 <= N)
-                   /\ a + d <= 2 * N ^ 2
-                   /\ (a - d) ^ 2 + 4 * b ^ 2 <= (2 * N ^ 2 - a - d) ^ 2.
-Proof.
-  pose proof (mat_norm_nonneg P).
-  destruct P as [[[P11 P12] P21] P22].
-  unfold mat_norm; rify.
-  assert_pow; assert_sqrt.
-  split; intros.
-  - assert (0 <= N) by lra.
-    rewrite <- (Rabs_pos_eq (sqrt _)) in H10 by lra.
-    apply (pow_maj_Rabs _ _ 2) in H10.
-
-    rewrite <- Rsqr_pow2, Rsqr_sqrt in H10.
-    repeat split. lra. lra.
-    apply sqrt_le_0. lra. lra.
-    rewrite <- (Rsqr_pow2 (_ - _ - _)), sqrt_Rsqr; lra. nra.
-  - destruct H10 as [H11 [H12 H13]].
-    apply sqrt_le_1 in H13.
-    rewrite <- (Rsqr_pow2 (_ - _ - _)) in H13. rewrite sqrt_Rsqr in H13.
-    replace N with (Rabs N) by (apply Rabs_pos_eq; assumption).
-    apply le_pow with (n := 2%nat). replace (INR 2%nat) with 2 by reflexivity. lia.
-    rewrite <- Rsqr_pow2, Rsqr_sqrt. all: lra. Qed.
+Definition F12 := mat_norm_condition.
 
 Theorem F16 e q (qodd : Z.odd q = true) (qbound : 1 <= q <= 2 ^ (S e) - 1) :
   mat_norm (M e q) < (1 + sqrt 2) / (2 ^ e).
@@ -180,187 +150,6 @@ Proof.
   apply div_pos_pos. apply add_pos. apply div_pos_pos. lra. apply pow_le. lra. apply sqrt_positivity. apply div_pos_pos.
   lra. apply pow_le. lra. lra. Qed.
 
-(***************************************************************************************)
-(** The next section contains definitions of the various number series used to analyse *)
-(** the complexity of the Rj number sequence (from AppendixE).                         *)
-(***************************************************************************************)
-
-Definition alpha_high w : R := (633/1024) ^ w.
-
-Definition alpha (w : nat) : R :=
-  match w with
-  | 0%nat => 1 | 1%nat => 1 | 2%nat => 689491/2^20 | 3%nat => 779411/2^21
-  | 4%nat => 880833/2^22 | 5%nat => 165219/2^20 | 6%nat => 97723/2^20 | 7%nat => 882313/2^24
-  | 8%nat => 306733/2^23 | 9%nat => 92045/2^22 | 10%nat => 439213/2^25 | 11%nat => 281681/2^25
-  | 12%nat => 689007/2^27 | 13%nat => 824303/2^28 | 14%nat => 257817/2^27 | 15%nat => 634229/2^29
-  | 16%nat => 386245/2^29 | 17%nat => 942951/2^31 | 18%nat => 583433/2^31 | 19%nat => 713653/2^32
-  | 20%nat => 432891/2^32 | 21%nat => 133569/2^31 | 22%nat => 328293/2^33 | 23%nat => 800421/2^35
-  | 24%nat => 489233/2^35 | 25%nat => 604059/2^36 | 26%nat => 738889/2^37 | 27%nat => 112215/2^35
-  | 28%nat => 276775/2^37 | 29%nat => 84973/2^36 | 30%nat => 829297/2^40 | 31%nat => 253443/2^39
-  | 32%nat => 625405/2^41 | 33%nat => 95625/2^39 | 34%nat => 465055/2^42 | 35%nat => 286567/2^42
-  | 36%nat => 175951/2^42 | 37%nat => 858637/2^45 | 38%nat => 65647/2^42 | 39%nat => 40469/2^42
-  | 40%nat => 24751/2^42 | 41%nat => 240917/2^46 | 42%nat => 593411/2^48 | 43%nat => 364337/2^48
-  | 44%nat => 889015/2^50 | 45%nat => 543791/2^50 | 46%nat => 41899/2^47 | 47%nat => 205005/2^50
-  | 48%nat => 997791/2^53 | 49%nat => 307191/2^52 | 50%nat => 754423/2^54 | 51%nat => 57527/2^51
-  | 52%nat => 281515/2^54 | 53%nat => 694073/2^56 | 54%nat => 212249/2^55 | 55%nat => 258273/2^56
-  | 56%nat => 636093/2^58 | 57%nat => 781081/2^59 | 58%nat => 952959/2^60 | 59%nat => 291475/2^59
-  | 60%nat => 718599/2^61 | 61%nat => 878997/2^62 | 62%nat => 534821/2^62 | 63%nat => 329285/2^62
-  | 64%nat => 404341/2^63 | 65%nat => 986633/2^65 | 66%nat => 603553/2^65 | w => alpha_high w
-  end.
-
-Fixpoint alpha_aux w :=
-  match w with
-  | 0%nat => nil
-  | S n => alpha_aux n ++ (alpha_high w / alpha w) :: nil
-  end.
-
-Lemma alpha67 i : (67 <= i)%nat -> alpha i = alpha_high i.
-Proof. do 67 (destruct i as [|i]; [lia|]). reflexivity. Qed.
-
-Lemma alpha_pos_nonneg w : (0 < alpha w).
-Proof. do 67 (destruct w as [|w]; simpl; try lra); unfold alpha_high; apply pow_lt; lra. Qed.
-
-Lemma alpha_pos w : (0 <= alpha w).
-Proof. apply Rlt_le. apply alpha_pos_nonneg. Qed.
-
-Definition alpha_quot w i :=
-  (alpha (w + i)) / (alpha i).
-
-Lemma alpha_quot_spec w i :
-  (i >= 67)%nat -> alpha_quot w i = alpha_high w.
-Proof.
-  intros. unfold alpha_quot. rewrite !alpha67 by lia. unfold alpha_high.
-  rewrite div_pow. replace (w + i - i)%nat with w by lia. reflexivity. lra. lia. Qed.
-
-(* The following couple of definitions should probably be somewhere else *)
-
-Definition Rmin a b := if Rle_dec a b then a else b.
-
-Definition Rmin_l a b : Rmin a b <= a.
-Proof. unfold Rmin. destruct (Rle_dec a b); lra. Qed.
-
-Definition Rmin_r a b : Rmin a b <= b.
-Proof. unfold Rmin. destruct (Rle_dec a b); lra. Qed.
-
-Fixpoint Rmin_list l : R :=
-  match l with
-  | nil => 0
-  | a :: l0 => match l0 with
-            | nil => a
-            | _ => Rmin a (Rmin_list l0)
-            end
-  end.
-
-Lemma Rmin_list_cons a b l :
-  Rmin_list (a :: b :: l) = Rmin a (Rmin_list (b :: l)).
-Proof. reflexivity. Qed.
-
-Lemma Rmin_list_spec l :
-  forall a, In a l -> Rmin_list l <= a.
-Proof.
-  induction l; intros.
-  - destruct H.
-  - destruct H.
-    + subst. destruct l.
-      * reflexivity.
-      * rewrite Rmin_list_cons.
-        apply Rmin_l.
-    + destruct l.
-      * destruct H.
-      * rewrite Rmin_list_cons.
-        etransitivity. apply Rmin_r.
-        apply IHl. assumption. Qed.
-
-Lemma Rmin_list_spec2 l (H : ~ (l = nil)) :
-  exists a, In a l /\ Rmin_list l = a.
-Proof.
-  induction l.
-  - contradiction.
-  - destruct l.
-    + simpl. exists a. split. left; reflexivity. reflexivity.
-    + assert (r :: l <> nil). intros contra. inversion contra.
-      apply IHl in H0. destruct H0 as [x []].
-      exists (Rmin a x).
-      rewrite Rmin_list_cons.
-      split. unfold Rmin. destruct Rle_dec. left; reflexivity. right. assumption. subst. reflexivity. Qed.
-
-(* Now the interesting definitions begin again *)
-
-Definition beta_aux (w : nat) :=
-  map_seq (alpha_quot w) 0%nat 68%nat.
-
-Definition beta w := Rmin_list (beta_aux w).
-
-Lemma beta_spec w :
-  forall i, beta w <= alpha_quot w i.
-Proof.
-  intros. apply Rmin_list_spec.
-  unfold beta_aux.
-  destruct (le_dec i 67).
-  - apply map_seq_In; lia.
-  - replace (alpha_quot w i) with (alpha_quot w 67%nat).
-    apply map_seq_In. lia.
-    rewrite !alpha_quot_spec. reflexivity. lia. lia. Qed.
-
-Lemma beta_spec2 w :
-  exists i, beta w = alpha_quot w i.
-Proof.
-  epose proof Rmin_list_spec2 (map_seq (alpha_quot w) 0%nat 68%nat) _ as [x []].
-  unfold beta, beta_aux. apply In_map_seq in H. rewrite H0.
-  destruct H. exists x0. congruence.
-  Unshelve. apply map_seq_nonnil; lia. Qed.
-
-Lemma beta_pos w :
-  0 <= beta w.
-Proof.
-  pose proof beta_spec2 w as [i]. rewrite H. unfold alpha_quot.
-  pose proof alpha_pos (w + i).
-  pose proof alpha_pos i. apply div_pos_pos; assumption. Qed.
-
-Definition beta_quot w j :=
-  beta (w + j) * 2 ^ j * 70 / 169.
-
-Definition gamma_aux w e :=
-  map_seq (beta_quot w) e 68%nat.
-
-Definition gamma w e := Rmin_list (gamma_aux w e).
-
-Definition gamma_spec w e :
-  gamma w e <= beta (w + e) * 2 ^ e * 70 / 169.
-Proof.
-  apply Rmin_list_spec.
-  unfold gamma_aux, beta_quot. left. reflexivity. Qed.
-
-Definition gamma_spec2 w e :
-  exists i, gamma w e = beta_quot w i.
-Proof.
-  epose proof Rmin_list_spec2 (map_seq (beta_quot w) e 68%nat) _ as [x []].
-  unfold gamma, gamma_aux. apply In_map_seq in H. rewrite H0.
-  destruct H. exists x0. congruence.
-  Unshelve. apply map_seq_nonnil. lia. Qed.
-
-Lemma gamma_pos w e :
-  0 <= gamma w e.
-Proof.
-  pose proof gamma_spec2 w as [i]. rewrite H. unfold beta_quot.
-  pose proof beta_pos (w + i).
-  pose proof pow_le 2 i ltac:(lra). nra. Qed.
-
-(************************************************)
-(** The definition of the recursively defined S *)
-(************************************************)
-
-Inductive inS : nat -> mat -> Prop :=
-| IS : inS 0%nat I
-| Sc (w : nat) (P : mat) :
-    forall (e : nat) (q : Z),
-    inS w P ->
-    (w = 0%nat) \/ (mat_norm P > beta w) ->
-    mat_norm P > (gamma w e) ->
-    (1 <= e)%nat ->
-    Z.odd q = true ->
-    (1 <= q < 2 ^+ (S e))%Z ->
-    inS (w + e) (mmult (M e q) P).
 
 Lemma fin_dec k (P : nat -> Prop) (Pdec : forall i, { P i } + { ~ P i }) :
    { exists j, (j <= k)%nat /\ P j } + { forall i, (i <= k)%nat -> ~ P i }.
@@ -469,6 +258,7 @@ Proof.
             rewrite <- big_op_rev_split with (m:=i) by lia.
             rewrite big_op_rev_S_l, big_op_rev_nil, mul_1_r by lia.
             rewrite big_op_S_r, (big_op_nil _ i i), Nat.add_0_l by lia.
+            rewrite Nat.add_comm.
             constructor.
             assumption.
             destruct i.
@@ -490,7 +280,31 @@ Proof.
 (** Note that the defined set is finite                                       *)
 (******************************************************************************)
 
-Theorem F22 : (forall w P, inS w P -> mat_norm P <= alpha w). Admitted.
+Theorem F22 : (forall w P, inS w P -> mat_norm P <= alpha w).
+Proof.
+  intros.
+  apply inSQ_gen_scaled_spec in H.
+  destruct H as [PQ [H1 H2]].
+  apply F22_Q in H2.
+  rewrite Nat2Z.id in H2.
+  apply has_at_most_norm_spec in H2.
+  rewrite H1 in H2.
+  rewrite mat_norm_scmat in H2. rify_in H2.
+  autorewrite with pull_q2r in H2.
+  rewrite <- alpha_alphaQ_nat in H2.
+  pose proof alpha_pos w.
+  pose proof mat_norm_nonneg P.
+  replace (Q2R 4%Q) with (IZR 4) in H2 by lra.
+  assert (Rabs (4 ^ w) = powerRZ 4 (Z.of_nat w)).
+  rewrite <- pow_powerRZ.
+  rewrite <- RPow_abs.
+  rewrite Rabs_pos_eq by lra. reflexivity.
+  rewrite H3 in H2.
+  assert (0 < powerRZ 4 (Z.of_nat w)) by (apply powerRZ_lt; lra). nra. left. cbv. lia.
+  assert (0 <= 4 ^ (Z.of_nat w))%Q.
+  apply Qpower.Qpower_pos. cbv. congruence.
+  pose proof alphaQ_nat_nonneg w.
+  apply Qmult_le_0_compat. assumption. assumption. Qed.
 
 Theorem F24 (j : nat) (e : nat -> nat) (q : nat -> Z) (He : forall i, (i < j)%nat -> (1 <= e i)%nat) (Hq : forall i, (i < j)%nat -> (Z.odd (q i) = true) /\ (1 <= q i < 2 ^+ (S (e i)))%Z) :
   mat_norm (big_mmult_rev (fun i => M (e i) (q i)) 0 j) <= alpha (big_sum_nat e 0 j).
@@ -516,7 +330,7 @@ Section __.
     [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] =
     M (e i) (q i) ⋅ [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
   Proof.
-    unfold M. rewrite E2. cbv [module_left_act vmult_left_act vmult]. apply f_equal2. field.
+    unfold M. rewrite E2. cbv [module_left_act vmult_left_act vmult]. apply f_equal2. rify. lra.
     apply f_equal2. reflexivity. apply f_equal2.
     unfold div_2. field_simplify. apply f_equal2. reflexivity.
     rewrite Zpower_nat_IZR. rewrite <- pow_add. apply f_equal2. lra. lia. apply pow_nonzero. lra.

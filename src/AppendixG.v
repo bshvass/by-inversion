@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF Divstep Zpower_nat Zlemmas Hierarchy Impl PadicVal Matrix Rlemmas IZR Log Floor Q Spectral.
+From BY Require Import AppendixE AppendixF AppendixFdefs Divstep Zpower_nat Zlemmas Hierarchy Impl PadicVal Matrix Rlemmas IZR Log Floor Q Spectral.
 
 Import Z.
 Local Open Scope Z.

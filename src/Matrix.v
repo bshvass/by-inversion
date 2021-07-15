@@ -315,35 +315,35 @@ Section __.
       rewrite scvec_scvec. reflexivity.
   Qed.
 
-Lemma det_zero m :
-  det m = 0 -> exists v, v <> v0 /\ m ⋅ v = v0.
-Proof.
-  destruct m as [[[m11 m12] m21] m22].
-  unfold det. intros.
-  destruct (H5 m22 0) as [eq|neq].
-  assert (m12 = 0 \/ m21 = 0).
-  { rewrite eq, mul_0_r, add_0_l in H7. apply zero_rule1. apply opp_0. assumption. }
-  destruct (H5 m12 0).
-  - exists [ 0 ; 1]. split. apply vnonzero. right. intros contra. apply non_trivial. symmetry. exact contra.
-    subst. auto_mat.
-  - assert (m21 = 0) by tauto.
-    exists [ m12 ; -m11]. split. apply vnonzero. left; assumption. subst; auto_mat.
-  - exists [ m22 ; - m21 ]. split. apply vnonzero; left; assumption. auto_mat. rewrite <- opp_mul_r. assumption.
-Qed.
+  Lemma det_zero m :
+    det m = 0 -> exists v, v <> v0 /\ m ⋅ v = v0.
+  Proof.
+    destruct m as [[[m11 m12] m21] m22].
+    unfold det. intros.
+    destruct (H5 m22 0) as [eq|neq].
+    assert (m12 = 0 \/ m21 = 0).
+    { rewrite eq, mul_0_r, add_0_l in H7. apply zero_rule1. apply opp_0. assumption. }
+    destruct (H5 m12 0).
+    - exists [ 0 ; 1]. split. apply vnonzero. right. intros contra. apply non_trivial. symmetry. exact contra.
+      subst. auto_mat.
+    - assert (m21 = 0) by tauto.
+      exists [ m12 ; -m11]. split. apply vnonzero. left; assumption. subst; auto_mat.
+    - exists [ m22 ; - m21 ]. split. apply vnonzero; left; assumption. auto_mat. rewrite <- opp_mul_r. assumption.
+  Qed.
 
-Lemma eig_pol l m :
-  det (m - l ⋅ 1) = 0 -> eig_val l m.
-Proof.
-  intros. apply det_zero in H7.
-  destruct H7 as [v [vnon0 eq]].
-  unfold det. exists v. split. assumption.
-  rewrite right_distributive in eq.
-  apply opp_unique_r in eq. rewrite <- opp_act in eq.
-  apply opp_inj in eq.
-  rewrite scmat_vmult in eq.
-  rewrite act_1_l in eq.
-  symmetry. assumption.
-Qed.
+  Lemma eig_pol l m :
+    det (m - l ⋅ 1) = 0 -> eig_val l m.
+  Proof.
+    intros. apply det_zero in H7.
+    destruct H7 as [v [vnon0 eq]].
+    unfold det. exists v. split. assumption.
+    rewrite right_distributive in eq.
+    apply opp_unique_r in eq. rewrite <- opp_act in eq.
+    apply opp_inj in eq.
+    rewrite scmat_vmult in eq.
+    rewrite act_1_l in eq.
+    symmetry. assumption.
+  Qed.
 
 End __.
 

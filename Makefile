@@ -19,13 +19,19 @@ ocaml:
 	ocamlfind ocamlopt -O3 -c comp2.ml  -linkpkg -package coq.kernel -rectypes -thread && \
 	ocamlfind ocamlopt -O3 -o ../../bin/comp2ocaml definition.cmx comp2.cmx -linkpkg -package coq.kernel -rectypes -thread
 extocaml1:
-	cd src/Comp1 && coqc Definitions.v -R ../../src BY
+	cd src/Comp1 && coqc Mem.v -R ../../src BY
 ocaml1:
 	mkdir -p bin && \
 	cd src/Comp1 && \
-	ocamlfind ocamlopt -O3 -linkpkg -package zarith -o ../../bin/comp1ocaml big.ml definitions.mli definitions.ml comp1.ml -rectypes
-# ocamlfind ocamlopt -O3 -c comp1.mli comp1.ml -rectypes && \
-# ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml big.cmx definitions.cmx comp1.cmx -rectypes
+	ocamlfind ocamlopt -O3 -linkpkg -package zarith -o ../../bin/comp1ocaml big.ml mem.mli mem.ml comp1.ml -rectypes
+	# ocamlfind ocamlopt -O3 -c mem.mli mem.ml -rectypes && \
+	# ocamlfind ocamlopt -O3 -c comp1.ml -rectypes && \
+	# ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml mem.cmx comp1.cmx -rectypes
+	# mkdir -p bin && \
+	# cd src/Comp1 && \
+	# ocamlfind ocamlopt -O3 -c comp1.mli comp1.ml -rectypes && \
+	# ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml big.cmx mem.cmx comp1.cmx -rectypes
+
 c:
 	mkdir -p bin && \
 	gcc -O3 -o bin/comp2c src/Comp2/comp2.c
@@ -60,4 +66,3 @@ update-_CoqProject:
 	git ls-files 'src/*.v' > files.tmp; \
 	(echo '-R src BY'; grep -vf deleted_files.tmp files.tmp | $(GREP_EXCLUDE) | $(SORT_COQPROJECT)) > _CoqProject; \
 	rm *.tmp
-

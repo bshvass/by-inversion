@@ -13,6 +13,9 @@ Section __.
     {A : Type}
     {B : Type}
     {C : Type}
+    {eqA : A -> A -> Prop}
+    {eqB : B -> B -> Prop}
+    {eqC : C -> C -> Prop}
     {opA : A -> A -> A}
     {opB : B -> B -> B}
     {opC : C -> C -> C}

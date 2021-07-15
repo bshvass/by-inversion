@@ -114,3 +114,4 @@ Proof.
   apply le_max_l.
   Unshelve. lra.
 Qed.
+Print Assumptions by_inv_spec.

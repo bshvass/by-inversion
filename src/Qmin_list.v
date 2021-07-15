@@ -1,7 +1,4 @@
-Require Import QArith.
-Require Import List.
-
-From BY Require Import AppendixF.
+Require Import List QArith Qreals.
 
 Local Open Scope Q.
 

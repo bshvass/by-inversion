@@ -11,7 +11,7 @@ Require Import OrdersEx.
 Require Import OrdersAlt.
 Require Import FMapAVL.
 
-From BY Require Import Q AppendixF Qmin_list Impl MatrixQ Zpower_nat NoMem ListLemmas.
+From BY Require Import Q Qmin_list Impl MatrixQ Zpower_nat ListLemmas Tactics.
 
 Import ListNotations.
 
@@ -202,124 +202,6 @@ Proof.
     apply f_equal2.
     rewrite cons_map_seq.
     rewrite map_seq_snoc. reflexivity. reflexivity. Qed.
-
-Lemma betaQ_spec w :
-  betaQ w ==
-  if (w <=? 66)%nat
-        then betaQ w
-  else (633/1024) ^ (Z.of_nat w) * (633^5 / (2^30 * 165219)).
-Proof.
-  destruct ((w <=? 66)%nat) eqn:E; [reflexivity|].
-  apply Nat.leb_gt in E.
-  setoid_rewrite <- alphaQ_min_list.
-  unfold betaQ.
-  unfold betaQ_aux.
-  generalize 68%nat.
-  destruct n.
-  simpl. rewrite Qmult_0_r. reflexivity.
-  induction n.
-  simpl. unfold alphaQ_quot. rewrite Nat.add_0_r.
-  rewrite alphaQ_nat_67 by lia. reflexivity.
-  rewrite map_seq_snoc.
-  setoid_rewrite Qmin_list_app.
-  rewrite IHn.
-  rewrite (map_seq_snoc (S n)).
-  setoid_rewrite Qmin_list_app.
-  unfold alphaQ_quot.
-  rewrite Nat.add_0_l.
-  rewrite (@alphaQ_nat_67 (w + S n)%nat) by lia.
-  unfold alphaQ_nat_high.
-  replace (Z.of_nat (w + S n))%Z with ((Z.of_nat w) + Z.of_nat (S n))%Z by lia.
-  rewrite !Qmin_list_single.
-  setoid_rewrite Qpower_plus.
-  setoid_rewrite <- Qmin_mul.
-  setoid_replace ((633 / 1024) ^ Z.of_nat w * (633 / 1024) ^ Z.of_nat (S n) / alphaQ_nat (S n))
-    with ((633 / 1024) ^ Z.of_nat w * ((633 / 1024) ^ Z.of_nat (S n) / alphaQ_nat (S n))).
-  reflexivity. field.
-  apply Qnot_eq_sym.
-  apply Qlt_not_eq.
-  apply alphaQ_nat_pos.
-  apply Qpower_pos.
-
-  apply Qle_shift_div_l. lra. lra.
-
-  pose proof Qmin_list_spec2 (map_seq (fun j : nat => (633 / 1024) ^ Z.of_nat j / alphaQ_nat j) 0 (S n)).
-  destruct H as [q []].
-  apply map_seq_nonnil. lia.
-  apply In_map_seq in H.
-  destruct H as [i]. setoid_rewrite H0. rewrite <- H.
-  apply Qle_shift_div_l. apply alphaQ_nat_pos.
-  setoid_rewrite Qmult_0_l.
-  apply Qpower_pos.
-  apply Qle_shift_div_l. lra. lra.
-
-  apply Qle_shift_div_l. apply alphaQ_nat_pos.
-  setoid_rewrite Qmult_0_l.
-  apply Qpower_pos.
-  apply Qle_shift_div_l. lra. lra.
-
-  intros contra.
-  apply Qeq_eq_bool in contra. cbn in contra. inversion contra.
-
-  apply map_seq_nonnil. lia.
-
-  congruence.
-
-  apply map_seq_nonnil. lia.
-
-  congruence. Qed.
-
-Lemma gammaQ_spec w e :
-  gammaQ w e ==
-  if (w + e <=? 66)%nat
-        then gammaQ w e
-  else  (633/1024) ^ (Z.of_nat (w + e)) * 2 ^ (Z.of_nat e) * (70 / 169) * (633^5 / (2^30 * 165219)).
-Proof.
-  destruct ((w + e <=? 66)%nat) eqn:E; [reflexivity|].
-  apply Nat.leb_gt in E.
-  unfold gammaQ.
-  unfold gammaQ_aux.
-  generalize 67%nat.
-  induction n.
-  - cbn. unfold betaQ_quot. rewrite betaQ_spec.
-    assert ((w + e) <=? 66 = false)%nat. apply Nat.leb_gt. lia.
-    rewrite H. field.
-  - rewrite map_seq_snoc.
-    setoid_rewrite Qmin_list_app.
-    rewrite IHn.
-    cbn [Qmin_list].
-    unfold betaQ_quot.
-    setoid_rewrite betaQ_spec.
-    assert ((w + (e + S n)) <=? 66 = false)%nat. apply Nat.leb_gt. lia.
-    rewrite H.
-    rewrite Qminmax.Q.min_l. reflexivity.
-    replace (Z.of_nat (w + e)) with
-        (Z.of_nat w + Z.of_nat e)%Z by lia.
-    replace (Z.of_nat (w + (e + S n))) with
-        (Z.of_nat w + (Z.of_nat (e + S n)))%Z by lia.
-    setoid_rewrite Qpower_plus.
-    do 4 setoid_rewrite <- Qmult_assoc.
-    apply Qmult_le_l.
-    apply QExtra.Qpower_pos_lt. reflexivity.
-    setoid_rewrite Qmult_assoc.
-    setoid_replace ((633 / 1024) ^ (Z.of_nat (e + S n)) * (633 ^ 5 / (2 ^ 30 * 165219)) * (2 ^ Z.of_nat (e + S n) * (70 * / 169))) with
-        ((633 / 1024) ^ (Z.of_nat (e + S n)) * 2 ^ Z.of_nat (e + S n) * ((633 ^ 5 / (2 ^ 30 * 165219)) * (70 * / 169))) by field.
-    setoid_rewrite <- Qmult_power.
-    replace (Z.of_nat (e + S n)) with (Z.of_nat e + Z.of_nat (S n))%Z by lia.
-    rewrite Qpower_plus.
-    rewrite <- Qmult_assoc.
-    apply Qmult_le_l.
-    apply QExtra.Qpower_pos_lt. reflexivity.
-    rewrite <- Qmult_1_l.
-    apply Qmult_le_r. reflexivity.
-    apply QExtra.Qpower_le_1_increasing'.
-    apply Qle_bool_imp_le. reflexivity. lia.
-    apply Qeq_bool_neq. reflexivity.
-    apply Qeq_bool_neq. reflexivity.
-    apply Qeq_bool_neq. reflexivity.
-
-    apply map_seq_nonnil. lia.
-    intros contra. inversion contra. Qed.
 
 Lemma betaQ_mem_spec b_map aq_map a_map : b_map_correct b_map -> aq_map_correct aq_map -> a_map_correct a_map ->
                                           forall w, (0 <= w)%Z -> let '(b_map, aq_map, a_map, beta_w) := betaQ_mem b_map aq_map a_map w in b_map_correct b_map /\ aq_map_correct aq_map /\ a_map_correct a_map /\ beta_w == betaQ (Z.to_nat w).
@@ -689,7 +571,39 @@ Qed.
 (* Hint Resolve init_bq_map_correct : init_correct. *)
 (* Hint Resolve init_g_map_correct : init_correct. *)
 
-Fixpoint depth_first_verify_aux_three_fuel_gen m (nodes nodes0 cnodes0 w e0 : Z) fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map :=
+Fixpoint depth_first_verify_aux_no_mem_three_fuel_gen m (nodes nodes0 cnodes0 w e0 : Z) fuel1 fuel2 :=
+  match fuel1 with
+  | 0%nat => None
+  | S fuel1 =>
+    let mm := mmult (mtrans m) m in
+    if negb (has_at_most_norm mm ((4 ^ w) * alphaQ_nat (Z.to_nat w))) then None
+    else if (0 <? w)%Z && has_at_most_norm mm ((4^w) * betaQ (Z.to_nat w))
+         then Some nodes
+         else (fix inner_loop e nodes fuel3 :=
+                 match fuel3 with
+                 | 0%nat => None
+                 | S fuel4 => if has_at_most_norm mm ((4^w) * (gammaQ (Z.to_nat w) (Z.to_nat e)))
+                            then Some nodes
+                            else match
+                                (fix verify_children cnodes fuel5 :=
+                                   match fuel5 with
+                                   | 0%nat => Some cnodes
+                                   | S fuel6 => let q := ((2 * fuel6) + 1)%nat in
+                                           match
+                                             depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e (Z.of_nat q)) m) nodes0 nodes0 cnodes0 (e + w)%Z e0 fuel1 fuel2 with
+                                           | None => None
+                                           | Some nodes =>
+                                             verify_children (nodes + cnodes)%Z fuel6
+                                           end
+                                   end) cnodes0 (Z.to_nat (2 ^ e)) with
+                              | None => None
+                              | Some cnodes =>
+                                inner_loop (e + 1)%Z (cnodes + nodes)%Z fuel4
+                              end
+                 end) e0 nodes fuel2
+  end.
+
+Fixpoint depth_first_verify_aux_three_fuel_gen m (nodes nodes0 cnodes0 w e0 : Z) fuel1 fuel2 a_map b_map g_map bq_map aq_map :=
   match fuel1 with
   | 0%nat => None
   | S fuel1 =>
@@ -699,27 +613,27 @@ Fixpoint depth_first_verify_aux_three_fuel_gen m (nodes nodes0 cnodes0 w e0 : Z)
     if negb (has_at_most_norm mm ((4^w) * alpha_w)) then None
     else if (0 <? w)%Z && has_at_most_norm mm ((4^w) * beta_w)
          then Some (a_map, b_map, g_map, bq_map, aq_map, nodes)
-         else (fix inner_loop e nodes fuel2 a_map b_map g_map bq_map aq_map :=
-                 match fuel2 with
+         else (fix inner_loop e nodes fuel3 a_map b_map g_map bq_map aq_map :=
+                 match fuel3 with
                  | 0%nat => None
-                 | S fuel2 => let '(g_map, bq_map, b_map, aq_map, a_map, gamma_w_e) := gammaQ_mem g_map bq_map b_map aq_map a_map w e in
+                 | S fuel4 => let '(g_map, bq_map, b_map, aq_map, a_map, gamma_w_e) := gammaQ_mem g_map bq_map b_map aq_map a_map w e in
                             if has_at_most_norm mm ((4^w) * gamma_w_e)
                             then Some (a_map, b_map, g_map, bq_map, aq_map, nodes)
                             else match
-                                (fix verify_children cnodes a_map b_map g_map bq_map aq_map fuel4 :=
-                                   match fuel4 with
+                                (fix verify_children cnodes a_map b_map g_map bq_map aq_map fuel5 :=
+                                   match fuel5 with
                                    | 0%nat => Some (a_map, b_map, g_map, bq_map, aq_map, cnodes)
-                                   | S fuel4 => let q := ((2 * fuel4) + 1)%nat in
+                                   | S fuel6 => let q := ((2 * fuel6) + 1)%nat in
                                            match
-                                             depth_first_verify_aux_three_fuel_gen (mmult (scaledM e (Z.of_nat q)) m) nodes0 nodes0 cnodes0 (e + w)%Z e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map with
+                                             depth_first_verify_aux_three_fuel_gen (mmult (scaledM e (Z.of_nat q)) m) nodes0 nodes0 cnodes0 (e + w)%Z e0 fuel1 fuel2 a_map b_map g_map bq_map aq_map with
                                            | None => None
                                            | Some (a_map, b_map, g_map, bq_map, aq_map, nodes) =>
-                                             verify_children (nodes + cnodes)%Z a_map b_map g_map bq_map aq_map fuel4
+                                             verify_children (nodes + cnodes)%Z a_map b_map g_map bq_map aq_map fuel6
                                            end
-                                   end) cnodes0 a_map b_map g_map bq_map aq_map fuel3 with
+                                   end) cnodes0 a_map b_map g_map bq_map aq_map (Z.to_nat (2 ^ e)) with
                               | None => None
                               | Some (a_map, b_map, g_map, bq_map, aq_map, cnodes) =>
-                                inner_loop (e + 1)%Z (cnodes + nodes)%Z fuel2 a_map b_map g_map bq_map aq_map
+                                inner_loop (e + 1)%Z (cnodes + nodes)%Z fuel4 a_map b_map g_map bq_map aq_map
                               end
                  end) e0 nodes fuel2 a_map b_map g_map bq_map aq_map
   end.
@@ -767,60 +681,28 @@ Ltac memt :=
                                                ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w e ltac:(lia) ltac:(lia)); rewrite H in *; clear H; split_pairs
          end).
 
-Lemma mem_no_mem_three_fuel_aux m nodes nodes0 cnodes0 w e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map :
+Lemma mem_no_mem_three_fuel_aux m nodes nodes0 cnodes0 w e0 fuel1 fuel2 a_map b_map g_map bq_map aq_map :
   a_map_correct a_map ->
   b_map_correct b_map ->
   g_map_correct g_map ->
   bq_map_correct bq_map ->
   aq_map_correct aq_map ->
   (0 < e0)%Z ->
-  (0 < w)%Z ->
-match depth_first_verify_aux_three_fuel_gen m nodes nodes0 cnodes0 w e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map with
+  (0 <= w)%Z ->
+match depth_first_verify_aux_three_fuel_gen m nodes nodes0 cnodes0 w e0 fuel1 fuel2 a_map b_map g_map bq_map aq_map with
   | Some (a_map, b_map, g_map, bq_map, aq_map,nodes1) => a_map_correct a_map /\ b_map_correct b_map /\
   g_map_correct g_map /\
   bq_map_correct bq_map /\
   aq_map_correct aq_map /\
-  depth_first_verify_aux_no_mem_three_fuel_gen m nodes nodes0 cnodes0 w e0 fuel1 fuel2 fuel3 = Some nodes1
+  depth_first_verify_aux_no_mem_three_fuel_gen m nodes nodes0 cnodes0 w e0 fuel1 fuel2 = Some nodes1
   | None =>
-    depth_first_verify_aux_no_mem_three_fuel_gen m nodes nodes0 cnodes0 w e0 fuel1 fuel2 fuel3 = None
+    depth_first_verify_aux_no_mem_three_fuel_gen m nodes nodes0 cnodes0 w e0 fuel1 fuel2 = None
 end.
-Proof.
-  revert fuel2 fuel3 m nodes nodes0 cnodes0 w e0 a_map b_map g_map bq_map aq_map.
+
+  revert fuel2 m nodes nodes0 cnodes0 w e0 a_map b_map g_map bq_map aq_map.
   induction fuel1; [auto|]; intros.
 
-  (** This is the beginning of an unsuccessful proof which does not split on E *)
-  (* cbn [depth_first_verify_aux_no_mem_three_fuel_gen depth_first_verify_aux_three_fuel_gen] in *; auto; split_pairs. *)
-  (* cbn [depth_first_verify_aux_no_mem_three_fuel_gen depth_first_verify_aux_three_fuel_gen] in *. *)
-
-  (* split_pairs; memt. *)
-  (* assert ((0 <? w)%Z && has_at_most_norm (mmult (mtrans m) m) (4 ^ w * q0) = (0 <? w)%Z && has_at_most_norm (mmult (mtrans m) m) (4 ^ w * betaQ (Z.to_nat w))). *)
-  (* setoid_rewrite H10. reflexivity. *)
-  (* rewrite H11. *)
-  (* destruct_ifs; try reflexivity; try tauto. *)
-
-  (* assert (0 < e0)%Z by assumption. *)
-  (* revert H14. *)
-  (* generalize e0 at 1 3 5 7. *)
-
-  (* revert nodes. *)
-
-  (* revert H9 H7 H1 H2 H8. *)
-  (* revert t0 t1 g_map bq_map t2. *)
-  (* generalize fuel3 at 2 4 6. *)
-
-  (* induction fuel2; [auto|]; intros. *)
-
-  (* split_pairs. memt. *)
-  (* assert (has_at_most_norm (mmult (mtrans m) m) (4 ^ w * q) = *)
-  (*         has_at_most_norm (mmult (mtrans m) m) (4 ^ w * gammaQ (Z.to_nat w) (Z.to_nat e1))). *)
-  (* setoid_rewrite H20. reflexivity. *)
-  (* rewrite H21. *)
-
-  (* destruct_ifs; split_pairs; auto. *)
-  (* repeat split; auto. *)
-
-  (** Proof destruct the matchee *)
-  destruct (depth_first_verify_aux_three_fuel_gen m nodes nodes0 cnodes0 w e0 0 fuel2 fuel3 a_map b_map g_map bq_map aq_map) eqn:E.
+  destruct (depth_first_verify_aux_three_fuel_gen m nodes nodes0 cnodes0 w e0 0 fuel2 a_map b_map g_map bq_map aq_map) eqn:E.
   split_pairs.
 
   cbn [depth_first_verify_aux_no_mem_three_fuel_gen depth_first_verify_aux_three_fuel_gen] in *; auto; split_pairs.
@@ -829,19 +711,14 @@ Proof.
   cbn [depth_first_verify_aux_no_mem_three_fuel_gen depth_first_verify_aux_three_fuel_gen].
   reflexivity.
 
-  destruct (depth_first_verify_aux_three_fuel_gen m nodes nodes0 cnodes0 w e0 (S fuel1) fuel2 fuel3 a_map b_map g_map bq_map aq_map) eqn:E.
+  destruct (depth_first_verify_aux_three_fuel_gen m nodes nodes0 cnodes0 w e0 (S fuel1) fuel2 a_map b_map g_map bq_map aq_map) eqn:E.
   split_pairs.
   cbn [depth_first_verify_aux_no_mem_three_fuel_gen depth_first_verify_aux_three_fuel_gen] in *.
 
   split_pairs. memt.
-  (* match goal with *)
-  (* | |- (match ?m with _ => _ end) => destruct m *)
-  (* end. *)
   split_pairs.
 
   setoid_rewrite H10 in E.
-
-  (* memt. setoid_rewrite H10. *)
 
   destruct_ifs; try reflexivity; try tauto.
   inversion E.
@@ -859,7 +736,8 @@ Proof.
 
   revert H9 H7 H1 H2 H8.
   revert t5 t6 g_map bq_map t7.
-  generalize fuel3 at 2 4.
+
+  generalize fuel2 at 1 3.
 
   induction fuel2; [auto|]; intros.
 
@@ -871,8 +749,7 @@ Proof.
   inversion E. subst. tauto.
 
   assert
-    (
-
+    (forall fuel10,
       match
         (
           fix verify_children (cnodes : Z) (a_map b_map : ZMap.t Q) (g_map bq_map aq_map : ZZMap.t Q) (fuel4 : nat) {struct fuel4} :
@@ -882,13 +759,13 @@ Proof.
             | S fuel5 =>
               match
                 depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-                                                      (e1 + w) e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map
+                                                      (e1 + w) e0 fuel1 fuel0 a_map b_map g_map bq_map aq_map
               with
               | Some (a_map0, b_map0, g_map0, bq_map0, aq_map0, nodes) =>
                 verify_children (nodes + cnodes)%Z a_map0 b_map0 g_map0 bq_map0 aq_map0 fuel5
               | None => None
               end
-            end) cnodes0 t8 t10 t11 t12 t9 fuel0
+            end) cnodes0 t8 t10 t11 t12 t9 fuel10
       with
       | Some (a_map, b_map, g_map, bq_map, aq_map, nodes) =>
         a_map_correct a_map /\
@@ -902,50 +779,50 @@ Proof.
        | S fuel5 =>
            match
              depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-               (e1 + w) e0 fuel1 fuel2 fuel3
+               (e1 + w) e0 fuel1 fuel0
            with
            | Some nodes1 => verify_children (nodes1 + cnodes)%Z fuel5
            | None => None
            end
-       end) cnodes0 fuel0  = Some nodes
+       end) cnodes0 fuel10  = Some nodes
       | None => (fix verify_children (cnodes : Z) (fuel4 : nat) {struct fuel4} : option Z :=
                   match fuel4 with
                   | 0%nat => Some cnodes
-                  | S fuel0 =>
+                  | S fuel5 =>
                     match
-                      depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel0 + 1))) m) nodes0 nodes0 cnodes0
-                                                                   (e1 + w) e0 fuel1 fuel2 fuel3
+                      depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
+                                                                   (e1 + w) e0 fuel1 fuel0
                     with
-                    | Some nodes1 => verify_children (nodes1 + cnodes)%Z fuel0
+                    | Some nodes1 => verify_children (nodes1 + cnodes)%Z fuel5
                     | None => None
                     end
-                  end) cnodes0 fuel0 = None
+                  end) cnodes0 fuel10 = None
       end).
 
   clear E.
-  clear IHfuel2.
+  clear IHfuel2. intros.
 
   generalize cnodes0 at 2 4 6.
   revert cnodes0.
 
   revert H17 H15 H13 H14 H16.
   revert t8 t10 t11 t12 t9.
-  induction fuel0; intros.
+  induction fuel10; intros.
   tauto.
 
   assert (IH := IHfuel1).
 
-  specialize (IH fuel2 fuel3 (mmult (scaledM e1 (Z.of_nat (2 * fuel0 + 1))) m) nodes0 nodes0 cnodes0
+  specialize (IH fuel0 (mmult (scaledM e1 (Z.of_nat (2 * fuel10 + 1))) m) nodes0 nodes0 cnodes0
                  (e1 + w)%Z e0 t8 t10 t11 t12 t9 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(lia)).
 
 
-  destruct ( depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel0 + 1))) m) nodes0 nodes0 cnodes0
-                                                   (e1 + w) e0 fuel1 fuel2 fuel3 t8 t10 t11 t12 t9) eqn:E2.
+  destruct ( depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel10 + 1))) m) nodes0 nodes0 cnodes0
+                                                   (e1 + w) e0 fuel1 fuel0 t8 t10 t11 t12 t9) eqn:E2.
   split_pairs.
 
   rewrite H30.
 
-  specialize (IHfuel0 t16 t17 t15 t14 t13 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) cnodes0 (z0 + cnodes1)%Z).
+  specialize (IHfuel10 t16 t17 t15 t14 t13 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) cnodes0 (z0 + cnodes1)%Z).
 
   destruct (
       (fix verify_children (cnodes : Z) (a_map0 b_map0 : ZMap.t Q) (g_map0 bq_map0 aq_map0 : ZZMap.t Q) (fuel4 : nat) {struct fuel4} :
@@ -955,13 +832,13 @@ Proof.
        | S fuel5 =>
            match
              depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-               (e1 + w) e0 fuel1 fuel2 fuel3 a_map0 b_map0 g_map0 bq_map0 aq_map0
+               (e1 + w) e0 fuel1 fuel0 a_map0 b_map0 g_map0 bq_map0 aq_map0
            with
            | Some (a_map1, b_map1, g_map1, bq_map1, aq_map1, nodes1) =>
                verify_children (nodes1 + cnodes)%Z a_map1 b_map1 g_map1 bq_map1 aq_map1 fuel5
            | None => None
            end
-       end) (z0 + cnodes1)%Z t16 t17 t15 t14 t13 fuel0) eqn:E4.
+       end) (z0 + cnodes1)%Z t16 t17 t15 t14 t13 fuel10) eqn:E4.
 
   split_pairs.
 
@@ -969,6 +846,8 @@ Proof.
   tauto.
 
   rewrite IH. reflexivity.
+
+  specialize (H20 (Z.to_nat (2 ^ e1))).
 
   destruct ((fix verify_children
              (cnodes : Z) (a_map b_map : ZMap.t Q) (g_map bq_map aq_map : ZZMap.t Q) (fuel4 : nat) {struct fuel4} :
@@ -978,13 +857,13 @@ Proof.
              | S fuel5 =>
                  match
                    depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-                     (e1 + w) e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map
+                     (e1 + w) e0 fuel1 fuel0 a_map b_map g_map bq_map aq_map
                  with
                  | Some (a_map0, b_map0, g_map0, bq_map0, aq_map0, nodes) =>
                      verify_children (nodes + cnodes)%Z a_map0 b_map0 g_map0 bq_map0 aq_map0 fuel5
                  | None => None
                  end
-             end) cnodes0 t8 t10 t11 t12 t9 fuel0).
+             end) cnodes0 t8 t10 t11 t12 t9 (Z.to_nat (2 ^ e1))).
 
   split_pairs.
   rewrite H30.
@@ -1014,7 +893,8 @@ Proof.
   revert H1 H2 H7 H8 H9.
   revert t0 t1 g_map bq_map t2.
 
-  generalize fuel3 at 2 4.
+  generalize fuel2 at 1 3.
+
   induction fuel2; [auto|]; intros.
 
   split_pairs. memt. setoid_rewrite H18 in E.
@@ -1026,7 +906,7 @@ Proof.
   intros.
 
   assert
-    (
+    (forall fuel10,
 
       match
         (
@@ -1037,13 +917,13 @@ Proof.
             | S fuel5 =>
               match
                 depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-                                                      (e1 + w) e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map
+                                                      (e1 + w) e0 fuel1 fuel0 a_map b_map g_map bq_map aq_map
               with
               | Some (a_map0, b_map0, g_map0, bq_map0, aq_map0, nodes) =>
                 verify_children (nodes + cnodes)%Z a_map0 b_map0 g_map0 bq_map0 aq_map0 fuel5
               | None => None
               end
-            end) cnodes0 t3 t5 t6 t7 t4 fuel0
+            end) cnodes0 t3 t5 t6 t7 t4 fuel10
       with
       | Some (a_map, b_map, g_map, bq_map, aq_map, nodes) =>
         a_map_correct a_map /\
@@ -1057,28 +937,28 @@ Proof.
        | S fuel5 =>
            match
              depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-               (e1 + w) e0 fuel1 fuel2 fuel3
+               (e1 + w) e0 fuel1 fuel0
            with
            | Some nodes1 => verify_children (nodes1 + cnodes)%Z fuel5
            | None => None
            end
-       end) cnodes0 fuel0  = Some nodes
+       end) cnodes0 fuel10  = Some nodes
       | None => (fix verify_children (cnodes : Z) (fuel4 : nat) {struct fuel4} : option Z :=
                   match fuel4 with
                   | 0%nat => Some cnodes
-                  | S fuel0 =>
+                  | S fuel5 =>
                     match
-                      depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel0 + 1))) m) nodes0 nodes0 cnodes0
-                                                                   (e1 + w) e0 fuel1 fuel2 fuel3
+                      depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
+                                                                   (e1 + w) e0 fuel1 fuel0
                     with
-                    | Some nodes1 => verify_children (nodes1 + cnodes)%Z fuel0
+                    | Some nodes1 => verify_children (nodes1 + cnodes)%Z fuel5
                     | None => None
                     end
-                  end) cnodes0 fuel0 = None
+                  end) cnodes0 fuel10 = None
       end).
 
   clear E.
-  clear IHfuel2.
+  clear IHfuel2. intros.
 
 
   generalize cnodes0 at 2 4 6.
@@ -1086,21 +966,21 @@ Proof.
 
   revert H13 H14 H15 H16 H17.
   revert t3 t5 t6 t7 t4.
-  induction fuel0; intros.
+  induction fuel10; intros.
   tauto.
 
   assert (IH := IHfuel1).
 
-  specialize (IH fuel2 fuel3 (mmult (scaledM e1 (Z.of_nat (2 * fuel0 + 1))) m) nodes0 nodes0 cnodes0
+  specialize (IH fuel0 (mmult (scaledM e1 (Z.of_nat (2 * fuel10 + 1))) m) nodes0 nodes0 cnodes0
                  (e1 + w)%Z e0 t3 t5 t6 t7 t4 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(lia)).
 
-  destruct ( depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel0 + 1))) m) nodes0 nodes0 cnodes0
-                                                   (e1 + w) e0 fuel1 fuel2 fuel3 t3 t5 t6 t7 t4) eqn:E2.
+  destruct ( depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel10 + 1))) m) nodes0 nodes0 cnodes0
+                                                   (e1 + w) e0 fuel1 fuel0 t3 t5 t6 t7 t4) eqn:E2.
   split_pairs.
 
   rewrite H30.
 
-  specialize (IHfuel0 t11 t12 t10 t9 t8 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) cnodes0 (z + cnodes1)%Z).
+  specialize (IHfuel10 t11 t12 t10 t9 t8 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) cnodes0 (z + cnodes1)%Z).
 
   destruct (
       (fix verify_children (cnodes : Z) (a_map0 b_map0 : ZMap.t Q) (g_map0 bq_map0 aq_map0 : ZZMap.t Q) (fuel4 : nat) {struct fuel4} :
@@ -1110,7 +990,7 @@ Proof.
        | S fuel5 =>
            match
              depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-               (e1 + w) e0 fuel1 fuel2 fuel3 a_map0 b_map0 g_map0 bq_map0 aq_map0
+               (e1 + w) e0 fuel1 fuel2 a_map0 b_map0 g_map0 bq_map0 aq_map0
            with
            | Some (a_map1, b_map1, g_map1, bq_map1, aq_map1, nodes1) =>
                verify_children (nodes1 + cnodes)%Z a_map1 b_map1 g_map1 bq_map1 aq_map1 fuel5
@@ -1125,6 +1005,7 @@ Proof.
 
   rewrite IH. reflexivity.
 
+  specialize (H20 (Z.to_nat (2 ^ e1))).
   destruct ((fix verify_children
              (cnodes : Z) (a_map b_map : ZMap.t Q) (g_map bq_map aq_map : ZZMap.t Q) (fuel4 : nat) {struct fuel4} :
                option (ZMap.t Q * ZMap.t Q * ZZMap.t Q * ZZMap.t Q * ZZMap.t Q * Z) :=
@@ -1133,13 +1014,13 @@ Proof.
              | S fuel5 =>
                  match
                    depth_first_verify_aux_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * fuel5 + 1))) m) nodes0 nodes0 cnodes0
-                     (e1 + w) e0 fuel1 fuel2 fuel3 a_map b_map g_map bq_map aq_map
+                     (e1 + w) e0 fuel1 fuel0 a_map b_map g_map bq_map aq_map
                  with
                  | Some (a_map0, b_map0, g_map0, bq_map0, aq_map0, nodes) =>
                      verify_children (nodes + cnodes)%Z a_map0 b_map0 g_map0 bq_map0 aq_map0 fuel5
                  | None => None
                  end
-             end) cnodes0 t3 t5 t6 t7 t4 fuel0).
+             end) cnodes0 t3 t5 t6 t7 t4 (Z.to_nat (2 ^ e1))).
 
   split_pairs.
   rewrite H30.
@@ -1147,3 +1028,13 @@ Proof.
   specialize (IHfuel2 _ t11 t12 t10 t9 t8 ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) (z + nodes)%Z (e1 + 1)%Z ltac:(lia) E).
   apply IHfuel2.
   rewrite H20. reflexivity. Qed.
+
+Definition depth_first_verify :=
+  match depth_first_verify_aux_three_fuel_gen I 1 1 0 0 1 10000 10000 init_amap init_bmap init_gmap init_bqmap init_aqmap with None => None | Some (a_map, b_map, g_map, bq_map, aq_map, nodes) => Some nodes end.
+
+Axiom comp1_theorem :
+  depth_first_verify = Some 3787975117%Z.
+
+Require Import Coq.extraction.ExtrOcamlZBigInt.
+
+Extraction "mem" depth_first_verify.
