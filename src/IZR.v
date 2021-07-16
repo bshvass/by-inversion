@@ -1,6 +1,6 @@
 Require Import ZArith Znumtheory Reals micromega.Lra micromega.Lia.
 
-From BY Require Import Rlemmas Zpower_nat SetoidRewrite.
+From BY Require Import Rlemmas Zpower_nat.
 
 Import Z.
 

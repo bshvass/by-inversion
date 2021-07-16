@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import Q Rlemmas Rmin_list AppendixFdefs Tactics Matrix SetoidRewrite AppendixE IZR Zpower_nat Zlemmas Hierarchy Impl Spectral PadicVal Log InductionPrinciples ListLemmas NoMemNew.
+From BY Require Import Q Rlemmas Rmin_list AppendixFdefs Tactics Matrix AppendixE IZR Zpower_nat Zlemmas Hierarchy Impl Spectral PadicVal Log InductionPrinciples ListLemmas NoMemNew.
 
 Local Open Scope mat_scope.
 Local Open Scope R.
@@ -180,7 +180,7 @@ Proof.
   destruct j.
   - rewrite big_op_nil, big_op_rev_nil by lia; simpl.
     rewrite !Rmult_1_r, !Rmult_0_r, !Rplus_0_r, !Rplus_0_l, !minus_diag, !Rmult_0_r, Rplus_0_r.
-    rewrite sqrt_0. rewrite <- sqrt_1 at 1. apply Rle_sqrt. rify. lra.
+    rewrite sqrt_0. rewrite <- sqrt_1 at 1. Search Rle. apply sqrt_le_1_alt. rify. lra.
   - destruct (fin_dec j
                       (fun i => (mat_norm (big_mmult_rev (fun i => M (e i) (q i)) 0 (S i))) <= (beta ((big_sum_nat e 0 (S i)))))
                       ltac:(intros; apply Rle_dec)) as [[i[]]|].
