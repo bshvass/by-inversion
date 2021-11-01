@@ -59,18 +59,20 @@ Class Equiv A := equiv :> relation A.
 Class Rel A := rel :> relation A.
 Class Sub A := sub :> A -> Prop.
 
-Definition In {A} (P : Sub A) x := P x.
+Definition InSub {A} (P : Sub A) x := P x.
 
 Infix "=" := equiv : type_scope.
 Notation "(=)" := equiv (only parsing).
+Infix "≡" := eq (at level 70) : type_scope.
+Infix "≢" := (not eq) (at level 70) : type_scope.
 Infix "<>" := (complement equiv) : type_scope.
 Infix "∼" := rel (at level 70) : type_scope.
 Notation "(∼)" := rel (only parsing).
 Infix "≁" := (complement rel) (at level 70) : type_scope.
-Notation "x ∈ P" := (In P x) (at level 70).
+Notation "x ∈ P" := (InSub P x) (at level 70).
 
 Class Setoid A `{Equiv A} := setoid :> Equivalence (=).
-Class Suboid A `{Setoid A} (P : Sub A) := sub_proper :> Proper ((=) ==> iff) (In P).
+Class Suboid A `{Setoid A} (P : Sub A) := sub_proper :> Proper ((=) ==> iff) (InSub P).
 
 Class SetoidMorph {A} {B} (f : A -> B) `{Equiv A, Equiv B} :=
   {
@@ -96,7 +98,7 @@ Typeclasses Transparent Equiv Rel.
 
 Section BinOp.
 
-  Class Congruence `{Rel A} (op : A -> A -> A) :=
+  Class Congruence `(Rel A) (op : A -> A -> A) :=
     {
       cong_equiv :> Equivalence (∼);
       cong_proper :> Proper ((∼) ==> (∼) ==> (∼)) op
@@ -187,6 +189,8 @@ Declare Scope grp_scope.
 Declare Scope abgrp_scope.
 Declare Scope sr_scope.
 Declare Scope ring_scope.
+Delimit Scope sr_scope with sr.
+Delimit Scope ring_scope with ring.
 
 Infix "∘" := mag_op (left associativity, at level 50)  : mag_scope.
 (* Notation "( x ∘)" := (mag_op x) (only parsing, at level 70) : mag_scope. *)
@@ -256,11 +260,11 @@ Section Monoid.
 
   Class Monoid A `{Equiv A, MagOp A, MonId A} :=
     {
-      mon_sg :> Setoid A;
+      mon_setoid :> Setoid A;
       mon_proper :> Proper ((=) ==> (=) ==> (=)) (∘);
       mon_assoc :> Associative (∘) (∘) (∘) (∘);
-      mon_lid :> LeftIdentity (∘) ε;
-      mon_rid :> RightIdentity (∘) ε
+      mon_id_l :> LeftIdentity (∘) ε;
+      mon_id_r :> RightIdentity (∘) ε
     }.
 
   Class MonoidMorph {A} {B} (f : A -> B) `{Monoid A, Monoid B} :=
@@ -335,8 +339,8 @@ Section SemiRing.
     {
       sr_mag1 :> @Magma _ _ (+);
       sr_mag2 :> @Magma _ _ [*];
-      sr_ldistr :> LeftDistributive [*] (+) [*] [*] (+);
-      sr_rdistr :> RightDistributive (+) [*] [*] [*] (+)
+      sr_distr_l :> LeftDistributive [*] (+) [*] [*] (+);
+      sr_distr_r :> RightDistributive (+) [*] [*] [*] (+)
     }.
 
 End SemiRing.
@@ -349,8 +353,8 @@ Section Ring.
     {
       ring_abgrp :> @AbelianGroup _ _ (+) 0 (-);
       ring_monoid :> @Monoid _ _ [*] 1;
-      ring_ldistr :> LeftDistributive [*] (+) [*] [*] (+);
-      ring_rdistr :> RightDistributive (+) [*] [*] [*] (+)
+      ring_distr_l :> LeftDistributive [*] (+) [*] [*] (+);
+      ring_distr_r :> RightDistributive (+) [*] [*] [*] (+)
     }.
 End Ring.
 
@@ -376,8 +380,8 @@ Section IntegralDomain.
     {
       dom_abgrp :> @AbelianGroup _ _ (+) 0 (-);
       dom_monoid :> @CommutativeMonoid _ _ [*] 1;
-      dom_ldistr :> LeftDistributive [*] (+) [*] [*] (+);
-      dom_rdistr :> RightDistributive (+) [*] [*] [*] (+);
+      dom_distr_l :> LeftDistributive [*] (+) [*] [*] (+);
+      dom_distr_r :> RightDistributive (+) [*] [*] [*] (+);
       dom_non_trivial : 0 <> 1;
       dom_zero_rule :> ZeroRule [*] 0 0 0
     }.
@@ -423,12 +427,16 @@ Section Magma.
 
 End Magma.
 
+Ltac substructure := repeat split; try apply _.
 
 Section SemiGroup.
 
   Local Open Scope mag_scope.
-  Context `{SemiGroup A}
-          `{Congruence A (∘)}
+  Context `{SemiGroup A}.
+
+  Instance sg_mag : Magma A. substructure. Qed.
+
+  Context `{Congruence A (∘)}
           `{subrelation A (=) (∼)}.
 
   Instance quot_sg : @SemiGroup A (∼) (∘).
@@ -437,19 +445,189 @@ Section SemiGroup.
 
 End SemiGroup.
 
+Require Import List.
+Require Import ZArith.
+Require Import Znumtheory.
+Require Import Coq.micromega.Lia.
+
+Section __.
+  Context `{Setoid A}.
+  Import ListNotations.
+
+  Inductive list_equiv : Equiv (list A) :=
+  | nil_eq : list_equiv [] []
+  | cons_eq a l b k : a = b -> list_equiv l k -> list_equiv (a :: l) (b :: k).
+  Global Existing Instance list_equiv.
+  Global Instance : @Reflexive (list A) (=).
+  Proof.
+    red; induction x.
+    - constructor.
+    - now constructor.
+  Qed.
+  Global Instance : @Symmetric (list A) (=).
+  Proof.
+    red; induction x; intros.
+    - inversion H1. constructor.
+    - inversion H1. subst.
+      constructor.
+      symmetry. assumption.
+      apply IHx. assumption.
+  Qed.
+  Global Instance : @Transitive (list A) (=).
+  Proof.
+    red; induction x; intros.
+    - inversion H1. subst. assumption.
+    - inversion H1. subst.
+      inversion H2. subst.
+      constructor.
+      etransitivity; eassumption.
+      eapply IHx; eassumption.
+  Qed.
+  Global Instance : Setoid (list A).
+  Proof. repeat split; apply _. Qed.
+
+  Global Instance : Proper ((=) ==> (=) ==> (=)) (@cons A).
+  Proof. do 3 red; intros; constructor; assumption. Qed.
+  Global Instance : Proper ((=) ==> (=) ==> (=)) (@app A).
+  Proof.
+    do 3 red; induction x; intros.
+    - now inversion H1; subst.
+    - inversion H1; subst. simpl. f_equiv. assumption. apply IHx. assumption. assumption.
+  Qed.
+  Global Instance : Proper ((=) ==> (=)) (@rev A).
+  Proof.
+    do 3 red; induction x; intros.
+    - inversion H1. constructor.
+    - inversion H1; subst. simpl. f_equiv.
+      apply IHx. assumption. rewrite H4. reflexivity.
+  Qed.
+End __.
+
+Section __.
+  Context `{SemiGroup A}.
+
+  Local Open Scope mag_scope.
+
+  Global Instance fold_left_proper (f : A -> A -> A) `{!Proper ((=) ==> (=) ==> (=)) f} :
+    Proper ((=) ==> (=) ==> (=)) (fold_left f).
+  Proof.
+    do 3 red.
+    induction x; intros.
+    - inversion H2. subst. auto.
+    - inversion H2. subst. simpl.
+      rewrite IHx. reflexivity.
+      assumption. rewrite H3. rewrite H6. reflexivity.
+  Qed.
+
+  Lemma fold_left_assoc (a b : A) ls :
+     a ∘ (fold_left (∘) ls b) = fold_left (∘) ls (a ∘ b).
+  Proof.
+    revert b; induction ls; intros b; simpl.
+    - reflexivity.
+    - rewrite IHls. rewrite associative. reflexivity.
+  Qed.
+End __.
+
 Section Monoid.
 
   Local Open Scope mag_scope.
   Local Open Scope mon_scope.
+  Local Open Scope nat_scope.
 
   Context `{Monoid A}
           `{Congruence A (∘)}
-          `{subrelation A (=) (∼)}.
+          `(subrelation A (=) (∼)).
+
+  Instance mon_sg : SemiGroup A. substructure. Qed.
 
   Instance quot_mon : @Monoid A (∼) (∘) ε.
   repeat split; try apply _;
   cbv; intros; apply is_subrelation; apply associative || apply right_identity || apply left_identity. Qed.
 
+  Context (f : nat -> A).
+
+  Definition big_op_list (l : list nat) f := fold_left (∘) (map f l) ε.
+  Definition big_op f n m := big_op_list (seq n (m - n)) f.
+  Definition big_op_rev f n m := big_op_list (rev (seq n (m - n))) f.
+
+  Hint Unfold big_op big_op_rev big_op_list : bigop.
+
+  Lemma big_op_S_r n m (nltm : n <= m) :
+    big_op f n (S m) = big_op f n m ∘ f m.
+  Proof. unfold big_op, big_op_list.
+         now rewrite Nat.sub_succ_l, seq_snoc, map_app, fold_left_app, <- le_plus_minus. Qed.
+
+  Lemma big_op_S_l n m (nltm : n <= m) :
+    big_op f n (S m) = f n ∘ big_op f (S n) (S m).
+  Proof. unfold big_op, big_op_list.
+         rewrite Nat.sub_succ_l, fold_left_assoc; auto.
+         simpl. rewrite mon_id_l, mon_id_r. reflexivity. Qed.
+
+  Lemma big_op_rev_S_r n m (nltm : n <= m) :
+    big_op_rev f n (S m) = big_op_rev f (S n) (S m) ∘ f n.
+  Proof. unfold big_op_rev, big_op_list.
+         rewrite Nat.sub_succ_l by auto; simpl; rewrite map_app, fold_left_app. reflexivity. Qed.
+
+  Lemma big_op_rev_S_l n m (nltm : n <= m) :
+    big_op_rev f n (S m) = f m ∘ big_op_rev f n m.
+  Proof. unfold big_op_rev, big_op_list.
+         rewrite Nat.sub_succ_l, seq_snoc, rev_app_distr, fold_left_assoc, <- le_plus_minus, (mon_id_r (f m)) by auto; simpl;
+           rewrite (mon_id_l (f m)); auto. reflexivity. Qed.
+
+  Lemma big_op_rev_nil n m (mltn : m <= n) :
+    big_op_rev f n m = ε.
+  Proof. unfold big_op_rev; replace (m - n) with 0 by lia; reflexivity. Qed.
+
+  Lemma big_op_nil n m (mltn : m <= n) :
+    big_op f n m = ε.
+  Proof. unfold big_op; replace (m - n) with 0 by lia; reflexivity. Qed.
+
+  Lemma big_op_split n m k (nmk : n <= m <= k) :
+    (big_op f n m) ∘ (big_op f m k) = big_op f n k.
+  Proof.
+    revert nmk; revert n m. induction k; intros.
+    - assert (n ≡ 0); assert (m ≡ 0); subst; try lia. rewrite big_op_nil, mon_id_l. reflexivity. lia.
+    - destruct (Nat.eq_dec m (S k)).
+      + subst. rewrite (big_op_nil (S k)), mon_id_r. reflexivity. lia.
+      + rewrite big_op_S_r, associative, IHk, <- big_op_S_r by lia. reflexivity. Qed.
+
+  Lemma big_op_rev_split n m k (nmk : n <= m <= k) :
+    (big_op_rev f m k) ∘ (big_op_rev f n m) = big_op_rev f n k.
+  Proof.
+    revert nmk; revert n m. induction k; intros.
+    - assert (n ≡ 0); assert (m ≡ 0); try lia; subst. rewrite big_op_rev_nil, mon_id_l. reflexivity. lia.
+    - destruct (Nat.eq_dec m (S k)).
+      + subst. rewrite (big_op_rev_nil (S k)), mon_id_l. reflexivity. lia.
+      + rewrite big_op_rev_S_l, <- associative, IHk, <- big_op_rev_S_l by lia. reflexivity. Qed.
+
+  Lemma map_seq_ext (g : nat -> A) (n m k : nat) :
+        (forall i : nat, n <= i < m + k -> f i = g (i + (m - n))%nat) ->
+        n <= m ->
+    map f (seq n k) = map g (seq m k).
+  Proof.
+    generalize dependent m; generalize dependent n. induction k as [|k IHk]; intros; simpl.
+    - reflexivity.
+    - rewrite H6 by lia; replace (n + (m - n))%nat with m by lia.
+      rewrite (IHk (S n) (S m)); [reflexivity| |lia].
+      intros; rewrite Nat.sub_succ; apply H6; lia. Qed.
+
+  Lemma big_op_shift g n m k :
+    (forall i, f i = g (i + k)) ->
+    big_op f n m = big_op g (n + k) (m + k).
+  Proof.
+    intros. unfold big_op, big_op_list.
+    apply fold_left_proper.
+    apply _.
+    replace (m + k - (n + k)) with (m - n) by lia.
+    apply map_seq_ext. intros. rewrite H6. f_equiv. lia. lia. reflexivity. Qed.
+
+  Lemma big_op_rev_shift g n m k :
+    (forall i, f i = g (i + k)) ->
+    big_op_rev f n m = big_op_rev g (n + k) (m + k).
+  Proof.
+    intros. unfold big_op_rev, big_op_list. apply fold_left_proper; [apply _| |reflexivity].
+    rewrite !map_rev. replace (m + k - (n + k)) with (m - n) by lia.
+    f_equiv. apply map_seq_ext; intros. rewrite H6. f_equiv. lia. lia. Qed.
 End Monoid.
 
 Require Import Coq.Classes.SetoidTactics.
@@ -473,7 +651,7 @@ Section Group.
     (try bottomup (choice (hints group_cancellation) <- associative)) in H.
   Ltac group := group_simplify; easy.
 
-  Instance quot_grp `{Congruence A (∘)} `{subrelation A (=) (∼)} `{Proper _ ((∼) ==> (∼)) (⁻¹)} : @Group A (∼) _ _ _.
+  Instance quot_grp `(Rel A) `{!Congruence (∼) (∘)} `{!subrelation (=) (∼)} `{!Proper ((∼) ==> (∼)) (⁻¹)} : @Group A (∼) _ _ _.
   Proof.
     repeat split; try apply _;
       red; intros; apply is_subrelation.
@@ -483,6 +661,7 @@ Section Group.
     - apply left_inverse.
     - apply right_inverse.
   Qed.
+  Check quot_grp.
 
   Lemma grp_op_inj_l : forall x y z, x ∘ y = x ∘ z -> y = z.
   Proof.
@@ -539,7 +718,7 @@ Section Group.
       subgrp_closed : forall x y, x ∈ P -> y ∈ P -> x ∘ y ∈ P
     }.
 
-  Lemma subgrp_inv_if `{@Subgroup P} : forall x, x ⁻¹ ∈ P -> x ∈ P.
+  Lemma subgrp_inv_if `{!Subgroup P} : forall x, x ⁻¹ ∈ P -> x ∈ P.
   Proof.
     intros.
     rewrite <- grp_inv_inv.
@@ -553,17 +732,17 @@ Section Group.
       nsubgrp_normal : forall x y, x ∈ P -> y ∘ x ∘ y⁻¹ ∈ P
     }.
 
-  Lemma nsubgrp_normal_if `{@NormalSubgroup P} : forall x y, y ∘ x ∘ y⁻¹ ∈ P -> x ∈ P.
+  Lemma nsubgrp_normal_if `{!NormalSubgroup P} : forall x y, y ∘ x ∘ y⁻¹ ∈ P -> x ∈ P.
   Proof.
     intros.
-    apply nsubgrp_normal with (y0:=y⁻¹) in H5.
-    group_simplify_in H5.
+    apply nsubgrp_normal with (y0:=y⁻¹) in H4.
+    group_simplify_in H4.
     assumption.
   Qed.
 
-  Instance nsubgrp_rel `{@NormalSubgroup P} : Rel A := (fun x y : A => x ∘ y ⁻¹ ∈ P).
+  Instance nsubgrp_rel `{!NormalSubgroup P} : Rel A := (fun x y : A => x ∘ y ⁻¹ ∈ P).
 
-  Instance nsubgrp_rel_cong `{@NormalSubgroup P} : Congruence (∘).
+  Instance nsubgrp_rel_cong `{!NormalSubgroup P} : Congruence (∼) (∘).
   Proof.
   split; [repeat split; red; intros|];unfold rel, nsubgrp_rel in *.
   - rewrite right_inverse.
@@ -582,8 +761,6 @@ Section Group.
     assumption.
     assumption.
   Qed.
-
-
 End Group.
 
 Section AbelianGroup.
@@ -591,8 +768,8 @@ Section AbelianGroup.
   Context `{G : AbelianGroup A}.
   Local Open Scope abgrp_scope.
 
-  Instance abgrp_grp : Group A. repeat split; apply _. Qed.
-  Existing Instance abgrp_grp.
+  Instance abgrp_grp : Group A. substructure. Qed.
+  (* Existing Instance abgrp_grp. *)
 
   Hint Rewrite associative using apply _: group_simplify.
   Hint Rewrite left_identity right_identity left_inverse right_inverse using apply _: group_cancellation.
@@ -620,10 +797,10 @@ Section AbelianGroup.
 
   Ltac abgrp := abgrp_simplify; easy.
 
-  Instance subgrp_ab_normal `{Subgroup A} : NormalSubgroup P.
+  Instance subgrp_ab_normal `{!Subgroup P} : NormalSubgroup P.
     intros; split; intros.
     - assumption.
-    - assert ((y + x - y) = x). aac_rewrite left_inverse.   abgrp_simplify.
+    - abgrp.
   Qed.
 
 End AbelianGroup.
@@ -636,7 +813,7 @@ Section SemiRing.
 
   Local Open Scope sr_scope.
 
-  Instance quot_ring `{Congruence A (+)} `{@Congruence A (∼) [*]} `{subrelation A (=) (∼)} : @SemiRing A (∼) _ _.
+  Instance quot_ring `(Rel A) `{!Congruence (∼) (+)} `{!Congruence (∼) [*]} `{subrelation A (=) (∼)} : @SemiRing A (∼) _ _.
   Proof.
     repeat split; try apply _;
       red; intros; apply is_subrelation.
@@ -666,19 +843,19 @@ Section CommutativeRing.
     - apply right_inverse.
   Qed.
 
+  Instance cring_sr : SemiRing A. substructure. Qed.
+
   Add Ring commutative_ring_is_ring : ring_ring_theory.
   Check ring_ring_theory.
 
   Existing Instance abgrp_grp.
 
-  Class Ideal :=
+  Class Ideal (P : Sub A) :=
     {
-      ideal_subgroup :> Subgroup;
+      ideal_subgroup :> Subgroup P;
       ideal_closed : forall x y, x ∈ P -> y * x ∈ P
     }.
 
-  Existing Instance subgrp_ab_normal.
-  Existing Instance nsubgrp_rel.
 
   (* Instance ideal_nsubgrp `{Ideal} : NormalSubgroup P. *)
 
@@ -689,25 +866,37 @@ Section CommutativeRing.
     let H := fresh in
     assert (H : T1 = T2) by tac; rewrite H || rewrite <- H; clear H.
 
-  Global Instance ideal_rel_op1_cong `{Ideal} : Congruence (+) := nsubgrp_rel_cong.
-  Global Instance ideal_rel_op2_cong `{Ideal} : Congruence [*].
+  Existing Instance subgrp_ab_normal.
+  Existing Instance nsubgrp_rel.
+  Instance ideal_rel_op1_cong `(!Ideal P) : Congruence (∼) (+) := nsubgrp_rel_cong.
+  Instance ideal_rel_op2_cong `(!Ideal P) : Congruence (∼) [*].
   split.
   - apply _.
   - do 3 red; intros.
-    cbv -[sr_op1 sr_op2 ring_inv1 In].
+    cbv -[sr_op1 sr_op2 ring_inv1 InSub].
     replace (x * x0 - y * y0) with ((x0 * (x - y)) + (y * (x0 - y0))) by ring.
     apply subgrp_closed.
     apply ideal_closed. assumption.
     apply ideal_closed. assumption.
   Qed.
 
-  Definition div a b := exists k, k * b = a.
-  Definition mul a b := div b a.
+  Definition div a : Sub A := fun b => exists k, k * b = a.
+  Definition mul a : Sub A := fun b => div b a.
+
+  Notation "'Σ_(' i ',' n ')^(' m ')' f" := (@big_op _ (+) 0 (fun i => f) n m)%sr (at level 50) : sr_scope.
+  Notation "Π_ ( i , n )^ m f" := (@big_op _ [*] 1 (fun i => f) n m)%sr (at level 50) : sr_scope.
+
+  (* Check forall a c m, Σ_(i , 0 )^(m) c i. *)
+
+  Definition is_linear_comb a (x : nat -> A) (m : nat) (c : nat -> A) :=
+    exists c m, a = Σ_( i , 0 )^( m ) (c i * x i).
+
+  Notation "⟨ a ⟩" := (mul a).
 
   Infix "|" := div (at level 40).
 
-  Instance principal_ideal (a : A) : Ideal (mul a).
-  repeat split; intros; unfold In, mul, div, mon_id, grp_inv, mag_op in *.
+  Definition principal_ideal (a : A) : Ideal ⟨a⟩.
+  repeat split; intros; unfold InSub, mul, div, mon_id, grp_inv, mag_op in *.
   - setoid_rewrite <- H6; assumption.
   - setoid_rewrite H6. assumption.
   - exists 0. ring.
@@ -724,26 +913,26 @@ Section CommutativeRing.
   Qed.
 
 End CommutativeRing.
+Notation "⟨ a ⟩" := (mul a).
 
 Section IntegralDomain.
 
   Context `{IntegralDomain A}.
 
-  Instance domain_cring : CommutativeRing A. repeat split; apply _. Qed.
+  Global Instance domain_semiring : SemiRing A. substructure. Qed.
+  Global Instance domain_cring : CommutativeRing A. substructure. Qed.
 
 End IntegralDomain.
 
-Require Import ZArith.
-Require Import Znumtheory.
-Require Import Coq.micromega.Lia.
 
 Section __.
   Context (A : Type).
-  Global Instance eq_Equiv : Equiv A := eq.
-  Global Arguments eq_Equiv _ /.
-  Global Instance : Setoid A. constructor; congruence. Defined.
+  Global Instance eq_Equiv : (Equiv A) := eq.
+  Hint Unfold equiv eq_Equiv : equiv_unfold.
 
+  Global Instance : Setoid A. constructor; congruence. Defined.
 End __.
+
 
 
 Section Z.
@@ -799,15 +988,27 @@ Section Z.
   Instance : IntegralDomain Z. repeat (split; try apply _). cbv; lia. Qed.
 
   Context (p : Z) (pprime : prime p).
-  Existing Instance domain_cring.
-
-  Instance : Ideal  := principal_ideal p.
-  Existing Instance I.
+  (* Existing Instance domain_cring. *)
+  (* Print Instances SrOp1. *)
+  (* Print Instances IntegralDomain. *)
+  Instance : Ideal ⟨p⟩ := principal_ideal p.
+  Existing Instance nsubgrp_rel.
   Existing Instance subgrp_ab_normal.
+  Print Instances Rel.
+  (* Instance : NormalSubgroup ⟨p⟩ := subgrp_ab_normal (principal_ideal p). *)
+  (* Instance : Rel Z := nsubgrp_rel. *)
+  Set Typeclasses Debug.
+  Check quot_ring.
+  Instance : @SemiRing Z (∼) _ _. (* := quot_ring Z (∼) _ _. *)
+  Print Instances SemiRing.
+  exact (@quot_ring Z (∼) _ _ (SemiRing_instance_0)).
+  := quot_ring Z. (∼) _ _ _ _ _ _.
+
+  Existing Instance principal_ideal.
   Existing Instance nsubgrp_rel.
   Existing Instance nsubgrp_rel_cong.
 
-  Instance Zp := @quot_ring Z (∼).
+  Existing Instance quot_ring.
 
   Instance : SemiRing := Zp.
 
