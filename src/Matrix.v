@@ -284,6 +284,9 @@ Section __.
          destruct (H5 m11 0); destruct (H5 m12 0); destruct (H5 m21 0); destruct (H5 m22 0); subst; try tauto.
   Qed.
 
+  Lemma det_mul m n : det (m * n) = det m * det n.
+  Proof. auto_mat. Qed.
+
   Context `{@integral_domain R H H0 H1 H2 H3}.
 
   Lemma eig_sym_ort (μ ν : R) v w m :
@@ -344,7 +347,6 @@ Section __.
     rewrite act_1_l in eq.
     symmetry. assumption.
   Qed.
-
 End __.
 
 Declare Scope mat_scope.

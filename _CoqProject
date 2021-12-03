@@ -1,6 +1,6 @@
+INSTALLDEFAULTROOT = /
 -arg -w -arg -deprecated-instance-without-locality
 -arg -w -arg +undeclared-scope
-
 -R src BY
 src/AppendixE.v
 src/AppendixF.v
@@ -22,8 +22,8 @@ src/PadicVal.v
 src/Q.v
 src/Qmin_list.v
 src/Rlemmas.v
-src/Rtail.v
 src/Rmin_list.v
+src/Rtail.v
 src/Section11.v
 src/Section9.v
 src/Spectral.v
@@ -35,8 +35,55 @@ src/Comp1/NoMemNew.v
 src/Comp2/Definition.v
 src/Comp2/Definitions.v
 src/Comp2/Extraction.v
-
--R coq-record-update RecordUpdate
+-Q coq-record-update RecordUpdate
 coq-record-update/src/RecordSet.v
 coq-record-update/src/RecordUpdate.v
 coq-record-update/src/Lens.v
+-Q stdpp/theories stdpp
+stdpp/theories/options.v
+stdpp/theories/base.v
+stdpp/theories/tactics.v
+stdpp/theories/option.v
+stdpp/theories/fin_map_dom.v
+stdpp/theories/boolset.v
+stdpp/theories/fin_maps.v
+stdpp/theories/fin.v
+stdpp/theories/vector.v
+stdpp/theories/pmap.v
+stdpp/theories/stringmap.v
+stdpp/theories/fin_sets.v
+stdpp/theories/mapset.v
+stdpp/theories/proof_irrel.v
+stdpp/theories/hashset.v
+stdpp/theories/pretty.v
+stdpp/theories/countable.v
+stdpp/theories/orders.v
+stdpp/theories/natmap.v
+stdpp/theories/strings.v
+stdpp/theories/relations.v
+stdpp/theories/sets.v
+stdpp/theories/listset.v
+stdpp/theories/streams.v
+stdpp/theories/gmap.v
+stdpp/theories/gmultiset.v
+stdpp/theories/prelude.v
+stdpp/theories/listset_nodup.v
+stdpp/theories/finite.v
+stdpp/theories/numbers.v
+stdpp/theories/nmap.v
+stdpp/theories/zmap.v
+stdpp/theories/coPset.v
+stdpp/theories/coGset.v
+stdpp/theories/lexico.v
+stdpp/theories/propset.v
+stdpp/theories/decidable.v
+stdpp/theories/list.v
+stdpp/theories/list_numbers.v
+stdpp/theories/functions.v
+stdpp/theories/hlist.v
+stdpp/theories/sorting.v
+stdpp/theories/infinite.v
+stdpp/theories/nat_cancel.v
+stdpp/theories/namespaces.v
+stdpp/theories/telescopes.v
+stdpp/theories/binders.v
