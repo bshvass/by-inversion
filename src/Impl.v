@@ -1,4 +1,4 @@
-From Coq Require Import ZArith Reals QArith micromega.Lia micromega.Lra.
+From Coq Require Import ZArith Reals QArith micromega.Lia micromega.Lra QArith.Qcanon.
 
 From BY Require Import Hierarchy.
 
@@ -45,6 +45,40 @@ Instance R_eq_dec : forall x y : R, decidable (x = y) := Req_EM_T.
 Instance Rle_reflexive : Reflexive Rle. red. intros. lra. Qed.
 Instance Rle_transitive : Transitive Rle. red. intros. lra. Qed.
 
+Local Open Scope Qc.
+
+Instance Qcplus_abelian_group_op : Abelian_group_op _ := Qcplus.
+Arguments Qcplus_abelian_group_op /.
+Instance Qczero_abelian_group_id : Abelian_group_id _ := 0.
+Arguments Qczero_abelian_group_id /.
+Instance Qcopp_abelian_group_opp : Abelian_group_opp _ := Qcopp.
+Arguments Qcopp_abelian_group_opp /.
+
+Instance Qcmult_ring_op : Ring_op _ := Qcmult.
+Arguments Qcmult_ring_op /.
+Instance Qcone_ring_id : Ring_id _ := 1.
+Arguments Qcone_ring_id /.
+
+Arguments monoid_op /.
+Arguments monoid_id /.
+Arguments monoid_inv /.
+Arguments ring_op /.
+Arguments ring_id /.
+Arguments ring_op_monoid_op /.
+Arguments ring_id_monoid_id /.
+Arguments abelian_group_op /.
+Arguments abelian_group_id /.
+Arguments abelian_group_opp /.
+Arguments abelian_group_op_monoid_op /.
+Arguments abelian_group_id_monoid_id /.
+Arguments abelian_group_opp_monoid_inv /.
+
+Instance Qc_integral_domain : @integral_domain Qc Qcplus Qcmult 0 1 Qcopp.
+Proof.
+  repeat split; red; intros; simpl in *; try field.
+  - intro contr. inversion contr.
+  - apply Qcmult_integral. assumption.
+Qed.
 
 Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
                               Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *.

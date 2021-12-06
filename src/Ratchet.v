@@ -1,6 +1,78 @@
-Require Import ZArith micromega.Lia ZArith.Zhints.
+Require Import ZArith micromega.Lia micromega.Lqa micromega.Lra ZArith.Zhints QArith.Qcanon Field Psatz.
 
 From BY Require Import Matrix Hierarchy Impl Tactics.
+
+Local Open Scope Qc.
+Local Open Scope mat_scope.
+Local Open Scope ring_scope.
+Local Open Scope group_scope.
+Local Open Scope lmodule_scope.
+
+Definition ratchet M :=
+  (0 < det M) /\
+  let '(m11, m12, m21, m22) := M in
+  (0 <= m11) /\ (0 <= m12).
+
+Section RatchetQc.
+Definition msb f :=
+  if (Qclt_le_dec 0 f) then 1 else (Qcopp 1).
+Search "Qc".
+
+Lemma msb_mul a f :
+  a <> 0 -> f <> 0 -> msb (a * f) = msb a * msb f.
+Proof.
+  intros; unfold msb; simpl. destruct_ifs.
+  reflexivity.
+
+  unfold Qclt, Qcle in *. simpl in *. unfold QArith_base.Qlt, QArith_base.Qle in *.
+  split_pairs_in q. psatz Z. Zify.zify.
+  simpl in *.
+  unfold Qcle in *.
+  reflexivity.  field. simpl. simpl.  Set Printing All. zify_all; try lia.
+Qed.
+
+Lemma msb_pos f :
+  0 < f -> msb f = 1.
+Proof. unfold msb; destruct_ifs; lia. Qed.
+
+Lemma ratchet_lemma1 a c d N f g :
+  let M := (a, 0, c, d) in
+  ratchet M -> f <> 0 -> 0 < g ->
+  let v := (f, g) in
+  let T := M * N in
+  let '(ai, bi, ci, di) := N in
+  let '(asi, bsi, csi, dsi) := T in
+  let '(fi, gi) := N ⋅ v in
+  let '(fsi, gsi) := (M * N) ⋅ v in
+  (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f).
+Proof.
+  intros.
+  unfold ratchet, M, det in H; zify_all.
+  assert (0 < a * d /\ 0 < d) by lia.
+  assert (0 < a) by lia.
+  destruct N as [[[ai bi] ci] di].
+  unfold T. simpl. zify_all.
+  intros.
+  rewrite !Z.mul_0_l, !Z.add_0_r in *.
+  split.
+  * intros.
+    assert (0 <= bi). lia.
+    apply H4 in H6.
+    set (fi := (ai * f + bi * g)%Z) in *.
+    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z by lia.
+    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r.
+    assumption.
+    rewrite msb_mul. rewrite msb_pos by lia. zify. lia. zify_all. lia. assumption.
+  * intros.
+    set (fi := (ai * f + bi * g)%Z) in *.
+    assert (msb fi = msb f).
+    {
+    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z in * by lia.
+    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r in *. assumption.
+    rewrite msb_mul in *. rewrite msb_pos in * by lia. zify_all. lia. zify_all. lia. assumption. }
+    apply H4 in H6. nia.
+Qed.
+
 
 Local Open Scope Z.
 Local Open Scope mat_scope.
@@ -14,6 +86,105 @@ Definition ratchet M :=
   (0 <= m11) /\ (0 <= m12).
 
 Section __.
+
+Definition msb f :=
+  if (Z_le_dec 0 f) then 1 else -1.
+
+Lemma msb_sgn f :
+  f <> 0 -> Z.sgn f = msb f.
+Proof.
+  intros.
+  unfold msb.
+  destruct_ifs. zify_all. lia.
+  lia. Qed.
+
+Lemma msb_mul a f :
+  a <> 0 -> f <> 0 -> msb (a * f) = msb a * msb f.
+Proof.
+  intros; unfold msb; destruct_ifs; zify_all; try lia.
+Qed.
+
+Lemma msb_pos f :
+  0 < f -> msb f = 1.
+Proof. unfold msb; destruct_ifs; lia. Qed.
+
+Lemma ratchet_lemma1 a c d N f g :
+  let M := (a, 0, c, d) in
+  ratchet M -> f <> 0 -> 0 < g ->
+  let v := (f, g) in
+  let T := M * N in
+  let '(ai, bi, ci, di) := N in
+  let '(asi, bsi, csi, dsi) := T in
+  let '(fi, gi) := N ⋅ v in
+  let '(fsi, gsi) := (M * N) ⋅ v in
+  (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f).
+Proof.
+  intros.
+  unfold ratchet, M, det in H; zify_all.
+  assert (0 < a * d /\ 0 < d) by lia.
+  assert (0 < a) by lia.
+  destruct N as [[[ai bi] ci] di].
+  unfold T. simpl. zify_all.
+  intros.
+  rewrite !Z.mul_0_l, !Z.add_0_r in *.
+  split.
+  * intros.
+    assert (0 <= bi). lia.
+    apply H4 in H6.
+    set (fi := (ai * f + bi * g)%Z) in *.
+    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z by lia.
+    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r.
+    assumption.
+    rewrite msb_mul. rewrite msb_pos by lia. zify. lia. zify_all. lia. assumption.
+  * intros.
+    set (fi := (ai * f + bi * g)%Z) in *.
+    assert (msb fi = msb f).
+    {
+    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z in * by lia.
+    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r in *. assumption.
+    rewrite msb_mul in *. rewrite msb_pos in * by lia. zify_all. lia. zify_all. lia. assumption. }
+    apply H4 in H6. nia.
+Qed.
+
+Lemma ratchet_lemma2 a b c d :
+
+
+
+Lemma ratchet_lemma1 a c d N f g :
+  let M := (a, 0, c, d) in
+  ratchet M -> f <> 0 -> 0 < g ->
+  let v := (f, g) in
+  let T := M * N in
+  let '(ai, bi, ci, di) := N in
+  let '(asi, bsi, csi, dsi) := T in
+  let '(fi, gi) := N ⋅ v in
+  let '(fsi, gsi) := (M * N) ⋅ v in
+  (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f).
+  rewrite T.
+
+  { repeat split.
+    { lia. }
+    { lia. }
+    { nia. }
+  }
+  unfold M in H.
+
+  P
+Admitted.
+(* Lemma ratchet_lemma (M N : mat) v : *)
+(*   let T := M * N in *)
+(*   let '(a, b, c, d) := M in *)
+(*   let '(ai, bi, ci, di) := N in *)
+(*   let '(asi, bsi, csi, dsi) := T in *)
+(*   let '(f, g) := v in *)
+(*   let '(fi, gi) := N ⋅ v in *)
+(*   let '(fsi, gsi) := (M * N) ⋅ v in *)
+(*   (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f). *)
+(* Proof. *)
+(*   destruct M as [[[a b] c] d]. *)
+(*   destruct N as [[[ai bi] ci] di]. *)
+(*   simpl. *)
+(*   split_pairs. *)
 
   Context
     {M : nat -> mat}
@@ -41,30 +212,6 @@ Proof.
   pose proof T_pos_det i. lia.
 Qed.
 
-Definition msb f :=
-  if (Z_le_dec 0 f) then 1 else -1.
-
-Lemma msb_sgn f :
-  f <> 0 -> Z.sgn f = msb f.
-Proof.
-  intros.
-  unfold msb.
-  destruct_ifs. zify_all. lia.
-  lia. Qed.
-
-Lemma msb_mul a f :
-  a <> 0 -> f <> 0 -> msb (a * f) = msb a * msb f.
-Proof.
-  intros; unfold msb; destruct_ifs; zify_all; try lia.
-Qed.
-
-Lemma msb_pos f :
-  0 < f -> msb f = 1.
-Proof. unfold msb; destruct_ifs; lia. Qed.
-
-(* Lemma ratchet_lemma M N v : *)
-(*   let '(a, b, c, d) := M in *)
-(*   let '( *)
 
 Theorem ratched_spec f g :
   f <> 0 \/ g > 0 ->
