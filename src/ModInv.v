@@ -109,6 +109,7 @@ Proof.
     exists u. replace (a * u) with (1 + - v * m) by lia.
     rewrite <- add_mod_idemp_r. rewrite <- mul_mod_idemp_r.
     rewrite mod_same. rewrite mul_0_r. simpl. rewrite mod_small. reflexivity.
-    lia. lia. lia. lia.
+    rewrite mod_0_l.
+    lia. lia. lia. lia. lia.
   - destruct H. rewrite Zdiv.Zmod_eq_full in H.
     apply bezout_rel_prime. rewrite <- H. apply Bezout_intro with x (- (a * x / m)). ring. lia. Qed.

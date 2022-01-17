@@ -63,11 +63,6 @@ Proof.
   intros. unfold alpha_quot. rewrite !alpha67 by lia. unfold alpha_high.
   rewrite div_pow. replace (w + i - i)%nat with w by lia. reflexivity. lra. lia. Qed.
 
-(* The following couple of definitions should probably be somewhere else *)
-
-
-(* Now the interesting definitions begin again *)
-
 Definition beta_aux (w : nat) n :=
   map_seq (alpha_quot w) 0%nat n.
 
@@ -132,9 +127,9 @@ Proof.
 (** The definition of the recursively defined S *)
 (************************************************)
 
-Inductive inS : nat -> mat -> Prop :=
+Inductive inS : nat -> mat R -> Prop :=
 | IS : inS 0%nat I
-| Sc (w : nat) (P : mat) :
+| Sc (w : nat) (P : mat R) :
     forall (e : nat) (q : Z),
     inS w P ->
     (w = 0%nat) \/ (mat_norm P > beta w) ->

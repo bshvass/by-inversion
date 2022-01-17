@@ -124,7 +124,7 @@ Notation split2 g := (psplit 2 g).
 
 Lemma ord2_even g (Hg : even g = true) : (0 < ord2 g)%nat.
 Proof.
-  destruct (eq_dec g 0) as [e|e]; [rewrite e; cbn; lia|].
+  destruct (eq_dec g 0) as [e|e]; [rewrite e; cbv; lia|].
   apply pval_lower_bound. assumption. lia.
   apply even_divide. assumption. Qed.
 

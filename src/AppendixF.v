@@ -4,14 +4,17 @@ Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qrea
 
 From BY Require Import Q Rlemmas Rmin_list AppendixFdefs Tactics Matrix AppendixE IZR Zpower_nat Zlemmas Hierarchy Impl Spectral PadicVal Log InductionPrinciples ListLemmas NoMemNew.
 
+Local Open Scope R_scope.
+
+Local Open Scope vec_scope.
 Local Open Scope mat_scope.
-Local Open Scope R.
-Local Open Scope group_scope.
 Local Open Scope ring_scope.
 Local Open Scope lmodule_scope.
 
+(* Instance Rinv_RingInv2 : RingInv2 R := Rinv. *)
+
 Local Coercion INR : nat >-> R.
-Local Coercion IZR : Z >-> R.
+(* Local Coercion IZR : Z >-> R. *)
 Local Coercion Q2R : Q >-> R.
 
 (********************************************************************************************************)
@@ -21,13 +24,13 @@ Local Coercion Q2R : Q >-> R.
 (********************************************************************************************************)
 
 Lemma F6 (v1 v2 : Z) :
-  [ IZR v1 ; IZR v2 ] <> v0 -> 1 <= vec_norm [ IZR v1 ; IZR v2 ].
+  ( IZR v1 , IZR v2 ) ≢ v0 -> 1 <= vec_norm ( IZR v1 , IZR v2 ).
 Proof.
   intros vnon0. apply vnonzero in vnon0.
   unfold vec_norm. rewrite <- Rabs_pos_eq by apply sqrt_pos.
   apply (le_pow 2). lia. field_simplify.
   replace 0 with (IZR 0)in vnon0.
-  destruct vnon0 as [H|H];  apply neq_IZR in H; apply pow2_IZR in H; rewrite pow2_sqrt; nra. reflexivity.
+  destruct vnon0 as [H|H]; apply neq_IZR in H; apply pow2_IZR in H; rewrite pow2_sqrt; nra. reflexivity.
 Qed.
 
 Definition F12 := mat_norm_condition.
@@ -42,7 +45,7 @@ Proof.
   rewrite !Rmult_0_l, !Rplus_0_l, !Rmult_1_r, Nat.add_0_r.
   replace (e + e)%nat with (2 * e)%nat by ring.
   rewrite !mult_pow2. rewrite Rpow_mult_distr, !pow_div, pow1, <- !pow_mult; try (apply pow_nonzero; lra).
-  replace ((-1) ^ 2) with 1%R by lra.
+  replace ((-1) ^ 2) with R1 by lra.
   replace (2 * e * 2)%nat with (e * 4)%nat by ring.
   field_simplify (1 / 2 ^ (e * 2) * (q ^ 2 / 2 ^ (e * 4)))%R; [|split; apply pow_nonzero; lra].
 
@@ -53,12 +56,12 @@ Proof.
     rewrite pow_mult, Rpow_mult_distr. lra. }
 
   assert (q ^ 2 / (2 ^ (e * 4)) < 4 / 2 ^ (e * 2)).
-  { replace (4 / 2 ^ (e * 2)) with ((4 * 2 ^ (e * 2)) / (2 ^ (e * 4))).
+  { replace (Rdiv 4 (2 ^ (e * 2))) with (Rdiv (4 * 2 ^ (e * 2)) (2 ^ (e * 4))).
     unfold Rdiv.
     apply Rmult_lt_compat_r.
     apply Rinv_pos_nonneg. apply pow_lt. lra. assumption.
 
-    replace (4 * 2 ^ (e * 2) / 2 ^ (e * 4)) with (4 * (2 ^ (e * 2) / 2 ^ (e * 4)))%R by (field; try apply pow_nonzero; lra).
+    replace (Rdiv (4 * 2 ^ (e * 2)) (2 ^ (e * 4))) with (4 * (Rdiv (2 ^ (e * 2)) (2 ^ (e * 4))))%R by (field; try apply pow_nonzero; lra).
     rewrite div_pow_inv.
     replace (e * 4 - e * 2)%nat with (e * 2)%nat by lia. field. apply pow_nonzero; lra. lra. nia. }
 
@@ -81,13 +84,13 @@ Proof.
   apply pow_nonzero; lra.
   apply pow_nonzero; lra. }
 
-  assert ((4 / 2 ^ (e * 2)) ^ 2 = 16 / 2 ^ (e * 4)).
+  assert ((4 / 2 ^ (e * 2)) ^ 2 = Rdiv 16 (2 ^ (e * 4))).
   { field_simplify. rewrite <- pow_mult.
     replace (e * 2 * 2)%nat with (e * 4)%nat by lia. lra.
     apply pow_nonzero; lra.
     apply pow_nonzero; lra. }
 
-  assert (((4 / 2 ^ (e * 2)) ^ 2) + 16 / 2 ^ (e * 4) = 32 / 2 ^ (e * 4))%R by nra.
+  assert (((4 / 2 ^ (e * 2)) ^ 2) + 16 / 2 ^ (e * 4) = Rdiv 32 (2 ^ (e * 4)))%R by nra.
 
   assert (sqrt
     ((1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + q ^ 2 / 2 ^ (e * 4)) +
@@ -124,7 +127,7 @@ Proof.
 
   apply (Rle_trans _ _ _ H8).
   replace (1 / 2 ^ (e * 2) + (1 / 2 ^ (e * 2) + 4 / 2 ^ (e * 2)))%R
-    with (6 / 2 ^ (e * 2)) by lra.
+    with (Rdiv 6 (2 ^ (e * 2))) by lra.
 
   right.
   apply sqr_inj. apply sqrt_positivity. apply div_pos_pos. apply add_pos. apply div_pos_pos. lra.
@@ -142,7 +145,7 @@ Proof.
   rewrite pow_div. rewrite <- pow_mult.
   rewrite <- Rdiv_plus_distr.
   replace ((1 + sqrt 2) ^ 2 / 2 ^ (e * 2) * 2)%R with
-      ((2 * (1 + sqrt 2) ^ 2) / 2 ^ (e * 2))%R.
+      (Rdiv (2 * (1 + sqrt 2) ^ 2) (2 ^ (e * 2)))%R.
   apply f_equal2. field_simplify. rewrite pow2_sqrt. field. lra. reflexivity.
   field. apply pow_nonzero. lra. apply pow_nonzero. lra. lra.
 
@@ -150,6 +153,8 @@ Proof.
   apply div_pos_pos. apply add_pos. apply div_pos_pos. lra. apply pow_le. lra. apply sqrt_positivity. apply div_pos_pos.
   lra. apply pow_le. lra. lra. Qed.
 
+Local Instance Nat_monoid : Monoid nat.
+Proof. split; exact _. Qed.
 
 Lemma fin_dec k (P : nat -> Prop) (Pdec : forall i, { P i } + { ~ P i }) :
    { exists j, (j <= k)%nat /\ P j } + { forall i, (i <= k)%nat -> ~ P i }.
@@ -189,7 +194,7 @@ Proof.
 
       assert (mat_norm (big_mmult_rev (fun i => M (e i) (q i)) 0 (S j)) <= (beta (big_sum_nat e 0 (S i))) * alpha (big_sum_nat e (S i) (S j))).
       {
-        rewrite <- big_op_rev_split with (m:=S i) by lia.
+        setoid_rewrite <- big_op_rev_split with (m:=S i); [|lia].
         eapply Rle_trans.
         apply mat_norm_mmult.
 
@@ -226,14 +231,14 @@ Proof.
           etransitivity. apply mat_norm_mmult.
 
           rewrite big_op_rev_S_r, big_op_rev_nil by lia.
-          rewrite mul_1_l.
+          rewrite (left_id mon_id mag_op).
 
           pose proof sqrt2_bound.
           pose proof gamma_spec (big_sum_nat e 0 i) (e i).
-          replace Nat.add with monoid_op in H5 by reflexivity.
-          rewrite <- big_op_S_r in H5 by lia.
-          replace Natadd_monoid_op with Nat.add in H5 by reflexivity.
-          replace monoid_op with Nat.add in H5 by reflexivity.
+          (* replace Nat.add with monoid_op in H5 by reflexivity. *)
+          rewrite <- big_op_S_r in H5. by lia.
+          (* replace Natadd_monoid_op with Nat.add in H5 by reflexivity. *)
+          (* replace monoid_op with Nat.add in H5 by reflexivity. *)
 
           pose proof sqrt_pos 2.
           pose proof mat_norm_nonneg (M (e i) (q i)).

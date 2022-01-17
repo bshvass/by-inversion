@@ -2,7 +2,7 @@ Require Import Rbase Reals QArith micromega.Lia micromega.Lra.
 
 From BY Require Import Hierarchy Impl.
 
-Local Open Scope R.
+Local Open Scope R_scope.
 
 Ltac assert_pow :=
     repeat match goal with
@@ -50,12 +50,12 @@ Ltac split_pairs_in H :=
          | context[let '(_, _) := ?b in _] => let E := fresh in destruct b eqn:E
          end.
 
-Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
-                              Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *.
-Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
-                               Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in H.
-Ltac rify := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op
-                          Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id].
+(* Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op *)
+(*                               Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *. *)
+(* Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op *)
+(*                                Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in H. *)
+(* Ltac rify := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op *)
+(*                           Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id]. *)
 
 Ltac lira :=
   lra +
@@ -63,7 +63,7 @@ Ltac lira :=
   (autorewrite with push_izr; try apply le_IZR; lra) +
   (autorewrite with pull_izr;
        try match goal with
-       | [ |- IZR _ < IZR _ ] => try apply IZR_lt
-       | [ |- IZR _ <= IZR _ ] => try apply IZR_le
-       | [ |- IZR _ <> IZR _ ] => try apply IZR_neq
+       | [ |- (IZR _ < IZR _)%R ] => try apply IZR_lt
+       | [ |- (IZR _ <= IZR _)%R ] => try apply IZR_le
+       | [ |- (IZR _ <> IZR _)%R ] => try apply IZR_neq
        end; lia).

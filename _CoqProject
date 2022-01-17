@@ -2,6 +2,7 @@
 -arg -w -arg +undeclared-scope
 
 -R src BY
+src/AlphaQ.v
 src/AppendixE.v
 src/AppendixF.v
 src/AppendixFdefs.v
@@ -9,7 +10,6 @@ src/AppendixG.v
 src/BYInv.v
 src/Divstep.v
 src/Floor.v
-src/Hierarchy.v
 src/IZR.v
 src/Impl.v
 src/InductionPrinciples.v
@@ -35,6 +35,18 @@ src/Comp1/NoMemNew.v
 src/Comp2/Definition.v
 src/Comp2/Definitions.v
 src/Comp2/Extraction.v
+src/Hierarchy/AAC.v
+src/Hierarchy/AbelianGroup.v
+src/Hierarchy/CommutativeRing.v
+src/Hierarchy/Definitions.v
+src/Hierarchy/Group.v
+src/Hierarchy/IntegralDomain.v
+src/Hierarchy/List.v
+src/Hierarchy/LeftModule.v
+src/Hierarchy/Magma.v
+src/Hierarchy/Monoid.v
+src/Hierarchy/Ring.v
+src/Hierarchy/SemiGroup.v
 
 -R coq-record-update RecordUpdate
 coq-record-update/src/RecordSet.v

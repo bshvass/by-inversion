@@ -1,6 +1,6 @@
 From Coq Require Import Bool ZArith Znumtheory micromega.Lia.
 
-From BY Require Import Zpower_nat InductionPrinciples Hierarchy.
+From BY Require Import Zpower_nat InductionPrinciples Hierarchy.Definitions Impl Hierarchy.Monoid.
 
 Local Open Scope Z.
 
@@ -186,4 +186,4 @@ Proof.
   - unfold big_sum_nat. simpl. lia.
   - assert (forall i : nat, i <= n -> 1 <= f i)%nat by (intros; apply H; lia).
     apply IHn in H0. rewrite big_op_S_r by lia.
-    assert (1 <= f n)%nat by (apply H; lia). cbv [monoid_op]; lia. Qed.
+    assert (1 <= f n)%nat by (apply H; lia). simpl; lia. Qed.
