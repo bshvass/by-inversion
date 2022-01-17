@@ -1,13 +1,13 @@
 From Coq Require Import Bool List.
 From Coq Require Import ZArith Znumtheory micromega.Lia.
-From Coq Require Import Reals Rbase micromega.Lra.
 
-From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Hierarchy Impl Matrix IZR Rlemmas Tactics.
+From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples ImplMatrix IZR Rlemmas Tactics.
+From Coq Require Import Reals Rbase micromega.Lra.
 
 Import Z RinvImpl.
 
-Local Coercion IZR : Z >-> R.
-Local Open Scope Z.
+Coercion IZR : Z >-> R.
+Local Open Scope Z_scope.
 
 Lemma and_lemma (P Q : Prop) (H1 : P) (H2 : P -> Q) : P /\ Q.
 Proof. tauto. Qed.
@@ -29,7 +29,7 @@ Notation "a 'div2' b" := (div_2 a b) (at level 30).
 
 Section __.
   Context ( f g : Z )
-          ( f_odd : odd f = true ).
+          ( f_odd : Z.odd f = true ).
 
   Lemma q_0_r a : q a 0 = 0.
   Proof. unfold q; cbn; rewrite Z.mul_0_r; reflexivity. Qed.
@@ -45,7 +45,7 @@ Section __.
   Lemma mod2_0_l a : 0 mod2 a = 0.
   Proof. unfold mod_2; rewrite q_0_l, Z.mul_0_l; reflexivity. Qed.
 
-  Lemma div2_mod2 (g0 : (g <> 0)%Z) : IZR f = ((f div2 g) * g + (f mod2 g))%R.
+  Lemma div2_mod2 (g0 : (g <> 0)%Z) : IZR f = ((f div2 g) * (IZR g) + (f mod2 g))%R.
   Proof.
     unfold div_2, mod_2, split2. rewrite minus_IZR, mult_IZR, div_IZR. field.
     apply IZR_neq. apply Zpower_nat_nonzero. lia.
@@ -114,6 +114,7 @@ Section __.
             | S k => if R_ j =? 0 then 0 else - ((split2 (R_ k)) mod2 (R_ j)) / 2 ^+ (ord2 (R_ j))
             end
     end.
+  (* Arguments R_ _ : assert, simpl nomatch. *)
 
   Notation e i := (ord2 (R_ i)).
 
@@ -209,21 +210,21 @@ Section __.
   Proof. rewrite R_recurrence; lia. Qed.
 
   Local Open Scope R.
-  Local Open Scope group_scope.
-  Local Open Scope ring_scope.
+  (* Local Open Scope grp_scope. *)
+  (* Local Open Scope ring_scope. *)
   Local Open Scope lmodule_scope.
   Local Open Scope mat_scope.
 
   Theorem E2 i (HR0 : R0 <> 0%Z) (H : R_ (S i) <> 0%Z) :
-    [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] =
+    [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] ≡
     [ 0 , 1 / 2 ^ (e (S i)) ; - 1 / 2 ^ (e (S i)) , (split2 (R_ i) div2 (R_ (S i))) / 2 ^ (e (S i))] ⋅ [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
   Proof.
     rewrite R_S_S, ((proj2 (Z.eqb_neq _ _)) H).
-    cbv [module_left_act vmult_left_act vmult].
-    apply f_equal2.
-    - rify. field_simplify; [|apply Rfunctions.pow_nonzero; lra].
+    (* cbv [module_left_act vmult_left_act vmult]. *)
+    split.
+    - cbn -[R_ e]. field_simplify; [|apply Rfunctions.pow_nonzero; lra].
       unfold split2. rewrite div_IZR, Zpower_nat_IZR by (apply pval_spec; lia). reflexivity.
-    - rewrite div_IZR, Zpower_nat_IZR, opp_IZR, R_eq. rify. field.
+    - rewrite div_IZR, Zpower_nat_IZR, opp_IZR, R_eq. cbn -[R_ e]. field.
       apply Rfunctions.pow_nonzero. lra.
       apply Zdivide_opp_r; apply mod2_div'; [apply odd_split2|assumption]; apply R_nonzero_S; assumption. Qed.
 
