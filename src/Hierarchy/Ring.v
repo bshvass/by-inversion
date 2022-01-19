@@ -1,4 +1,5 @@
 From Coq Require Import Ring.
+From stdpp Require Import base.
 From BY Require Import Hierarchy.Definitions Hierarchy.Group.
 
 Section Ring.

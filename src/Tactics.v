@@ -1,6 +1,7 @@
 Require Import Rbase Reals QArith micromega.Lia micromega.Lra.
 
-From BY Require Import Hierarchy Impl.
+From BY Require Import Impl.
+From BY.Hierarchy Require Import Definitions.
 
 Local Open Scope R_scope.
 

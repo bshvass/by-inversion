@@ -10,7 +10,7 @@ Require Export AlphaQ.
 
 Local Open Scope Q.
 
-From BY Require Import (* Rlemmas AppendixFdefs *) Qmin_list Rmin_list ListLemmas.
+From BY Require Import Rlemmas AppendixFdefs Qmin_list Rmin_list ListLemmas.
 
 Definition alphaQ_high_Z w : Q := (633/1024) ^ w.
 
@@ -317,36 +317,39 @@ Proof.
 
 Lemma alphaQ_nonneg w : 0 <= alphaQ w.
 Proof.
-  destruct (Z_le_dec w 0).
+  destruct (Z_le_dec w 0%Z).
   - assert ((w <=? 66) = true)%Z. lia. unfold alphaQ. rewrite H.
     destruct w as [w|w|w]. lra. lia. lra.
   - rewrite alphaQ_nat_alphaQ. apply alphaQ_nat_nonneg. lia. Qed.
 
-From BY Require Import Matrix Hierarchy.
+From BY Require Import Matrix Hierarchy.Definitions.
 
-Instance Qadd_abelian_group_op : AbGrpOp Q := Qplus.
-Instance Qzero_abelian_group_id : AbGrpId Q := 0%Q.
-Instance Qopp_abelian_group_opp : AbGrpOpp Q := Qopp.
-Instance Qmult_ring_op : SrOp2 Q := Qmult.
-Instance Qone_ring_id : RingId2 Q := 1%Q.
+Instance Qadd_op1 : Op1 Q := Qplus.
+Instance Qzero_id1 : Id1 Q := 0%Q.
+Instance Qopp_inv1 : Inv1 Q := Qopp.
+Instance Qmult_op2 : Op2 Q := Qmult.
+Instance Qone_id2 : Id2 Q := 1%Q.
+Instance Qinv_inv2 : Inv2 Q := Qinv.
 
-Global Arguments Qadd_abelian_group_op /.
-Global Arguments Qzero_abelian_group_id /.
-Global Arguments Qopp_abelian_group_opp /.
-Global Arguments Qmult_ring_op /.
-Global Arguments Qone_ring_id /.
+Global Arguments Qadd_op1 /.
+Global Arguments Qzero_id1 /.
+Global Arguments Qopp_inv1 /.
+Global Arguments Qmult_op2 /.
+Global Arguments Qone_id2 /.
 
 Instance Q_integral_domain : IntegralDomain Q.
 Proof. repeat split; repeat intro; cbn in *; nra. Qed.
 
-Instance Q_eq_dec : forall x y : Q, decidable (x ≡ y) := Qeq_dec.
+Instance Q_eq_dec : forall x y : Q, Decision (x ≡ y) := Qeq_dec.
 
 (* Local Open Scope mat_scope. *)
+Local Open Scope vec_scope.
 Local Open Scope mat_scope.
 Local Coercion inject_Z : Z >-> Q.
+Local Open Scope Q.
 
-Definition M (e q : Z) := [ 0 , 1 / (2 ^ e) ; - 1 / (2 ^ e) , q / (2 ^ (2 * e)) ]%Q.
-Definition scaledM (e q : Z) := [ 0 , 2 ^ e ; - (2 ^ e) , inject_Z q ]%Q.
+Definition M (e q : Z) : mat Q := [ 0 , 1 / (2 ^ e) ; - 1 / (2 ^ e) , (inject_Z q) / (2 ^ (2 * e)) ].
+Definition scaledM (e q : Z) : mat Q := [ 0 , 2 ^ e ; (- 2 ^ e) , inject_Z q ].
 
 (* Local Notation "a <=? b" := (match a ?= b with Gt => false | _ => true end). *)
 (* Local Notation "a <? b" := (match a ?= b with Lt => true | _ => false end). *)
@@ -357,7 +360,6 @@ Definition Qlt_bool x y := (Qnum x * Z_as_DT.pos (Qden y) <? Qnum y * Z_as_DT.po
 Notation "a <? b" := (Qlt_bool a b) : Q_scope.
 
 Notation "a =? b" := (Qeq_bool a b) : Q_scope.
-Local Open Scope Q.
 
 Definition has_at_most_norm (P : mat Q) N :=
   let '(a, b, c, d) := P in
@@ -395,9 +397,9 @@ Inductive inSQ_gen_scaled {w0 P0 e0} : Z -> mat Q -> Prop :=
     Z.odd q = true ->
     (e0 <= q < 2 ^ (e + 1))%Z ->
     inSQ_gen_scaled (e + w)%Z (mmult (scaledM e q) P).
-Local Open Scope lmodule_scope.
-Require Import Zpower_nat.
 
+Local Open Scope lmod_scope.
+Require Import Zpower_nat.
 
 Local Open Scope R.
 Lemma has_at_most_norm_spec P N : (0 <= N)%Q -> (has_at_most_norm (mmult (mtrans P) P) N = true <-> mat_norm (Qmat2Rmat P) <= N).
@@ -494,7 +496,6 @@ Proof.
   unfold has_at_most_norm.
   split_pairs.
   setoid_rewrite H0. reflexivity. Qed.
-
 
 Lemma Q2R_pow x n (H : (n <> 0)%nat) : (Q2R x) ^ n = Q2R (x ^ (Z.of_nat n)).
 Proof. rewrite RMicromega.Q2RpowerRZ.

@@ -1,8 +1,8 @@
 From Coq Require Import Bool ZArith Znumtheory micromega.Lia.
 
-From BY Require Import Zpower_nat InductionPrinciples Hierarchy.Definitions Impl Hierarchy.Monoid.
+From BY Require Import Zpower_nat InductionPrinciples Hierarchy.Definitions Impl Hierarchy.BigOp.
 
-Local Open Scope Z.
+Local Open Scope Z_scope.
 
 Import Z.
 
@@ -176,14 +176,11 @@ Proof.
     + apply Zgcd_1_rel_prime. apply rel_prime_div with (p:=a).
       apply Zgcd_1_rel_prime. assumption. assumption. Qed.
 
-Notation big_sum := (@big_op _ Z.add 0%Z).
-Notation big_sum_nat := (@big_op _ Nat.add 0%nat).
-
 Lemma big_sum_bound n f :
-  (forall i, (i <= n)%nat -> (1 <= f i)%nat) -> (n <= big_sum_nat f 0 n)%nat.
+  (forall i, (i <= n)%nat -> (1 <= f i)%nat) -> (n <= big_sum f 0 n)%nat.
 Proof.
   induction n; intros.
-  - unfold big_sum_nat. simpl. lia.
+  - cbn. lia.
   - assert (forall i : nat, i <= n -> 1 <= f i)%nat by (intros; apply H; lia).
     apply IHn in H0. rewrite big_op_S_r by lia.
-    assert (1 <= f n)%nat by (apply H; lia). simpl; lia. Qed.
+    assert (1 <= f n)%nat by (apply H; lia). cbn in *. lia. Qed.

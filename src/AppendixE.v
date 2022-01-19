@@ -1,7 +1,8 @@
 From Coq Require Import Bool List.
 From Coq Require Import ZArith Znumtheory micromega.Lia.
 
-From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples ImplMatrix IZR Rlemmas Tactics.
+From BY Require Import Zlemmas PadicVal Zpower_nat ModInv InductionPrinciples Impl Matrix IZR Rlemmas Tactics.
+From BY.Hierarchy Require Import Definitions.
 From Coq Require Import Reals Rbase micromega.Lra.
 
 Import Z RinvImpl.
@@ -114,7 +115,6 @@ Section __.
             | S k => if R_ j =? 0 then 0 else - ((split2 (R_ k)) mod2 (R_ j)) / 2 ^+ (ord2 (R_ j))
             end
     end.
-  (* Arguments R_ _ : assert, simpl nomatch. *)
 
   Notation e i := (ord2 (R_ i)).
 
@@ -209,18 +209,16 @@ Section __.
     = 2 ^+ e i * q (split2 (R_ i)) (R_ (S i)) * (R_ (S i)) - 2 ^+ (2 * e (S i) + e i) * (R_ (S (S i))).
   Proof. rewrite R_recurrence; lia. Qed.
 
-  Local Open Scope R.
-  (* Local Open Scope grp_scope. *)
-  (* Local Open Scope ring_scope. *)
-  Local Open Scope lmodule_scope.
+  Local Open Scope R_scope.
+  Local Open Scope lmod_scope.
+  Local Open Scope vec_scope.
   Local Open Scope mat_scope.
 
   Theorem E2 i (HR0 : R0 <> 0%Z) (H : R_ (S i) <> 0%Z) :
-    [ IZR (split2 (R_ (S i))) ; IZR (R_ (S (S i))) ] ≡
-    [ 0 , 1 / 2 ^ (e (S i)) ; - 1 / 2 ^ (e (S i)) , (split2 (R_ i) div2 (R_ (S i))) / 2 ^ (e (S i))] ⋅ [ IZR (split2 (R_ i)) ; IZR (R_ (S i))].
+    [ IZR (split2 (R_ (S i))) , IZR (R_ (S (S i))) ] ≡
+    [ IZR 0 , 1 / (2 ^ (e (S i))) ; - 1 / (2 ^ (e (S i))) , (split2 (R_ i) div2 (R_ (S i))) / (2 ^ (e (S i)))] ⋅ [ IZR (split2 (R_ i)) , IZR (R_ (S i))].
   Proof.
     rewrite R_S_S, ((proj2 (Z.eqb_neq _ _)) H).
-    (* cbv [module_left_act vmult_left_act vmult]. *)
     split.
     - cbn -[R_ e]. field_simplify; [|apply Rfunctions.pow_nonzero; lra].
       unfold split2. rewrite div_IZR, Zpower_nat_IZR by (apply pval_spec; lia). reflexivity.
@@ -228,8 +226,8 @@ Section __.
       apply Rfunctions.pow_nonzero. lra.
       apply Zdivide_opp_r; apply mod2_div'; [apply odd_split2|assumption]; apply R_nonzero_S; assumption. Qed.
 
-  Local Close Scope R.
-  Local Open Scope Z.
+  Local Close Scope R_scope.
+  Local Open Scope Z_scope.
 
   Theorem E3 t (R0_odd : odd R0 = true) (R1_even : even R1 = true) :
     R_ (S t) = 0 -> R_ t <> 0 -> abs (split2 (R_ t)) = gcd R0 R1.

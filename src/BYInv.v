@@ -1,9 +1,10 @@
 Require Import ZArith micromega.Lia Reals micromega.Lra.
 
-From BY Require Import Section11 Divstep Matrix Hierarchy Impl Zpower_nat Zlemmas Spectral.
+From BY Require Import Section11 Divstep Matrix Impl Zpower_nat Zlemmas Spectral.
+From BY.Hierarchy Require Import Definitions BigOp.
 
 Import Z.
-Local Open Scope Z.
+Local Open Scope Z_scope.
 
 Definition iterations d :=
   if d <? 46 then (49 * d + 80) / 17 else (49 * d + 57) / 17.
@@ -75,8 +76,13 @@ Proof.
   destruct (divstep_full_iter) as [[[[? fm] ?] vm] ?] eqn:E3.
   destruct H as [um [qm]].
 
-  cbn -[Zpower_nat] in H0.
-  rewrite <- H in H0.
+  assert ((um, vm, qm, z1) = (big_mul_rev (λ i : nat, Tn 1 f g i) 0 m)).
+  { inversion H. inversion H3. inversion H5.
+    destruct (big_mul_rev (λ i : nat, Tn 1 f g i) 0 m) as [[[um' vm'] qm'] z1'].
+    cbn in *. subst. reflexivity. }
+  (* fixme: this should be possible somehow: setoid_rewrite <- H in H0. *)
+
+  rewrite <- H3 in H0.
 
   apply H0 in H1.
 
@@ -86,18 +92,18 @@ Proof.
   rewrite H2 in *.
 
   assert (fm = 1 \/ fm = -1). lia.
-  destruct H4.
+  destruct H5.
   { subst.
     simpl. rewrite Zmult_mod_idemp_l.
     rewrite <- mul_assoc.
     rewrite <- Zmult_mod_idemp_r.
-    rewrite H3. rewrite mul_1_r, mul_1_l.
+    rewrite H4. rewrite mul_1_r, mul_1_l.
     rewrite Zmult_mod_idemp_r. apply pc_correct. }
   { subst.
     simpl. rewrite Zmult_mod_idemp_l.
     rewrite <- mul_assoc.
     rewrite <- Zmult_mod_idemp_r.
-    rewrite H3.
+    rewrite H4.
     rewrite Zmult_mod_idemp_r.
     replace (-1 * pc * (2 ^+ m * -1)) with (pc * 2 ^+ m) by ring.
     apply  pc_correct. }
@@ -105,8 +111,8 @@ Proof.
   unfold m. unfold iterations.
   rewrite !Z2Nat.id.
   destruct (lt_dec (to_nat d) 46).
-  assert (d <? 46 = true). apply Z.ltb_lt. lia. rewrite H3. reflexivity.
-  assert (d <? 46 = false). apply Z.ltb_ge. lia. rewrite H3. reflexivity.
+  assert (d <? 46 = true). apply Z.ltb_lt. lia. rewrite H4. reflexivity.
+  assert (d <? 46 = false). apply Z.ltb_ge. lia. rewrite H4. reflexivity.
   pose proof log2_up_nonneg (abs f).
   pose proof le_max_l (log2_up (abs f)) (log2_up (abs g)).
 

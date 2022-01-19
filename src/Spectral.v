@@ -1,13 +1,10 @@
 From Coq Require Import List Rbase Reals QArith micromega.Lia micromega.Lra.
 
-From BY Require Import Rlemmas Tactics Hierarchy Matrix Impl.
-
+From BY Require Import Rlemmas Tactics Impl Matrix.
+From BY.Hierarchy Require Import Definitions IntegralDomain LeftModule.
 
 Local Open Scope R_scope.
-(* Local Open Scope grp_scope. *)
-(* Local Open Scope abgrp_scope. *)
-(* Local Open Scope ring_scope. *)
-Local Open Scope lmodule_scope.
+Local Open Scope lmod_scope.
 
 Local Open Scope list_scope.
 
@@ -27,13 +24,6 @@ Definition mat_norm (m : mat R) :=
   sqrt ((a + d + sqrt ((a - d) ^ 2 + 4 * b ^ 2)) / 2).
 
 Definition normal_vec v := (/ vec_norm v) ⋅ v.
-
-(* Ltac rify_all := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op *)
-(*                           Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in *. *)
-(* Ltac rify_in H := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op *)
-(*                                Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id] in H. *)
-(* Ltac rify := cbv [ring_op abelian_group_op Rplus_abelian_group_op abelian_group_opp Rmult_ring_op *)
-(*                           Ropp_abelian_group_opp abelian_group_id Rzero_abelian_group_id ring_id Rone_ring_id]. *)
 
 Lemma inner_nonzero (v : vec R) : v ≢ v0 -> ⟨ v , v ⟩ ≢ (0 : R).
 Proof. intros. invert_mat. apply vnonzero in H. cbn in *. nra. Qed.
@@ -151,7 +141,7 @@ Proof.
   rewrite pow2_sqrt. nra. psatz R. Qed.
 
 Lemma mat_norm_eig (m : mat R) :
-  (mat_norm m) ^ 2 = sym_eig1 (m ^T * m)%SR.
+  (mat_norm m) ^ 2 = sym_eig1 (m ᵀ * m)%SR.
 Proof.
   invert_mat.
   unfold mat_norm.
@@ -210,12 +200,14 @@ Proof.
 Lemma normal_vec_nonzero (v : vec R) (vnon0 : v ≢ v0) : normal_vec v ≢ v0.
 Proof. apply vnonzero_norm. rewrite normal_vec_norm. intros contra. apply (@dom_non_trivial R _ _ _ _ _ _ _). symmetry; assumption. assumption. Qed.
 
+Instance : CommutativeRing R. sub_class_tac. Qed. (* fixme: why is this needed? why isn't domain_cring sufficient. *)
+
 Theorem spectral m :
   sym m -> exists u v , eig_vec (sym_eig1 m) u m /\ eig_vec (sym_eig2 m) v m /\ ort u v /\ vec_norm u = 1 /\ vec_norm v = 1.
 Proof.
   destruct (is_scalar_matrix m) as [[x]|]; intros msym; invert_mat; cbn in *; subst.
   -
-    exists [ 1 ; 0 ], [ 0 ; 1 ]. repeat split.
+    exists [ 1 , 0 ], [ 0 , 1 ]. repeat split.
     + apply vnonzero. cbn. nra.
     + cbn.
       field_simplify.
@@ -264,7 +256,7 @@ Proof.
 
   apply (le_pow 2). lia.
   rewrite mat_norm_eig.
-  assert (Psym : sym (m ^T * m)%SR) by (unfold sym; auto_mat).
+  assert (Psym : sym (m ᵀ * m)%SR) by (unfold sym; auto_mat).
   pose proof spectral _ Psym as [e1 [e2 [[e1non0 eig1] [[e2non0 eig2] [ort12 [norm1 norm2]]]]]].
 
   pose proof (ort_span _ _ e1non0 e2non0 ort12) v as [c1 [c2 eq]].
@@ -289,7 +281,7 @@ Proof.
   rewrite <- !inner_vec_norm, ort12, norm1, norm2 in H. cbn in *. nra. Qed.
 
 Lemma e1_norm :
-  vec_norm [1; 0] = 1.
+  vec_norm [1, 0] = 1.
 Proof.
   unfold vec_norm. rewrite pow_i, pow1, Rplus_0_r, sqrt_1 by lia. reflexivity. Qed.
 
@@ -298,12 +290,12 @@ Lemma mat_norm_spec2 m a :
 Proof.
   intros.
   assert (0 <= a).
-  { specialize (H [1; 0] e1_norm). etransitivity. apply vec_norm_nonneg. apply H. }
+  { specialize (H [1, 0] e1_norm). etransitivity. apply vec_norm_nonneg. apply H. }
   rewrite <- Rabs_pos_eq by assumption.
   apply (le_pow 2). lia.
 
   rewrite mat_norm_eig.
-  assert (Psym : sym (m ^T * m)%SR) by (unfold sym; auto_mat).
+  assert (Psym : sym (m ᵀ * m)%SR) by (unfold sym; auto_mat).
   pose proof spectral _ Psym as [e1 [e2 [[e1non0 eig1] [[e2non0 eig2] [ort12 [norm1 norm2]]]]]].
   specialize (H e1 norm1).
   rewrite <- (Rabs_pos_eq (vec_norm _)) in H by apply vec_norm_nonneg.
@@ -328,7 +320,7 @@ Lemma mat_norm_condition (P : mat R) (N : R) :
 Proof.
   pose proof (mat_norm_nonneg P).
   destruct P as [[[P11 P12] P21] P22].
-  unfold mat_norm; rify.
+  unfold mat_norm.
   assert_pow; assert_sqrt.
   split; intros.
   - assert (0 <= N) by lra.
@@ -345,7 +337,6 @@ Proof.
     replace N with (Rabs N) by (apply Rabs_pos_eq; assumption).
     apply le_pow with (n := 2%nat). replace (INR 2%nat) with 2 by reflexivity. lia.
     rewrite <- Rsqr_pow2, Rsqr_sqrt. all: lra. Qed.
-
 
 (***************************************************************)
 (** Note that this theorem has an equational proof in Matrix.v *)

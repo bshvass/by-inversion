@@ -15,6 +15,8 @@ From BY Require Import Q Qmin_list Impl Zpower_nat ListLemmas Tactics Matrix.
 
 Import ListNotations.
 
+Local Open Scope Q.
+
 Module ZMap := FMapAVL.Make OrderedTypeEx.Z_as_OT.
 Module ZZOT <: OrderedType := PairOrderedType Z_as_OT Z_as_OT.
 Module ZZOTorig <: OrderedType.OrderedType := Backport_OT ZZOT.
@@ -345,7 +347,6 @@ Proof.
     pose proof @betaQ_mem_spec b_map aq_map a_map ltac:(auto) ltac:(auto) ltac:(auto) w ltac:(lia).
     pose proof @betaQ_quot_mem_spec bq_map b_map aq_map a_map ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w (Z.of_nat n + e) ltac:(lia) ltac:(lia).
     split_pairs.
-    (* rewrite Nat2Z.id in *. *)
     specialize (IHn t5 t6 t4 t3 ((betaQ_quot (Z.to_nat w) (Z.to_nat (Z.of_nat n + e))%nat) :: l')
                     ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w e ltac:(lia) ltac:(lia)).
     split_pairs.
@@ -567,12 +568,6 @@ Proof. red; intros; unfold gammaQ_mem; split_pairs.
        destruct (Z.to_nat w + Z.to_nat e <=? 66)%nat eqn:E; [apply Nat.leb_le in E; apply Z.leb_le | apply Nat.leb_gt in E; apply Z.leb_gt ]; lia.
        Unshelve. all: assumption || lia.
 Qed.
-
-(* Hint Resolve init_a_map_correct : init_correct. *)
-(* Hint Resolve init_aq_map_correct : init_correct. *)
-(* Hint Resolve init_b_map_correct : init_correct. *)
-(* Hint Resolve init_bq_map_correct : init_correct. *)
-(* Hint Resolve init_g_map_correct : init_correct. *)
 
 Fixpoint depth_first_verify_aux_no_mem_three_fuel_gen m (nodes nodes0 cnodes0 w e0 : Z) fuel1 fuel2 :=
   match fuel1 with
