@@ -1,6 +1,7 @@
 Require Import Bool ZArith micromega.Lia.
 
-From BY Require Import Matrix Hierarchy Impl Zlemmas.
+From BY Require Import Matrix Impl Zlemmas.
+From BY.Hierarchy Require Import Definitions BigOp.
 
 Import Z.
 
@@ -155,25 +156,25 @@ Proof.
   - rewrite divstep_iter_S. destruct (divstep_iter d f g n) as [[dn fn] gn].
     unfold divstep. destruct (0 <? dn); destruct (odd gn) eqn:gnodd; simpl; assumption. Qed.
 
-Local Open Scope group_scope.
+(* Local Open Scope group_scope. *)
 Local Open Scope ring_scope.
-Local Open Scope lmodule_scope.
+Local Open Scope lmod_scope.
 
 Lemma Tn_transition d f g n (fodd : odd f = true) :
-    2 ⋅ [ fn d f g (S n) ; gn d f g (S n) ] = ((Tn d f g n) ⋅ [ fn d f g n ; gn d f g n ]).
+    2 ⋅ [ fn d f g (S n) , gn d f g (S n) ] = ((Tn d f g n) ⋅ [ fn d f g n , gn d f g n ]).
 Proof.
-  pose proof fn_odd d f g n fodd as fnodd. cbv [module_left_act vmult_left_act vmult].
+  pose proof fn_odd d f g n fodd as fnodd. (* cbv [module_left_act vmult_left_act vmult]. *)
   unfold Tn, fn, gn, Tmat in *. rewrite divstep_iter_S. unfold divstep.
   destruct (divstep_iter d f g n) as [[dn fn] gn]. rewrite Zmod_odd. zify.
   destruct (0 <? dn); destruct (odd gn) eqn:gnodd; cbn -[Z.mul]; apply f_equal2;
     rewrite <- ?Z_div_exact_full_2; rewrite ?Zmod_odd, ?odd_sub, ?odd_add, ?odd_mul, ?fnodd, ?gnodd; try (zify; lia); try reflexivity. Qed.
 
 Lemma Sn_transition d f g n :
-    [ 1 ; dn d f g (S n) ] = (Sn d f g n) ⋅ [ 1 ; dn d f g n ].
+    [ 1 , dn d f g (S n) ] ≡ (Sn d f g n) ⋅ [ 1 , dn d f g n ].
 Proof.
   unfold Sn, dn, Smat in *. rewrite divstep_iter_S. unfold divstep.
   destruct (divstep_iter d f g n) as [[dn fn] gn].
-  destruct ((0 <? dn) && odd gn); cbv [module_left_act vmult_left_act vmult]; auto_mat; zify; lia. Qed.
+  destruct ((0 <? dn) && odd gn); auto_mat. Qed.
 
 Lemma divstep_full_spec d f g :
   let '(d1, f1, g1, v1, r1) := divstep_full d f g 0 1 in
@@ -186,42 +187,32 @@ Ltac pair_eq :=
   repeat match goal with
          | [ |- (_, _) = (_, _)] => apply f_equal2
          end.
-Notation big_mmult_rev := (fun n m f => @big_op_rev _ mmult I f n m).
 
 Lemma divstep_full_iter_spec d f g m :
   let '(d1, f1, g1, v1, r1) := divstep_full_iter d f g 0 1 m in
-  exists u1 q1, [ u1, v1; q1, r1 ] = big_mmult_rev 0%nat m (fun i : nat => Tn d f g i).
+  exists u1 q1, [ u1, v1; q1, r1 ] ≡ big_mul_rev (fun i : nat => Tn d f g i) 0%nat m.
 Proof. induction m.
-       - rewrite big_op_rev_nil by lia. do 2 eexists; repeat apply f_equal2; reflexivity.
-       - simpl.
-         rewrite big_op_rev_S_l.
+       - rewrite big_op_rev_nil by lia. do 2 eexists. auto_mat.
+       - cbn [divstep_full_iter].
+
          pose proof divstep_divstep_full_iter d f g 0 1 m.
 
          destruct (divstep_full_iter d f g 0 1 m) as [[[[dm fm] gm] vm] rm] eqn:full_iter.
          pose proof divstep_divstep_full dm fm gm vm rm.
 
-         destruct IHm as [um [qm]]. rewrite <- H1.
-         unfold Tn.
+         destruct IHm as [um [qm]].
          destruct (divstep_full dm fm gm vm rm) as [[[[dSm fSm] gSm] vSm] rSm] eqn:full.
-         rewrite H.
+         setoid_rewrite (big_op_rev_S_l [*] 1). setoid_rewrite <- H1.
+         unfold Tn. rewrite H.
 
          unfold Tmat.
          unfold divstep in H0.
          unfold divstep_full in full.
 
-         Arguments sub : simpl never.
-         Arguments add : simpl never.
-         Arguments mul : simpl never.
-         cbv [monoid_op mmult_ring_op mmult].
-
          destruct ((0 <? dm) && odd gm) eqn:E.
          inversion full; inversion H0.
-         do 2 eexists; pair_eq; try reflexivity; zify; lia.
+         do 2 eexists. auto_mat.
 
-         destruct (mod2_dec gm). rewrite e in *.
-         inversion full; inversion H0.
-         do 2 eexists; pair_eq; try reflexivity; zify; lia.
-
-         rewrite e in *.
-         inversion full; inversion H0.
-         do 2 eexists; pair_eq; try reflexivity; zify; lia. lia. Qed.
+         destruct (mod2_dec gm); rewrite e in *;
+           inversion full; inversion H0;
+           do 2 eexists; auto_mat. lia. Qed.

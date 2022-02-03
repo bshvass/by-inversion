@@ -4,14 +4,14 @@ Require Import micromega.Lqa.
 Require Import List.
 Require Import QArith.
 Require Import Qpower.
-From BY Require Import Q AppendixFdefs Qmin_list Impl MatrixQ Zpower_nat Tactics Mem.
+From BY Require Import Q AppendixFdefs Qmin_list Impl Matrix Zpower_nat Tactics Mem.
 
 Import ListNotations.
-Local Open Scope matQ_scope.
+Local Open Scope mat_scope.
 Local Open Scope Q.
 Local Coercion inject_Z : Z >-> Q.
 
-Fixpoint depth_first_verify_aux_no_mem_three_fuel_gen m (w e0 : Z) fuel1 fuel2 :=
+Fixpoint depth_first_verify_aux_no_mem_three_fuel_gen (m : mat Q) (w e0 : Z) fuel1 fuel2 :=
   match fuel1 with
   | 0%nat => false
   | S fuel1 =>

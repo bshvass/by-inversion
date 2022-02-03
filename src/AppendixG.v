@@ -2,10 +2,11 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF AppendixFdefs Divstep Zpower_nat Zlemmas Hierarchy Impl PadicVal Matrix Rlemmas IZR Log Floor Q Spectral.
+From BY Require Import AppendixE AppendixF AppendixFdefs Divstep Zpower_nat Zlemmas Impl PadicVal Matrix Rlemmas IZR Log Floor Q Spectral.
+From BY.Hierarchy Require Import Definitions BigOp.
 
 Import Z.
-Local Open Scope Z.
+Local Open Scope Z_scope.
 
 Local Coercion of_nat : nat >-> Z.
 
@@ -27,25 +28,31 @@ Section __.
     | 0%nat => (split2 g - f) / 2
     | S i => (z i + (z i mod 2) * split2 g) / 2
     end.
+  Lemma z_S i : z (S i) = (z i + (z i mod 2) * split2 g) / 2. reflexivity. Qed.
 
-  Notation sum j := (1 + big_sum (fun i => 2 * 2 ^+ i * (z i mod 2)) 0%nat j).
+  Local Definition sum j := (1 + big_sum (fun i => 2 * 2 ^+ i * (z i mod 2)) 0%nat j).
 
   Lemma z_eq j :
     z j = (sum j * split2 g - f) / 2 ^+ (S j).
   Proof.
     induction j; intros.
-    - rewrite big_op_nil by lia; simpl.
-      apply f_equal2. zify. lia. lia.
-    - simpl.
+    - unfold sum.
+      rewrite big_op_nil by lia; simpl.
+      apply f_equal2. lia. lia.
+    - rewrite z_S.
+      replace ((z j + z j mod 2 * split2 g) / 2) with
+          ((((sum j * split2 g - f) / 2 ^+ S j) + z j mod 2 * split2 g) / 2) by (now rewrite IHj). (* fixme: rewrite IHj at 1. runs to the weeds *)
+      unfold sum.
       rewrite big_op_S_r.
-      rewrite IHj at 1.
-      rewrite (mul_comm 2 (_ * _)). rewrite <- Zdiv_Zdiv.
-      replace ((1 + (big_sum _ _ _ + 2 * 2 ^+ j * (z j mod 2))) * split2 g - f) with
-          ((1 + big_sum (fun i => 2 * 2 ^+ i * (z i mod 2)) 0%nat j%nat) * split2 g - f + (z j mod 2) * split2 g * (2 * 2 ^+ j))
-        by ring.
+      cbn -[big_sum].
+      rewrite (mul_comm 2 (_ * _)). rewrite <- (Zdiv_Zdiv _ (_ * _)).
+      apply f_equal2.
+      replace ((1 + (_ + _)) * split2 g - f)
+        with (((1 + big_op op1 0 (fun i => 2 * 2 ^+ i * (z i mod 2)) 0%nat j%nat) * split2 g - f) + ((z j mod 2) * split2 g) * (2 * 2 ^+ j)) by (cbn; ring).
+
       rewrite Z.div_add.
       reflexivity.
-      rewrite Zpower_nat_mul_l. apply Zpower_nat_nonzero. lia.
+      rewrite Zpower_nat_mul_l. apply Zpower_nat_nonzero. lia. reflexivity.
       rewrite Zpower_nat_mul_l. apply Zpower_nat_nonneg. lia.
       lia. lia. Qed.
 
@@ -93,15 +100,15 @@ Section __.
     2 ^+ (S j) * z j  = sum j * split2 g - f.
   Proof.
     induction j; intros.
-    - rewrite big_op_nil by lia; simpl.
-      rewrite mul_1_r, <- Z_div_exact_2. zify; ring. lia.
+    - unfold sum. rewrite big_op_nil by lia; simpl.
+      rewrite mul_1_r, <- Z_div_exact_2. ring. lia.
       rewrite Zmod_even, even_sub, <- !negb_odd.
       rewrite odd_split2, f_odd; auto.
     - simpl.
       replace (2 * (2 * 2 ^+ j) * ((z j + z j mod 2 * split2 g) / 2)) with
           (((2 ^+ S j) * z j) + (2 * 2 ^+ j) * (z j mod 2 * split2 g)).
       rewrite IHj.
-      rewrite big_op_S_r. cbv [monoid_op]. zify. lia. lia.
+      unfold sum. rewrite big_op_S_r. cbn. lia. lia.
 
       rewrite (mul_comm 2 (2 * _)).
       rewrite <- (mul_assoc _ 2).
@@ -115,6 +122,7 @@ Section __.
   Lemma sum_odd j :
     odd (sum j) = true.
   Proof.
+    unfold sum.
     induction j.
     - reflexivity.
     - rewrite big_op_S_r, add_assoc, odd_add, IHj, !odd_mul; try reflexivity; lia. Qed.
@@ -122,8 +130,9 @@ Section __.
   Lemma sum_bound j :
     1 <= sum j < 2 ^+ (S j).
   Proof.
+    unfold sum.
     induction j.
-    - rewrite big_op_nil; simpl; zify; lia.
+    - rewrite big_op_nil; simpl; lia.
     - rewrite big_op_S_r. pose proof mod_pos_bound (z j) 2 ltac:(lia).
       rewrite <- Zpower_nat_mul_l. rewrite add_assoc.
       assert (2 * 2 ^+ j = 2 ^+ (S j)) by reflexivity. nia. lia. Qed.
@@ -166,7 +175,7 @@ Section __.
     rewrite divstep_lemma2.
     apply f_equal2; [apply f_equal2|]. lia. reflexivity.
     rewrite Nat.add_0_r.
-    rewrite z_eq. rewrite q'q. reflexivity. lia. lia. lia. Qed.
+    rewrite z_eq. unfold sum. rewrite q'q. reflexivity. lia. lia. lia. Qed.
 End __.
 
 Section __.
@@ -177,7 +186,7 @@ Section __.
 
   Local Notation R_ i := (R_ R0 R1 i).
   Local Notation e i := (ord2 (R_ i)).
-  Local Notation w j := (big_sum_nat (fun i => e (S i)) 0 j).
+  Local Notation w j := (big_sum (fun i => e (S i)) 0 j).
 
   Theorem G2 j (H : R_ j <> 0) :
     divstep_iter 1 R0 (R1 / 2) (2 * (w j))%nat =
@@ -185,7 +194,7 @@ Section __.
   Proof.
     induction j.
     - simpl. rewrite split2_odd by apply R0_odd. reflexivity.
-    - rewrite R_S_S. Compute (10 mod2 0).
+    - rewrite R_S_S.
       replace (R_ (S j) =? 0) with false by (symmetry; apply Z.eqb_neq; lia).
       rewrite big_op_S_r, Nat.mul_add_distr_l.
       rewrite divstep_iter_add.
@@ -200,7 +209,7 @@ Section __.
       apply R1_even. assumption. Qed.
 
   Theorem G3 :
-    (exists t G, divstep_iter 1 R0 (R1 / 2) (2 * (big_sum_nat (fun i => e (S i)) 0 t))%nat = (1, G, 0) /\ abs G = gcd R0 R1) /\
+    (exists t G, divstep_iter 1 R0 (R1 / 2) (2 * (big_sum (fun i => e (S i)) 0 t))%nat = (1, G, 0) /\ abs G = gcd R0 R1) /\
     forall d f n, divstep_iter 1 R0 (R1 / 2) n = (d, f, 0) -> abs f = gcd R0 R1.
   Proof. apply and_lemma.
          destruct (@F26_cor2 R0 R1 R0_odd R1_even) as [t [Rt_non0 RSt_0]]. exists t, (split2 (R_ t)); split.
@@ -208,14 +217,13 @@ Section __.
          apply RSt_0. apply Rt_non0.
          intros.
          destruct H as [t [G [H1 H2]]].
-         set (w := big_sum_nat (fun i : nat => e (S i)) 0 t) in *.
+         set (w := big_sum (fun i : nat => e (S i)) 0 t) in *.
          assert ((d + (2 * w)%nat, f, 0) = (1 + n, G, 0)).
          rewrite <- (divstep_iter_0 1 R0 (R1 / 2) 1 G (2 * w)) by assumption.
          rewrite <- (divstep_iter_0 1 R0 (R1 / 2) d f n) by assumption.
          rewrite Nat.add_comm. reflexivity. inversion H. assumption. Qed.
 
   Local Open Scope R.
-  Local Coercion IZR : Z >-> R.
   Local Notation b := (log 2 (vec_norm (IZR R0, IZR R1))).
 
   Lemma b_spec : Rpower 2 b = vec_norm (IZR R0, IZR R1).
@@ -223,8 +231,8 @@ Section __.
     apply Rpower_log; try lra.
     epose proof (vec_norm_nonneg (IZR R0, IZR R1)).
     epose proof (proj1 (vnonzero (IZR R0) (IZR R1))) _.
-    epose proof (proj1 (vnonzero_norm _)) H0. rify_all.  lra.
-    Unshelve. left. replace (@abelian_group_id R _) with (IZR Z0) by reflexivity. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
+    epose proof (proj1 (vnonzero_norm _)) H0.  lra.
+    Unshelve. left. cbn. replace RbaseSymbolsImpl.R0 with (IZR Z0) by reflexivity. apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
 
   (****************************************************************************)
   (** The following lemma is computational. It can almost be done inside coq. *)
@@ -396,9 +404,9 @@ Section __.
       rewrite E, E2 in *. lra.
     - apply alpha_pos_nonneg.
     - epose proof proj1 (vnonzero_norm (IZR R0, IZR R1)) _.
-      pose proof vec_norm_nonneg (IZR R0, IZR R1). rify_all. lra.
+      pose proof vec_norm_nonneg (IZR R0, IZR R1). lra.
     - apply vnonzero. left.
-      change (@abelian_group_id R _) with (IZR Z0).
+      change 0%RI with (IZR Z0).
       apply IZR_neq. apply psplit_non0. lia. assumption.
       Unshelve. lra. lra. apply log_le_lower_bound. lra.
       rewrite <- (Ropp_involutive (_ / _)). rewrite Rpower_Ropp. apply Rle_div_r.
@@ -407,6 +415,6 @@ Section __.
       lra.
       lra.
       apply vnonzero. left.
-      change (@abelian_group_id R _) with (IZR Z0).
+      change 0%RI with (IZR Z0).
       apply IZR_neq. apply odd_nonzero. apply R0_odd. Qed.
 End __.

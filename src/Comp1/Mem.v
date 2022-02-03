@@ -11,9 +11,11 @@ Require Import OrdersEx.
 Require Import OrdersAlt.
 Require Import FMapAVL.
 
-From BY Require Import Q Qmin_list Impl MatrixQ Zpower_nat ListLemmas Tactics.
+From BY Require Import Q Qmin_list Impl Zpower_nat ListLemmas Tactics Matrix.
 
 Import ListNotations.
+
+Local Open Scope Q.
 
 Module ZMap := FMapAVL.Make OrderedTypeEx.Z_as_OT.
 Module ZZOT <: OrderedType := PairOrderedType Z_as_OT Z_as_OT.
@@ -176,21 +178,21 @@ Proof.
 Lemma betaQ_mem_aux_spec aq_map a_map n l' : a_map_correct a_map -> aq_map_correct aq_map -> forall w, (0 <= w)%Z -> let '(aq_map, a_map, l) := betaQ_mem_aux aq_map a_map w l' n in aq_map_correct aq_map /\ a_map_correct a_map /\ l = betaQ_aux (Z.to_nat w) n ++ l'.
 Proof.
   revert aq_map a_map l'.
-  induction n; intros; simpl in *; split_pairs; repeat split; try assumption.
+  induction n; intros; cbn -[Z.of_nat] in *; split_pairs; repeat split; try assumption.
   -
     pose proof @alphaQ_mem_spec a_map H w H1.
     pose proof @alphaQ_quot_mem_spec aq_map a_map H0 H w (Z.of_nat n) H1 ltac:(lia).
-    simpl in *. split_pairs.
+    split_pairs.
     rewrite Nat2Z.id in *.
     specialize (IHn t1 t2 ((alphaQ_quot (Z.to_nat w) n) :: l') H9 H5 w H1); split_pairs; assumption.
   - pose proof @alphaQ_mem_spec a_map H w H1.
     pose proof @alphaQ_quot_mem_spec aq_map a_map H0 H w (Z.of_nat n) H1 ltac:(lia).
-    simpl in *. split_pairs.
+    split_pairs.
     rewrite Nat2Z.id in *.
     specialize (IHn t1 t2 ((alphaQ_quot (Z.to_nat w) n) :: l') H9 H5 w H1); split_pairs; assumption.
   - pose proof @alphaQ_mem_spec a_map H w H1.
     pose proof @alphaQ_quot_mem_spec aq_map a_map H0 H w (Z.of_nat n) H1 ltac:(lia).
-    simpl in *. split_pairs.
+    split_pairs.
     rewrite Nat2Z.id in *.
     specialize (IHn t1 t2 ((alphaQ_quot (Z.to_nat w) n) :: l') H9 H5 w H1).
     split_pairs.
@@ -228,7 +230,7 @@ Proof.
            pose proof @ZMap.add_1 Q b_map w0 w0 (((633 / 1024) ^ w0 * (633 ^ 5 / (2 ^ 30 * 165219)))) ltac:(reflexivity).
            rewrite H10. split_pairs.
            apply ZMap.find_1 in H12. rewrite H12.
-           simpl. rewrite Z2Nat.id. field. lia.
+           cbn -[Z.of_nat]. rewrite Z2Nat.id. field. lia.
       * unfold betaQ_mem.
         destruct (w <=? 66)%Z eqn:leE.
         ** assert ((Z.to_nat w <=? 66)%nat = true). apply Z.leb_le in leE. apply Nat.leb_le. lia.
@@ -337,7 +339,7 @@ Lemma gammaQ_mem_aux_spec bq_map b_map aq_map a_map n l' :
                                  Qlist_eq l (gammaQ_aux (Z.to_nat w) (Z.to_nat e) n ++ l').
 Proof.
   revert bq_map b_map aq_map a_map l'.
-  induction n; intros; simpl in *; split_pairs; repeat split; try assumption.
+  induction n; intros; cbn -[Z.of_nat Z.to_nat Z.add] in *; split_pairs; repeat split; try assumption.
   - reflexivity.
   -
     pose proof @alphaQ_mem_spec a_map H2 w H3.
@@ -345,19 +347,18 @@ Proof.
     pose proof @betaQ_mem_spec b_map aq_map a_map ltac:(auto) ltac:(auto) ltac:(auto) w ltac:(lia).
     pose proof @betaQ_quot_mem_spec bq_map b_map aq_map a_map ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w (Z.of_nat n + e) ltac:(lia) ltac:(lia).
     split_pairs.
-    rewrite Nat2Z.id in *.
     specialize (IHn t5 t6 t4 t3 ((betaQ_quot (Z.to_nat w) (Z.to_nat (Z.of_nat n + e))%nat) :: l')
                     ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w e ltac:(lia) ltac:(lia)).
     split_pairs.
     pose proof gammaQ_lemma t5 t6 t4 t3 w e (q :: l') (betaQ_quot (Z.to_nat w) (Z.to_nat (Z.of_nat n + e)) :: l') n.
-    rewrite H9, H5 in H12. simpl in H12. split_pairs. assumption.
+    rewrite H5, H9 in H12. simpl in H12. split_pairs.
+    assumption.
   -
     pose proof @alphaQ_mem_spec a_map H2 w ltac:(auto).
     pose proof @alphaQ_quot_mem_spec aq_map a_map ltac:(auto) ltac:(auto) w (Z.of_nat n) ltac:(auto) ltac:(lia).
     pose proof @betaQ_mem_spec b_map aq_map a_map ltac:(auto) ltac:(auto) ltac:(auto) w ltac:(lia).
     pose proof @betaQ_quot_mem_spec bq_map b_map aq_map a_map ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w (Z.of_nat n + e) ltac:(lia) ltac:(lia).
     split_pairs.
-    rewrite Nat2Z.id in *.
     specialize (IHn t5 t6 t4 t3 ((betaQ_quot (Z.to_nat w) (Z.to_nat (Z.of_nat n + e))%nat) :: l')
                     ltac:(auto) ltac:(auto) ltac:(auto) ltac:(auto) w e ltac:(lia) ltac:(lia)).
     split_pairs.
@@ -448,7 +449,7 @@ Proof.
                 (2 ^ e0 * (633 / 1024) ^ (w0 + e0) * (70 / 169) * 633 ^ 5 / (2 ^ 30 * 165219)) ltac:(reflexivity)
              as zzmapadd.
            apply ZZMap.find_1 in zzmapadd. rewrite zzmapadd.
-           cbn. rewrite Z2Nat.id.
+           cbn -[Z.add Z.to_nat Z.of_nat]. rewrite Z2Nat.id.
            replace (Z.of_nat (Z.to_nat w0 + Z.to_nat e0)) with (w0 + e0)%Z by lia.
            field. lia.
       * unfold gammaQ_mem.
@@ -474,7 +475,10 @@ Proof.
                unfold gammaQ. reflexivity.
                assert ((Z.to_nat w0 + Z.to_nat e0 <=? 66)%nat = false). apply Z.leb_gt in leE0. apply Nat.leb_gt. lia.
                rewrite H6.
-               rewrite Z2Nat.id. simpl.
+               Arguments Z.of_nat : simpl never.
+               Arguments Z.to_nat : simpl never.
+               Arguments Z.add : simpl never.
+               cbn. rewrite Z2Nat.id.
                replace (Z.of_nat (Z.to_nat w0 + Z.to_nat e0)) with (w0 + e0)%Z by lia.
                field. assumption.
         ** assert ((Z.to_nat w + Z.to_nat e <=? 66)%nat = false). apply Z.leb_gt in leE. apply Nat.leb_gt. lia.
@@ -564,12 +568,6 @@ Proof. red; intros; unfold gammaQ_mem; split_pairs.
        destruct (Z.to_nat w + Z.to_nat e <=? 66)%nat eqn:E; [apply Nat.leb_le in E; apply Z.leb_le | apply Nat.leb_gt in E; apply Z.leb_gt ]; lia.
        Unshelve. all: assumption || lia.
 Qed.
-
-(* Hint Resolve init_a_map_correct : init_correct. *)
-(* Hint Resolve init_aq_map_correct : init_correct. *)
-(* Hint Resolve init_b_map_correct : init_correct. *)
-(* Hint Resolve init_bq_map_correct : init_correct. *)
-(* Hint Resolve init_g_map_correct : init_correct. *)
 
 Fixpoint depth_first_verify_aux_no_mem_three_fuel_gen m (nodes nodes0 cnodes0 w e0 : Z) fuel1 fuel2 :=
   match fuel1 with

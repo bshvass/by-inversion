@@ -2,14 +2,14 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF AppendixG Divstep Zpower_nat Zlemmas PadicVal Rlemmas IZR Section9 Matrix Spectral Log Floor Section9 Hierarchy Impl.
+From BY Require Import AppendixE AppendixF AppendixG Divstep Zpower_nat Zlemmas PadicVal Rlemmas IZR Section9 Matrix Spectral Log Floor Section9 Impl.
+From BY.Hierarchy Require Import Definitions BigOp.
 
 Import Z.
 
 Local Open Scope Z.
 
 Local Coercion of_nat : nat >-> Z.
-Local Coercion IZR : Z >-> R.
 
 Section __.
 
@@ -36,7 +36,7 @@ Section __.
            end.
 
   Theorem _11_2 d m (G4 : (log 2 (vec_norm (IZR f, IZR (2 * g)%Z)) > 21)%R) :
-    let '(um, vm, qm, rm) := big_mmult_rev 0%nat m (fun i => Tn 1 f g i) in
+    let '(um, vm, qm, rm) := big_mul_rev (fun i => Tn 1 f g i) 0 m in
     f ^+ 2 + 4 * g ^+ 2 <= 5 * 4 ^+ d ->
     (if (lt_dec d 46)%nat then
        (49 * d + 80) / 17 <= m else (49 * d + 57) / 17 <= m) ->
@@ -52,7 +52,7 @@ Section __.
       rewrite Rpower_pow. lra. lra. rewrite !INR_IZR_INZ. field. apply Rpower_pos_nonneg. apply Rpower_pos. }
 
     pose proof _9_1_1 1 f g m 0 ltac:(lia) fodd as _911.
-    destruct (big_mmult_rev 0%nat m (fun i => Tn 1 f g i)) as [[[um vm] qm] rm] eqn:E.
+    destruct (big_mul_rev (fun i => Tn 1 f g i) 0 m) as [[[um vm] qm] rm] eqn:E.
 
     assert (mbound_aux : floor ((49 * d + 57) / 17) <= (49 * d + 80) / 17).
     { apply le_IZR. apply floor_upper_bound.
@@ -84,13 +84,13 @@ Section __.
 
 
     assert (bpos : (0 <= b)%R).
-    { unfold b. Rpos. apply F6. apply vnonzero. right. change (@abelian_group_id _ _) with (IZR Z0). apply IZR_neq. assumption. }
+    { unfold b. Rpos. apply F6. apply vnonzero. right. cbn. change RbaseSymbolsImpl.R0 with (IZR Z0). apply IZR_neq. assumption. }
 
     assert (eq1 : (Rpower 4 b = (f ^+ 2 + 4 * g ^+ 2)%Z)%R).
     { replace 4%R with (2 * 2)%R by lra. rewrite <- Rpower_mult_distr by lra. unfold b. rewrite Rpower_log. unfold vec_norm.
       rewrite sqrt_sqrt. unfold R0, R1.
       autorewrite with push_izr. lra. nra.
-      apply vec_norm_pos_nonneg. apply vnonzero. right. change (@abelian_group_id _ _) with (IZR Z0). apply IZR_neq. assumption. lra. lra. }
+      apply vec_norm_pos_nonneg. apply vnonzero. right. cbn. change RbaseSymbolsImpl.R0 with (IZR Z0). apply IZR_neq. assumption. lra. lra. }
 
     assert (bbound : (b <= IZR d + log 4 5)%R).
     { apply IZR_le in fgbound. rewrite <- eq1 in fgbound.
@@ -116,7 +116,7 @@ Section __.
           assert (H2 : floor ((49 * (d + log 4 5) + 23) / 17) <= floor ((49 * d + 80) / 17)).
           { apply floor_inc. lra. }
           rewrite <- floor_div in mbound. autorewrite with push_izr in mbound. lia. }
-        { apply Nat.nlt_ge in n1. apply le_INR in n1. rewrite !INR_IZR_INZ in n1. simpl in n1.
+        { apply Nat.nlt_ge in n1. apply le_INR in n1. rewrite !INR_IZR_INZ in n1. replace (IZR 46%nat) with (IZR 46) in n1 by reflexivity.
           assert (H1 : floor ((49 * b + 23) / 17) <= floor ((49 * d + 23) / 17)).
           { apply floor_inc. lra. }
           assert (floor ((49 * d + 23) / 17) <= floor ((49 * d + 57) / 17)).

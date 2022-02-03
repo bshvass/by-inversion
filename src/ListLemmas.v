@@ -1,4 +1,5 @@
-Require Import List Arith micromega.Lia.
+From Coq Require Export List.
+From Coq Require Export Arith micromega.Lia.
 
 Import ListNotations.
 
