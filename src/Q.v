@@ -16,7 +16,7 @@ Definition alphaQ_high_Z w : Q := (633/1024) ^ w.
 
 Lemma alphaQ_nat_pos w : 0 < alphaQ_nat w.
 Proof. do 67 (destruct w as [|w]; simpl; try apply Qlt_shift_div_l; try lra).
-       unfold alphaQ_nat_high. apply QExtra.Qpower_pos_lt.
+       unfold alphaQ_nat_high. apply Qpower_0_lt.
        apply Qlt_shift_div_l; lra. Qed.
 
 Definition alphaQ_quot w i :=
@@ -196,7 +196,7 @@ Proof.
     setoid_rewrite Qpower_plus.
     do 4 setoid_rewrite <- Qmult_assoc.
     apply Qmult_le_l.
-    apply QExtra.Qpower_pos_lt. reflexivity.
+    apply Qpower_0_lt. reflexivity.
     setoid_rewrite Qmult_assoc.
     setoid_replace ((633 / 1024) ^ (Z.of_nat (e + S n)) * (633 ^ 5 / (2 ^ 30 * 165219)) * (2 ^ Z.of_nat (e + S n) * (70 * / 169))) with
         ((633 / 1024) ^ (Z.of_nat (e + S n)) * 2 ^ Z.of_nat (e + S n) * ((633 ^ 5 / (2 ^ 30 * 165219)) * (70 * / 169))) by (cbn -[Qpower Qmult]; field).
@@ -205,10 +205,10 @@ Proof.
     rewrite Qpower_plus.
     rewrite <- Qmult_assoc.
     apply Qmult_le_l.
-    apply QExtra.Qpower_pos_lt. reflexivity.
+    apply Qpower_0_lt. reflexivity.
     rewrite <- Qmult_1_l.
     apply Qmult_le_r. reflexivity.
-    apply QExtra.Qpower_le_1_increasing'.
+    apply Qpower_1_le.
     apply Qle_bool_imp_le. reflexivity. lia.
     apply Qeq_bool_neq. reflexivity.
     apply Qeq_bool_neq. reflexivity.
@@ -287,7 +287,8 @@ Proof.
   rewrite (Qmult_comm _ ((_ * _) ^ _)).
 
   apply Qmult_le_compat_r.
-  apply QExtra.Qpower_le_compat.
+  Search Qpower.
+  apply Qpower_le_compat_l.
   lia. cbv. intros. congruence.
   apply Qpower_pos. cbv. intros. congruence.
   cbv. intros. lia.

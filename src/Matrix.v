@@ -365,7 +365,7 @@ Section Inner.
   Proof. auto_mat. Qed.
 
   Lemma sym_self_adj m v w : sym m -> ⟨ v , m ⋅ w ⟩ ≡ ⟨ m ⋅ v , w ⟩.
-  Proof. unfold sym; intros H01. rewrite H01 at 2 3. apply trans_adj. Qed.
+  Proof. unfold sym; intros H01. rewrite H01 at 2. apply trans_adj. Qed.
 
   Lemma det_mul m n : det (m * n) ≡ det m * det n.
   Proof. auto_mat. Qed.
