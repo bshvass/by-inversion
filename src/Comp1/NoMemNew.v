@@ -489,19 +489,21 @@ Proof.
  assumption.   assumption. congruence.
  congruence.   Qed.
 
+Arguments depth_first_verify : simpl never.
+
 Lemma no_mem_term :
   depth_first_verify_aux_no_mem_three_fuel_gen I 0 1 10000 10000 = true.
 Proof.
   apply old_no_mem with (nodes:=1%Z) (nodes0:=1%Z) (cnodes:=0%Z) (resnodes:=3787975117%Z).
-  pose proof comp1_theorem.
+  rewrite <- comp1_theorem.
   unfold depth_first_verify in *.
   pose proof mem_no_mem_three_fuel_aux I 1 1 0 0 1 10000 10000 init_amap init_bmap init_gmap init_bqmap init_aqmap init_a_map_correct init_b_map_correct init_g_map_correct init_bq_map_correct init_aq_map_correct ltac:(lia) ltac:(lia).
   revert H.
   match goal with
   | [ |- context [ match ?E with _ => _ end]] => destruct E eqn:E2
-  end.   split_pairs. intros.
-  rewrite H in H9. assumption.
-  intros. inversion H. Admitted.
+  end. intros. split_pairs.
+  exact H9.
+  intros. assumption. Qed.
 
 Lemma F22_Q : forall w P, @inSQ_gen_scaled 0%Z I 1%Z w P -> has_at_most_norm (mmult (mtrans P) P) (4 ^ w * alphaQ_nat (Z.to_nat w)) = true.
 Proof.
