@@ -30,6 +30,7 @@ Ltac split_pairs :=
          | [ H : _ /\ _ |- _ ] => destruct H
          | [ H : ?a = ?a |- _ ] => clear H
          | [ H : (?a, ?b) = (?c, ?d) |- _ ] => assert (a = c) by congruence; assert (b = d) by congruence; clear H
+         | [ H : (?a, ?b) ≡ ?p |- _ ] => assert (a ≡ p.1) by (inversion H; assumption); assert (b ≡ p.2) by (inversion H; assumption); clear H
          end; subst.
 
 Ltac destruct_ifs :=

@@ -98,6 +98,7 @@ Section Q.
   Global Arguments Qopp_inv1 /.
   Global Arguments Qmult_op2 /.
   Global Arguments Qone_id2 /.
+  Global Arguments Qinv_inv2 /.
 
   Global Instance Q_integral_domain : IntegralDomain Q.
   Proof. repeat split; repeat intro; cbn in *; nra. Qed.

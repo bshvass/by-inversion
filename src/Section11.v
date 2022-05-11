@@ -2,7 +2,7 @@ Require Import ZArith.
 Require Import List Bool Znumtheory Decidable.
 Require Import Rbase Reals QArith micromega.Lia micromega.Lqa micromega.Lra Qreals.
 
-From BY Require Import AppendixE AppendixF AppendixG Divstep Zpower_nat Zlemmas PadicVal Rlemmas IZR Section9 Matrix Spectral Log Floor Section9 Impl.
+From BY Require Import AppendixE AppendixF AppendixG Divstep Zpower_nat Zlemmas Rlemmas IZR Section9 Matrix Spectral Log Floor Section9 Impl.
 From BY.Hierarchy Require Import Definitions BigOp.
 
 Import Z.
@@ -35,6 +35,25 @@ Section __.
            | [ |- context[if ?x then _ else _]] => destruct x
            end.
 
+  Lemma log45 : (49 * log 4 5 <= 57)%R.
+  Proof.
+    apply Rle_div_r. lra. apply log_le_upper_bound. lra. lra.
+    rewrite <- Rabs_pos_eq. apply le_pow with (n := 49%nat). lia.
+    rewrite <- (Rpower_pow _ (Rpower _ _)).
+    rewrite Rpower_mult. replace (57 / 49 * INR 49)%R with (INR 57).
+    rewrite Rpower_pow. lra. lra. rewrite !INR_IZR_INZ. field. apply Rpower_pos_nonneg. apply Rpower_pos.
+  Qed.
+
+  Lemma iterations_bound d :
+    floor ((49 * IZR d + 57) / 17) <= (49 * d + 80) / 17.
+  Proof.
+    apply le_IZR. apply floor_upper_bound.
+    assert ((49 * d + 57) / 17 <= ((49 * d + 80) / 17) - 1)%R by lra.
+    etransitivity. apply H.
+    autorewrite with pull_izr.
+    apply div_Rdiv.
+  Qed.
+
   Theorem _11_2 d m (G4 : (log 2 (vec_norm (IZR f, IZR (2 * g)%Z)) > 21)%R) :
     let '(um, vm, qm, rm) := big_mul_rev (fun i => Tn 1 f g i) 0 m in
     f ^+ 2 + 4 * g ^+ 2 <= 5 * 4 ^+ d ->
@@ -44,25 +63,11 @@ Section __.
     abs (fn 1 f g m) = gcd f g /\
     vm * g mod f = 2 ^+ m * (fn 1 f g m) mod f.
   Proof.
-    assert (logbound : (49 * log 4 5 <= 57)%R).
-    { apply Rle_div_r. lra. apply log_le_upper_bound. lra. lra.
-      rewrite <- Rabs_pos_eq. apply le_pow with (n := 49%nat). lia.
-      rewrite <- (Rpower_pow _ (Rpower _ _)).
-      rewrite Rpower_mult. replace (57 / 49 * INR 49)%R with (INR 57).
-      rewrite Rpower_pow. lra. lra. rewrite !INR_IZR_INZ. field. apply Rpower_pos_nonneg. apply Rpower_pos. }
-
     pose proof _9_1_1 1 f g m 0 ltac:(lia) fodd as _911.
     destruct (big_mul_rev (fun i => Tn 1 f g i) 0 m) as [[[um vm] qm] rm] eqn:E.
-
-    assert (mbound_aux : floor ((49 * d + 57) / 17) <= (49 * d + 80) / 17).
-    { apply le_IZR. apply floor_upper_bound.
-      assert ((49 * d + 57) / 17 <= ((49 * d + 80) / 17) - 1)%R.
-      { lra. }
-      etransitivity. apply H.
-      autorewrite with pull_izr. apply div_Rdiv. }
-
     intros fgbound mbound.
-
+    pose proof log45.
+    pose proof iterations_bound d.
     assert (mbound1 : floor ((49 * d + 57) / 17) <= m).
     { destruct (lt_dec d 46)%nat. lia.
       autorewrite with pull_izr.
@@ -71,10 +76,10 @@ Section __.
     set (R0 := f). change f with R0 in G4.
     set (R1 := 2 * g). change (2 * g) with R1 in G4.
     assert (gcdeq : gcd R0 g = gcd R0 R1). { unfold R1. rewrite <- gcd_rel_prime. reflexivity. apply odd_gcd. apply fodd. }
-                                           assert (R0_odd : odd R0 = true). { apply fodd. }
-                                                                            assert (R1_even : even R1 = true). { apply even_mul_2_l. }
-                                                                                                               assert (R1_non0 : R1 <> 0). { assert (g <> 0) by (apply gnon0). lia. }
-                                                                                                                                          set (b := (log 2 (vec_norm (IZR R0, IZR R1)))).
+    assert (R0_odd : odd R0 = true). { apply fodd. }
+    assert (R1_even : even R1 = true). { apply even_mul_2_l. }
+    assert (R1_non0 : R1 <> 0). { assert (g <> 0) by (apply gnon0). lia. }
+    set (b := (log 2 (vec_norm (IZR R0, IZR R1)))).
     set (n := (to_nat
                  (if Rle_dec b 21
                   then floor (19 * b / 17)
@@ -143,10 +148,10 @@ Section __.
       + assert (2 ^+ m * fn 1 R0 g m = um * R0 + vm * g).
         rewrite Nat.sub_0_r in _911. inversion_mat _911.
         assumption.
-        rewrite H.
+        rewrite H1.
         rewrite <- Zplus_mod_idemp_l.
         rewrite <- (Zmult_mod_idemp_r R0). rewrite mod_same.
         rewrite Z.mul_0_r, mod_0_l, Z.add_0_l.  reflexivity. apply odd_nonzero. assumption.
-        apply odd_nonzero. assumption. Qed.
-
+        apply odd_nonzero. assumption.
+  Qed.
 End __.

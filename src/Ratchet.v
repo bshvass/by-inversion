@@ -1,21 +1,18 @@
 Require Import ZArith micromega.Lia micromega.Lqa ZArith.Zhints QArith Field Psatz.
 From stdpp Require Import decidable.
 
-Lemma not_or_l {P Q : Prop} `{Decision P} : ¬(P \/ Q) ↔ ¬P /\ ¬Q.
-Proof. destruct (decide P); tauto. Qed.
-Lemma not_or_r {P Q : Prop} `{Decision Q} : ¬(P \/ Q) ↔ ¬P /\ ¬Q.
-Proof. destruct (decide Q); tauto. Qed.
-Lemma imp_l {P Q : Prop} `{Decision P} : (P -> Q) <-> (not P ∨ Q).
-Proof. destruct (decide P); tauto. Qed.
-Lemma imp_r {P Q : Prop} `{Decision Q} : (P -> Q) <-> (not P ∨ Q).
-Proof. destruct (decide Q); tauto. Qed.
-Lemma not_imp_l {P Q : Prop} `{Decision P} : not(P -> Q) <-> (P /\ not Q).
-Proof. destruct (decide P); tauto. Qed.
-Lemma not_iff {P Q : Prop} `{Decision P, Decision Q} : not(P <-> Q) <-> ((P /\ not Q) \/ (Q /\ not P)).
-Proof. destruct (decide P), (decide Q); tauto. Qed.
-
 From BY Require Import Matrix Impl Tactics Q.
 From BY.Hierarchy Require Import Definitions BigOp.
+
+Global Instance Z_eq_dec: RelDecision Nat.eq := Nat.eq_dec.
+
+Lemma mod3dec a : {a mod 3 = 0} + {a mod 3 = 1} + {a mod 3 = 2}.
+Proof.
+  destruct (decide (a mod 3 = 0));
+  destruct (decide (a mod 3 = 1));
+    destruct (decide (a mod 3 = 2)); auto.
+  pose proof Nat.mod_bound_pos a 3 ltac:(lia) ltac:(lia). lia.
+Qed.
 
 Section __.
 
@@ -26,12 +23,61 @@ Local Open Scope lmod_scope.
 
 Definition ratchet M :=
   (0 < det M) /\
-  let '(m11, m12, m21, m22) := M in
-  (0 <= m21) /\ (0 <= m22).
+  (0 <= M.1.1.1) /\ (0 <= M.1.1.2).
 Instance : Proper ((≡) ==> iff) ratchet.
 Proof.
   do 2 red. intros. unfold ratchet.
-  invert_mat. cbn in *. rewrite H1, H2, H0, H3. auto. Qed.
+  invert_mat. cbn in *. rewrite H1, H2, H0, H3. auto.
+Qed.
+
+Global Instance Q_lt_dec : RelDecision Qlt.
+Proof. do 2 red; intros; destruct (Qlt_le_dec x y); [left | right]; lra. Qed.
+Global Instance Q_le_dec : RelDecision Qle.
+Proof. do 2 red; intros; destruct (Qlt_le_dec y x); [right | left]; lra. Qed.
+
+Definition σ_r x y :=
+  if decide (x < 0)
+  then if decide (y < 0)
+       then (-1)%Z
+       else 1
+  else 1.
+
+(* count sign changes *)
+Definition μ_r a b : Z :=
+  if decide (a < 0)
+  then if decide (0 <= b)
+       then 1%Z
+       else 0
+  else if decide (b < 0)
+       then 1
+       else 0.
+
+Global Instance : Proper ((≡) ==> (≡) ==> (=)) σ_r.
+Proof.
+  do 3 red; intros.
+  unfold σ_r.
+  repeat (destruct (decide _)); try reflexivity; rewrite ?H, ?H0 in *; try lra.
+Qed.
+
+Global Instance μ_r_Proper : Proper ((≡) ==> (≡) ==> (=)) μ_r.
+Proof.
+  do 3 red; intros.
+  unfold μ_r.
+  repeat (destruct (decide _)); try reflexivity; rewrite ?H, ?H0 in *; try lra.
+Qed.
+
+Lemma σ_r_opp x :
+  σ_r x (- x) = 1.
+Proof. unfold σ_r; repeat destruct (decide _); try lra; reflexivity. Qed.
+
+Lemma μ_r_opp x :
+  x ≢ 0 ->
+  μ_r x (- x) = 1.
+Proof. intros; unfold μ_r; repeat destruct (decide _); try nra; try reflexivity. simpl in *; lra. Qed.
+
+Lemma μ_r_id x :
+  μ_r x x = 0.
+Proof. intros; unfold μ_r; repeat destruct (decide _); try nra; try reflexivity. Qed.
 
 Definition msb f :=
   if (Qlt_le_dec f 0) then (-1)%Z else 1.
@@ -68,921 +114,911 @@ Instance : RelDecision Qlt. do 2 red; intros.  destruct (Qlt_le_dec x y) as [l|r
 left. assumption. right. lra. Qed.
 Instance : RelDecision Qle. do 2 red; intros.  destruct (Qlt_le_dec y x) as [l|r].
 right. lra. left. assumption. Qed.
-
-Definition aux M N := forall f g,
-    f ≢ 0 \/ g > 0 ->
-    let '(ai, bi, ci, di) := N in
-    let '(asi, bsi, csi, dsi) := (M * N)%RI in
-    let '(gi, fi) := N ⋅ (g, f) in
-    let '(gsi, fsi) := (M * N) ⋅ (g, f) in
-    if (decide (((0 <= f /\ 0 <= fi) \/ (f < 0 /\ fi < 0)) <-> (0 <= ci))) then
-      ((0 <= fi /\ 0 <= fsi) \/ (fi < 0 /\ fsi < 0)) ->
-      ((0 <= ci /\ 0 <= csi) \/ (ci < 0 /\ csi < 0))
-    else
-      ((0 <= ci /\ 0 <= csi) \/ (ci < 0 /\ csi < 0)) ->
-      ((0 <= fi /\ 0 <= fsi) \/ (fi < 0 /\ fsi < 0)).
-(* Definition aux M N := forall f g, *)
-(*     f ≢ 0 \/ g > 0 -> *)
-(*     let '(ai, bi, ci, di) := N in *)
-(*     let '(asi, bsi, csi, dsi) := (M * N)%RI in *)
-(*     let '(fi, gi) := N ⋅ (f, g) in *)
-(*     let '(fsi, gsi) := (M * N) ⋅ (f, g) in *)
-(*     if (decide (((0 <= f /\ 0 <= fi) \/ (f < 0 /\ fi < 0)) <-> (0 <= bi))) then *)
-(*       ((0 <= fi * fsi)) -> *)
-(*       ((0 <= bi /\ 0 <= bsi) \/ (bi < 0 /\ bsi < 0)) *)
-(*     else *)
-(*       ((0 <= bi /\ 0 <= bsi) \/ (bi < 0 /\ bsi < 0)) -> *)
-(*       ((0 <= fi /\ 0 <= fsi) \/ (fi < 0 /\ fsi < 0)). *)
-
-Lemma sgn_lem N f g :
-  0 < det N -> (0 <= det [g, 1; f, 0] /\ 0 <= (det (N * [g, 1; f, 0]))) \/ (det [g, 1; f, 0] < 0 /\ (det (N * [g, 1; f, 0])) < 0) .
-Proof.
-  intros.
-  destruct N as [[[ai bi] ci] di].
-  unfold det in H.
-  rewrite det_mul.
-  cbn in *.
-  destruct (decide (f ≡ 0)).
-  - cbn. rewrite e. cbn. nra.
-  - nra.
-Qed.
-
-Lemma ratchet_lemma1 M N a b c d :
-  M ≡ (a, b, c, d) ->
-  0 < det N ->
-  ratchet M -> c ≡ 0 -> aux M N.
-Proof.
-  unfold aux.
-  destruct M as [[[a b] c] d]. intros.
-  pose proof sgn_lem N f g H.
-  destruct N as [[[ai bi] ci] di].
-  unfold ratchet, det in *. cbn in *.
-  rewrite H1 in *.
-  cbn in *.
-  assert (0 < a * d) by nra. split_pairs.
-  assert (0 < d). destruct (decide (d == 0)).
-  rewrite q in *. nra. nra.
-  assert (0 < a) by nra.
-  destruct_ifs; try nra. Qed.
-
-Lemma ratchet_lemma2 N :
-  0 < det N -> aux (0, -1, 1, 0) N.
-Proof.
-  unfold aux. intros.
-  pose proof sgn_lem N f g H.
-  destruct N as [[[ai bi] ci] di]; intros.
-  unfold det in *. cbn in *.
-  destruct (decide (f == 0)).
-  assert (0 < g) by tauto.
-  rewrite q in *.
-  destruct_ifs. nra. nra.
-  destruct_ifs. nra. nra. Qed.
-
-Lemma ratchet_lemma3 M N :
-  0 < det N -> ratchet M -> aux M N.
-Proof.
-  intros.
-  destruct M as [[[a b] c] d].
-  destruct (decide (c ≡ 0)).
-  apply ratchet_lemma1.
-  assert (M ≡ (1,a,0,c))
-
-
-Definition ratchet M :=
-  (0 < det M) /\
-  let '(m11, m12, m21, m22) := M in
-  (0 <= m11) /\ (0 <= m12).
-
-Definition msb f :=
-  if (Qlt_le_dec f 0) then (-1)%Z else 1.
-Instance : Proper (Qeq ==> eq) msb.
-Proof. do 2 red; intros. unfold msb.
-       destruct_ifs; (reflexivity || nra). Qed.
-
-Lemma msb_mul a f :
-  a ≢ 0 -> f ≢ 0 -> msb (a * f) = msb a * msb f.
-Proof.
-  intros; unfold msb; cbn in *; destruct_ifs; nra || reflexivity.
-Qed.
-
-Lemma msb0 : msb 0 = 1.
-Proof. reflexivity. Qed.
-
-Lemma msb_pos f :
-  0 <= f <-> msb f = 1.
-Proof. unfold msb; split; destruct_ifs; cbn in *; reflexivity || lra || lia. Qed.
-
-Ltac invert_mat :=
-  repeat match goal with
-         | M : prod _ _ |- _ => destruct M
-         | H : (@equiv _ (@prod_equiv _ _ _ _)) _ _ |- _  => inversion H; clear H
-         end.
-
-Lemma msb_neg f : f < 0 <-> msb f = (-1)%Z.
-Proof. unfold msb; split; destruct_ifs; cbn in *; reflexivity || lra || lia. Qed.
-
-Lemma msb_dec a : { msb a = 1 /\ 0 <= a } + { msb a = (-1)%Z /\ a < 0 }.
-Proof. unfold msb; destruct_ifs; auto. Qed.
-
-Instance : RelDecision Qlt. do 2 red; intros.  destruct (Qlt_le_dec x y) as [l|r].
-left. assumption. right. lra. Qed.
-Instance : RelDecision Qle. do 2 red; intros.  destruct (Qlt_le_dec y x) as [l|r].
-right. lra. left. assumption. Qed.
-
-Definition aux M N := forall f g,
-    f ≢ 0 \/ g > 0 ->
-    let '(ai, bi, ci, di) := N in
-    let '(asi, bsi, csi, dsi) := (M * N)%RI in
-    let '(fi, gi) := N ⋅ (f, g) in
-    let '(fsi, gsi) := (M * N) ⋅ (f, g) in
-    if (decide (((0 <= f /\ 0 <= fi) \/ (f < 0 /\ fi < 0)) <-> (0 <= bi))) then
-      ((0 <= fi /\ 0 <= fsi) \/ (fi < 0 /\ fsi < 0)) ->
-      ((0 <= bi /\ 0 <= bsi) \/ (bi < 0 /\ bsi < 0))
-    else
-      ((0 <= bi /\ 0 <= bsi) \/ (bi < 0 /\ bsi < 0)) ->
-      ((0 <= fi /\ 0 <= fsi) \/ (fi < 0 /\ fsi < 0)).
-(* Definition aux M N := forall f g, *)
-(*     f ≢ 0 \/ g > 0 -> *)
-(*     let '(ai, bi, ci, di) := N in *)
-(*     let '(asi, bsi, csi, dsi) := (M * N)%RI in *)
-(*     let '(fi, gi) := N ⋅ (f, g) in *)
-(*     let '(fsi, gsi) := (M * N) ⋅ (f, g) in *)
-(*     if (decide (((0 <= f /\ 0 <= fi) \/ (f < 0 /\ fi < 0)) <-> (0 <= bi))) then *)
-(*       ((0 <= fi * fsi)) -> *)
-(*       ((0 <= bi /\ 0 <= bsi) \/ (bi < 0 /\ bsi < 0)) *)
-(*     else *)
-(*       ((0 <= bi /\ 0 <= bsi) \/ (bi < 0 /\ bsi < 0)) -> *)
-(*       ((0 <= fi /\ 0 <= fsi) \/ (fi < 0 /\ fsi < 0)). *)
-
-Lemma sgn_lem N f g :
-  0 < det N -> (0 <= det [f, 0; g, 1] /\ 0 <= (det (N * [f, 0; g, 1]))) \/ (det [f, 0; g, 1] < 0 /\ (det (N * [f, 0; g, 1])) < 0) .
-Proof.
-  intros.
-  destruct N as [[[ai bi] ci] di].
-  unfold det in H.
-  rewrite det_mul.
-  cbn in *.
-  destruct (decide (f ≡ 0)).
-  - cbn. rewrite e. cbn. nra.
-  - nra.
-Qed.
-
-Lemma ratchet_lemma1 M N :
-  let '(a, b, c, d) := M in
-  0 < det N ->
-  ratchet M -> b ≡ 0 -> aux M N.
-Proof.
-  unfold aux.
-  destruct M as [[[a b] c] d]. intros.
-  pose proof sgn_lem N f g H.
-  destruct N as [[[ai bi] ci] di].
-  unfold ratchet, det in *. cbn in *.
-  assert (0 < a * d /\ 0 < d) by nra.
-  assert (0 < a) by nra.
-  destruct_ifs; nra. Qed.
-
-Lemma ratchet_lemma2 N :
-  0 < det N -> aux (0, -1, 1, 0) N.
-Proof.
-  unfold aux. intros.
-  pose proof sgn_lem N f g H.
-  destruct N as [[[ai bi] ci] di]; intros.
-  unfold det in *. cbn in *.
-  destruct H0.
-  destruct H1.
-  destruct_ifs. clear H2. intros.
-  rewrite !Qmult_0_l, !Qmult_0_r, !Qmult_1_r, !Qplus_0_l, !Qplus_0_r in *.
-  set (fi := (ai * f + bi * g)%Q) in *. split_pairs.
-
-  destruct H2. left.
-  assert (0 <= bi) by (apply i; nra).
-  split. assumption. split_pairs.
-  destruct (decide (0 <= - di)). nra. nra
-  nra.
-
-
-
-  destruct H2. admit.
-  assert (0 <= f /\ 0 <= fi). split; nra.
-
-  assert (fi * di <= 0).
-  destruct H2. nra.
-
-  destruct H2.
-  destruct H1. right. nra. left. nra.
-  assert
-  destruct H2.
-
-  destruct H4. left. assert (0 <= bi) by nra. split. nra. apply H3 in H5.
-  destruct H5.
-  nra.
-  left. destruct H1. cbn in *. split_pairs. split. apply q0. nra.
-
-split_pairs.   repeat match goal with
-           | H : not (_ /\ _) |- _ => rewrite not_and_l in H
-           | H : not (_ \/ _) |- _ => rewrite not_or_l in H; split_pairs
-           | H : not (_ -> _) |- _ => rewrite not_imp_l in H; split_pairs
-           | H : not (_ <-> _) |- _ => rewrite not_iff in H; split_pairs
-           | H : _ \/ _ |- _ => destruct H; intros; split_pairs; try nra
-           end. rewrite H1 in *. cbn in *.
-  d
-  assert (0 < a * d /\ 0 < d) by nra.
-  assert (0 < a) by nra.
-  unfold aux. intros.
-  pose proof sgn_lem N f g H.
-  pose proof sgn_lem2 N f g H.
-  destruct N as [[[ai bi] ci] di].
-  specialize (H0 f g H1).
-  cbn in *.
-  rewrite !Qmult_0_l, !Qmult_0_r, !Qmult_1_r, !Qplus_0_l, !Qplus_0_r in *.
-  destruct (decide (f ≡ 0)).
-  rewrite e in *.
-  setoid_rewrite Qmult_0_r in H0. setoid_rewrite Qplus_0_l in H0.
-  setoid_rewrite Qmult_0_r. setoid_rewrite Qplus_0_l.
-  assert (0 < g) by intuition.
-  split.
-  - intros. apply msb_pos. nra.
-  - intros. apply msb_pos in H5. nra.
-  - destruct (msb_dec f); split_pairs; rewrite H4 in *.
-    + split.
-      * intros.
-        assert (0 < f). cbn in *. nra.
-        symmetry in H2.
-        apply msb_pos.
-        apply msb_pos in H2. cbn in *.
-        specialize (H3 H7).
-        destruct (msb_dec (ai * f + bi * g)); split_pairs.
-        specialize ((proj2 H0) H8); intros. nra.
-
-        apply ZifyClasses.not_morph in H0.
-        assert (msb (ai * f + bi * g) <> 1). cbn. lia.
-        apply H0 in H10. cbn in *.  assert (bi < 0) by lra.
-
-
-  repeat match goal with
-           | H : not (_ /\ _) |- _ => rewrite not_and_l in H
-           | H : not (_ \/ _) |- _ => rewrite not_or_l in H; split_pairs
-           | H : not (_ -> _) |- _ => rewrite not_imp_l in H; split_pairs
-           | H : not (_ <-> _) |- _ => rewrite not_iff in H; split_pairs
-           | H : _ \/ _ |- _ => destruct H; intros; split_pairs; try nra
-           end. rewrite H1 in *. cbn in *.
-Definition aux N M := forall f g,
-    f ≢ 0 \/ g > 0 ->
-    let '(ai, bi, ci, di) := N in
-    let '(asi, bsi, csi, dsi) := (M * N)%RI in
-    let '(fi, gi) := M ⋅ (f, g) in
-    let '(fsi, gsi) := (M * N) ⋅ (f, g) in
-    if (decide (msb f = msb fi <-> (msb bi = 1))) then
-      msb fi = msb fsi -> msb bi = msb bsi
-    else
-      msb bi = msb bsi -> msb fi = msb fsi.
-
-Lemma ratchet_lemma1 M N :
-  let '(a, b, c, d) := M in
-  ratchet M -> b ≡ 0 -> aux N M.
-Proof.
-  unfold aux.
-  destruct N as [[[ai bi] ci] di].
-  destruct M as [[[a b] c] d]. intros.
-  unfold ratchet, det in H. cbn in H. cbn in H0.
-  assert (0 < a * d /\ 0 < d) by nra.
-  assert (0 < a) by nra.
-  cbn.
-  destruct_ifs.
-  -  rewrite H0 in *.
-     rewrite !Qmult_0_l, !Qplus_0_r in *.
-     intros.
-     destruct (msb_dec (a * bi)); split_pairs.
-     rewrite H6.
-     apply i.
-  split.
-  * intros.
-    assert (0 <= bi). nra.
-    apply (H1 f g) in H6. cbn in H6.
-    set (fi := (ai * f + bi * g)%Q) in *.
-    setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q; [|(cbn; unfold fi; ring)].
-    destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r.
-    assumption.
-    rewrite msb_mul. rewrite (proj1 (msb_pos a)) by nra. cbn. lia. cbn. nra. assumption. assumption.
-  * intros.
-    set (fi := (ai * f + bi * g)%Q) in *.
-    assert (msb fi = msb f).
-    {
-    setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q in H5 by (cbn; unfold fi; ring).
-    destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r in *. assumption.
-    rewrite msb_mul in *. rewrite (proj1 (msb_pos a)) in * by nra. cbn in *. lia. cbn in *. lra. assumption. }
-    apply (H1 f g) in H6. nra.  assumption.
-Qed.
-
-Lemma sgn_lem N f g :
-  0 < det N -> msb (det [f, 0; g, 1]) = msb (det (N * [f, 0; g, 1])).
-Proof.
-  intros.
-  rewrite det_mul.
-  destruct (decide (f ≡ 0)).
-  - cbn. rewrite e.
-    f_equiv. cbn. lra.
-  -  rewrite msb_mul.
-     assert (0 <= det N). nra.
-     rewrite (proj1 (msb_pos _) H0). rewrite Z.mul_1_l. reflexivity.
-     cbn in *. nra. cbn in *. nra.
-Qed.
-
-Lemma sgn_lem2 N f g :
-  0 < det N -> 0 < (det [f, 0; g, 1]) -> 0 < (det (N * [f, 0; g, 1])).
-Proof.
-  intros.
-  rewrite det_mul.
-  destruct (decide (f ≡ 0)).
-  - cbn in *. nra.
-  - cbn in *. nra.
-Qed.
-
-Lemma ratchet_lemma2 N :
-  0 < det N -> aux N -> aux ((0, -1, 1, 0) * N).
-Proof.
-  unfold aux. intros.
-  pose proof sgn_lem N f g H.
-  pose proof sgn_lem2 N f g H.
-  destruct N as [[[ai bi] ci] di].
-  specialize (H0 f g H1).
-  cbn in *.
-  rewrite !Qmult_0_l, !Qmult_0_r, !Qmult_1_r, !Qplus_0_l, !Qplus_0_r in *.
-  destruct (decide (f ≡ 0)).
-  rewrite e in *.
-  setoid_rewrite Qmult_0_r in H0. setoid_rewrite Qplus_0_l in H0.
-  setoid_rewrite Qmult_0_r. setoid_rewrite Qplus_0_l.
-  assert (0 < g) by intuition.
-  split.
-  - intros. apply msb_pos. nra.
-  - intros. apply msb_pos in H5. nra.
-  - destruct (msb_dec f); split_pairs; rewrite H4 in *.
-    + split.
-      * intros.
-        assert (0 < f). cbn in *. nra.
-        symmetry in H2.
-        apply msb_pos.
-        apply msb_pos in H2. cbn in *.
-        specialize (H3 H7).
-        destruct (msb_dec (ai * f + bi * g)); split_pairs.
-        specialize ((proj2 H0) H8); intros. nra.
-
-        apply ZifyClasses.not_morph in H0.
-        assert (msb (ai * f + bi * g) <> 1). cbn. lia.
-        apply H0 in H10. cbn in *.  assert (bi < 0) by lra.
-        destruct (msb_dec (-ci*f - di*g)); split_pairs. nra.
-        destruct (Qeq_dec di 0). rewrite q in *.
-        destruct (msb_dec ci); split_pairs.
-        destruct (msb_dec di); split_pairs. cbn in *.
-        ring_simplify in *
-        psatz Q. nra. assert (f < 0) by lra. nra.
-        psatz Q.
-        destruct (Qlt_le_dec bi 0). nra.
-        assert (not (0 <= bi)). lra.
-        Search iff.
-        apply ZifyClasses.not_morph in H0.
-        apply H0 in H4.
-
-
-
-
-
-    assert ((msb (bi * g)) = msb 0). apply msb_pos. nra. apply H0 in H4. nra.
-    specialize ((proj1 H0) q); intros. apply msb_neg in H4.
-    assert (bi == 0). nra. setoid_rewrite H6 in H.
-    apply msb_neg.
-    apply msb_pos in q.
-    unfold msb in H0. revert H0. destruct_ifs; intros; cbn in *. nra.
-    assert (bi < 0). nra.
-    destruct (decide (msb (bi * g) = msb 0)).
-    apply H0 in e0. nra. assert (msb (bi * g) = (-1)%Z).
-    exfalso. apply n. apply H0. nra.
-    apply H0 in n.
-    assert
-    apply H0.
-    intros. rewrite Qmult_0_r, Qplus_0_l.
-    symmetry in H2.
-    apply msb_neg in H2.
-    cbn in *. ring_simplify in H2.
-    assert (bi < 0) by nra.
-    apply
-
-    apply msb_neg. nra.
-  split.
-  - intros.
-
-    apply H Qsgn..
-  assert (0 < a * d /\ 0 < d) by nra.
-  assert (0 < a) by nra.
-  cbn.
-  rewrite H0 in *.
-  rewrite !Qmult_0_l, !Qplus_0_r.
-  split.
-  * intros.
-    assert (0 <= bi). nra.
-    apply (H1 f g) in H6. cbn in H6.
-    set (fi := (ai * f + bi * g)%Q) in *.
-    setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q; [|(cbn; unfold fi; ring)].
-    destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r.
-    assumption.
-    rewrite msb_mul. rewrite msb_pos by nra. cbn. lia. cbn. nra. assumption. assumption.
-  * intros.
-    set (fi := (ai * f + bi * g)%Q) in *.
-    assert (msb fi = msb f).
-    {
-    setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q in H5 by (cbn; unfold fi; ring).
-    destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r in *. assumption.
-    rewrite msb_mul in *. rewrite msb_pos in * by nra. cbn in *. lia. cbn in *. lra. assumption. }
-    apply (H1 f g) in H6. nra.  assumption.
-Qed.
-
-
-(* Lemma ratchet_lemma1 M N f g : *)
-(*   ratchet M -> *)
-(*   let '(a, b, c, d) := M in *)
-(*   b ≡ 0 -> *)
-(*   let '(ai, bi, ci, di) := N in *)
-(*   let '(asi, bsi, csi, dsi) := (M * N)%RI in *)
-(*   let '(fi, gi) := N ⋅ (f, g) in *)
-(*   let '(fsi, gsi) := (M * N) ⋅ (f, g) in *)
-(*   (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f). *)
-(* Proof. *)
-(*   destruct N as [[[ai bi] ci] di]. *)
-(*   destruct M as [[[a b] c] d]. intros. *)
-(*   unfold ratchet, det in H. cbn in H. cbn in H0. *)
-(*   assert (0 < a * d /\ 0 < d) by nra. *)
-(*   assert (0 < a) by nra. *)
-(*   cbn. *)
-(*   intros. rewrite H0 in *. *)
-(*   rewrite !Qmult_0_l, !Qplus_0_r. *)
-(*   split. *)
-(*   * intros. *)
-(*     assert (0 <= bi). nra. *)
-(*     apply H3 in H5. *)
-(*     set (fi := (ai * f + bi * g)%Q) in *. *)
-(*     setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q; [|(cbn; unfold fi; ring)].  *)
-(*     destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r. *)
-(*     assumption. *)
-(*     rewrite msb_mul. rewrite msb_pos by nra. cbn. lia. cbn. nra. assumption. *)
-(*   * intros. *)
-(*     set (fi := (ai * f + bi * g)%Q) in *. *)
-(*     assert (msb fi = msb f). *)
-(*     { *)
-(*     setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q in H4 by (cbn; unfold fi; ring). *)
-(*     destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r in *. assumption. *)
-(*     rewrite msb_mul in *. rewrite msb_pos in * by nra. cbn in *. lia. cbn in *. lra. assumption. } *)
-(*     apply H3 in H5. nra. *)
-(* Qed. *)
 
 Context
-  {M : nat -> mat Q}
-  `{forall i, ratchet (M i)}.
-Notation T i := (big_mul_rev M 0%nat i).
+  (f0 g0 : Q).
 
-Lemma T_pos_det i :
-  0 < det (T i).
+Definition T (M : nat -> mat Q) i := (big_mul_rev M 0%nat i).
+Definition v M i := ((T M i) ⋅ (f0, g0)).
+Definition f M i := (v M i).1.
+Definition c M i := (T M i).1.1.2.
+Definition κ_r M i := (big_sum (fun j => μ_r (f M (S j)) (f M j)) 0%nat i).
+Definition κ_r' M i := (big_sum (fun j => μ_r (c M (S j)) (c M j)) 0%nat i).
+Definition k M i  := (big_mul (fun j => σ_r (f M (S j)) (- (f M j))) 0%nat i).
+Definition k' M i := (big_mul (fun j => σ_r (c M (S j)) (- (c M j))) 0%nat i).
+
+(* lower triangular *)
+Definition lt (N : mat Q) :=
+  exists a c d, N ≡ (a, 0, c, d).
+
+Lemma ratchet_ut_vec :
+  forall N x w,
+  ratchet N -> lt N ->
+  μ_r ((N ⋅ w).1) x = μ_r w.1 x.
+Proof.
+  intros.
+  destruct H0 as [a [b [d]]].
+  destruct H as [det [cpos dpos]].
+  destruct w as [w1 w2].
+  rewrite H0 in *.
+  simpl in *.
+  unfold μ_r. repeat destruct (decide _); try nra; try reflexivity.
+  assert (d == 0). nra. nra.
+  assert (d == 0). nra. nra.
+Qed.
+
+Lemma ratchet_ut_vec_2 :
+  forall N w,
+  ratchet N -> lt N ->
+  μ_r ((N ⋅ w).1) w.1 = 0.
+Proof.
+  intros; now rewrite ratchet_ut_vec, μ_r_id.
+Qed.
+
+Lemma ratchet_ut_mat :
+  forall N x P,
+  ratchet N -> lt N ->
+  μ_r ((N * P).1.1.2) x = μ_r P.1.1.2 x.
+Proof.
+  intros.
+  destruct H0 as [a [b [d]]].
+  destruct H as [det [cpos dpos]].
+  destruct P as [[[p1 p2] p3] p4].
+  rewrite H0 in *.
+  simpl in *.
+  unfold μ_r. repeat destruct (decide _); try nra; try reflexivity.
+  assert (d == 0). nra. nra.
+  assert (d == 0). nra. nra.
+Qed.
+
+Lemma ratchet_ut_mat_2 :
+  forall N P,
+  ratchet N -> lt N ->
+  μ_r ((N * P).1.1.2) P.1.1.2 = 0.
+Proof.
+  intros; now rewrite ratchet_ut_mat, μ_r_id.
+Qed.
+
+Lemma decomp N :
+  forall a b c d,
+  N ≡ (a, b, c, d) ->
+  b ≢ 0 ->
+  N ≡ (b, 0, d, 1) * (0, 1, -1, 0) * (a * d / b - c, 0, a / b, 1).
+Proof.
+  intros.
+  auto_mat; try lra.
+  unfold Qinv_inv2.
+  field_simplify.
+  rewrite Qmult_comm. field_simplify; assumption. assumption.
+Qed.
+
+Definition t (M : nat -> mat Q) :=
+  fun (i : nat) =>
+    let '(a, b, c, d) := M (i / 3)%nat in
+    if (decide (b ≡ 0))
+    then match mod3dec i with
+         | inright _ => I
+         | inleft pf => match pf with
+                       | right _ => I
+                       | left _ => (a, b, c, d)
+                       end
+         end
+    else match mod3dec i with
+         | inright _ => (b, 0, d, 1)
+         | inleft pf => match pf with
+                       | right _ => (0, 1, -1, 0)
+                       | left _ => (a * d / b - c, 0, a / b, 1)
+                       end
+         end.
+
+Lemma l1 i : (S (S (3 * i)) / 3 = i)%nat.
+Proof.
+  symmetry. apply Nat.div_unique with (r:=2%nat); lia.
+Qed.
+
+Lemma l2 i : ((S (3 * i)) / 3 = i)%nat.
+Proof.
+  symmetry. apply Nat.div_unique with (r:=1%nat); lia.
+Qed.
+
+Lemma l3 i : ((3 * i) / 3 = i)%nat.
+Proof.
+  symmetry. apply Nat.div_unique with (r:=0%nat); lia.
+Qed.
+
+
+Lemma m1 i : S (S (3 * i)) mod 3 = 2%nat.
+Proof.
+  symmetry. apply Nat.mod_unique with (q:=i%nat); lia.
+Qed.
+
+Lemma m11 i : exists p, mod3dec (S (S (3 * i))) = inright p.
+  pose proof m1 i.
+  destruct (mod3dec (S (S (3 * i)))).
+  destruct s. lia. lia.
+  eexists. reflexivity.
+Qed.
+
+Lemma m2 i : (S (3 * i)) mod 3 = 1%nat.
+Proof.
+  symmetry. apply Nat.mod_unique with (q:=i%nat); lia.
+Qed.
+
+Lemma m22 i : exists p, mod3dec (S (3 * i)) = inleft (right p).
+  pose proof m2 i.
+  destruct (mod3dec (S (3 * i))).
+  destruct s. lia. eexists. reflexivity. lia.
+Qed.
+
+Lemma m3 i : (3 * i) mod 3 = 0%nat.
+Proof.
+  symmetry. apply Nat.mod_unique with (q:=i%nat); lia.
+Qed.
+
+Lemma m33 i : exists p, mod3dec (3 * i) = inleft (left p).
+  pose proof m3 i.
+  destruct (mod3dec (3 * i)).
+  destruct s. eexists. reflexivity. lia. lia.
+Qed.
+
+Instance : Proper ((≡) ==> iff) lt.
+Proof.
+  do 2 red; intros; unfold lt.
+  split; intros; [setoid_rewrite <- H|setoid_rewrite H];
+    destruct H0 as [? [? [?]]]; repeat eexists; auto_mat.
+Qed.
+
+Lemma t_lt M i :
+  lt (t M (3 * i)).
+Proof.
+  unfold t.
+  rewrite l3. destruct m33 with (i:=i). rewrite H.
+  destruct (M i) as [[[a b] c] d].
+  destruct (decide _); [rewrite e|];
+    repeat eexists.
+Qed.
+
+Lemma tSS_lt M i :
+  lt (t M (S (S (3 * i)))).
+Proof.
+  unfold t.
+  rewrite l1. destruct m11 with (i:=i). rewrite H.
+  destruct (M i) as [[[a b] c] d].
+  destruct (decide _); repeat eexists.
+Qed.
+
+Lemma I_ratchet :
+  ratchet I.
+Proof. split; simpl; lra. Qed.
+
+Lemma all_t_ratchet M :
+  (forall i, ratchet (M i)) -> (forall i, ratchet (t M i)).
+Proof.
+  intros.
+  unfold t.
+  specialize (H (i / 3)%nat).
+  destruct (M (i / 3)%nat) as [[[a b] c] d].
+  destruct H as [Mdet [cpos dpos]].
+  destruct (decide _);
+    destruct (mod3dec _); [destruct s| |destruct s|].
+  - repeat split; assumption.
+  - apply I_ratchet.
+  - apply I_ratchet.
+  - split.
+    + simpl in *.
+      apply Qmult_lt_r with (z:=b). lra.
+      field_simplify. nra. assumption.
+    + simpl in *. split.
+      apply Qmult_le_r with (z:=b). lra. field_simplify. lra. lra. lra.
+  - split; simpl in *; lra.
+  - split; simpl in *; lra.
+Qed.
+
+Lemma t_ratchet M i :
+  ratchet (M i) -> ratchet (t M (3 * i)).
+Proof.
+  intros.  unfold t.
+  rewrite l3. destruct m33 with (i:=i). rewrite H0.
+  destruct (M i) as [[[a b] c] d].
+  destruct (decide _); [assumption|].
+  destruct H as [Mdet [cpos dpos]].
+  split.
+  - simpl in *.
+    apply Qmult_lt_r with (z:=b). lra.
+    field_simplify. nra. assumption.
+  - simpl in *. split.
+    apply Qmult_le_r with (z:=b). lra. field_simplify. lra. lra. lra.
+Qed.
+
+Lemma tSS_ratchet M i :
+  ratchet (M i) -> ratchet (t M (S (S (3 * i)))).
+Proof.
+  intros.  unfold t.
+  rewrite l1. destruct m11 with (i:=i). rewrite H0.
+  destruct (M i) as [[[a b] c] d].
+  destruct H as [Mdet [cpos dpos]].
+  destruct (decide _); split; simpl in *; lra.
+Qed.
+
+
+Lemma t_spec2 M i :
+  t M (S (S (3 * i))) * (t M (S (3 * i)) * t M (3 * i)) ≡ M i.
+Proof.
+  unfold t.
+    rewrite l1, l2, l3.
+    destruct m33 with (i:=i).
+    destruct m22 with (i:=i).
+    destruct m11 with (i:=i).
+    rewrite H, H0, H1.
+    destruct (M i) as [[[a b] c] d].
+    destruct (decide _). rewrite !(left_id I [*]). reflexivity.
+    rewrite !(assoc [*]).
+    rewrite <- decomp. reflexivity. reflexivity. assumption.
+Qed.
+
+Lemma t_spec M i :
+  T M i ≡ T (t M) (3 * i).
 Proof.
   induction i.
+  - unfold T. rewrite !big_op_rev_nil by lia. reflexivity.
+  - unfold T.
+    replace (3 * S i)%nat with (S (S (S (3 * i)))) by lia.
+    rewrite !big_op_rev_S_l by (exact _ || lia).
+    fold (T M i).
+    fold (T (t M) (3 * i)).
+    rewrite <- IHi.
+    rewrite <- t_spec2.
+    rewrite !(assoc [*]). reflexivity.
+Qed.
+
+Lemma t_spec4 M i :
+  f M i ≡ f (t M) (3 * i).
+Proof.
+  unfold f, v. now rewrite t_spec.
+Qed.
+
+Lemma t_spec5 M i :
+  c M i ≡ c (t M) (3 * i).
+Proof.
+  unfold c. now rewrite t_spec.
+Qed.
+
+Lemma μ_r_lem_r (N P : mat Q) (w : vec Q) :
+  (forall u, μ_r (P ⋅ u).1 u.1 = 0%Z) -> μ_r (P ⋅ w).1 w.1 + μ_r (N ⋅ (P ⋅ w)).1 (P ⋅ w).1 = μ_r (N ⋅ (P ⋅ w)).1 w.1.
+Proof.
+  intros.
+  specialize (H w).
+  destruct N as [[[n11 n12] n21] n22].
+  destruct P as [[[p11 p12] p21] p22].
+  destruct w as [w1 w2].
+  unfold μ_r in *.
+  repeat destruct (decide _); cbn in *; try nra; try reflexivity; try lia.
+Qed.
+
+Lemma μ_r_lem_r2 (N P R : mat Q) :
+  (forall R, μ_r (P * R).1.1.2 R.1.1.2 = 0%Z) -> μ_r (P * R).1.1.2 R.1.1.2 + μ_r (N * (P * R)).1.1.2 (P * R).1.1.2 = μ_r (N * (P * R)).1.1.2 R.1.1.2.
+Proof.
+  intros.
+  specialize (H R).
+  destruct N as [[[n11 n12] n21] n22].
+  destruct P as [[[p11 p12] p21] p22].
+  destruct R as [[[r11 r12] r21] r22].
+  unfold μ_r in *.
+  repeat destruct (decide _); cbn in *; try nra; try reflexivity; try lia.
+Qed.
+
+Lemma μ_r_lem_l (N P : mat Q) (w : vec Q) :
+  (forall u, μ_r (N ⋅ u).1 u.1 = 0%Z) -> μ_r (P ⋅ w).1 w.1 + μ_r (N ⋅ (P ⋅ w)).1 (P ⋅ w).1 = μ_r (N ⋅ (P ⋅ w)).1 w.1.
+Proof.
+  intros.
+  specialize (H (P ⋅ w)).
+  destruct N as [[[n11 n12] n21] n22].
+  destruct P as [[[p11 p12] p21] p22].
+  destruct w as [w1 w2].
+  unfold μ_r in *.
+  repeat destruct (decide _); cbn in *; try nra; try reflexivity; try lia.
+Qed.
+
+Lemma μ_r_lem_l2 (N P R : mat Q) :
+  (forall R, μ_r (N * R).1.1.2 R.1.1.2 = 0%Z) -> μ_r (P * R).1.1.2 R.1.1.2 + μ_r (N * (P * R)).1.1.2 (P * R).1.1.2 = μ_r (N * (P * R)).1.1.2 R.1.1.2.
+Proof.
+  intros.
+  specialize (H (P * R)).
+  destruct N as [[[n11 n12] n21] n22].
+  destruct P as [[[p11 p12] p21] p22].
+  destruct R as [[[r11 r12] r21] r22].
+  unfold μ_r in *.
+  repeat destruct (decide _); cbn in *; try nra; try reflexivity; try lia.
+Qed.
+
+
+(*   ring_simplify in q0. *)
+(*   ring_simplify in q. *)
+(*   (* assert (p21 > 0) by nra. *) *)
+(*   destruct H0. simpl in *. *)
+
+Lemma TS M i :
+  T M (S i) ≡ M i * T M i.
+Proof.
+  unfold T. rewrite big_op_rev_S_l; try exact _; [|lia]. reflexivity.
+Qed.
+
+Lemma aux3 N j x :
+  μ_r (f N (S j)) x = μ_r (N j ⋅ (v N j)).1 x.
+Proof.
+  unfold f, v.
+  rewrite !TS.
+  rewrite !(left_act_assoc (⋅) [*]). reflexivity.
+Qed.
+
+Lemma caux3 N j x :
+  μ_r (c N (S j)) x = μ_r (N j * T N j).1.1.2 x.
+Proof.
+  unfold c.
+  rewrite !TS. reflexivity.
+Qed.
+
+Lemma vS N j :
+  v N (S j) ≡ (N j) ⋅ v N j.
+Proof.
+  unfold v.
+  rewrite TS.
+  rewrite !(left_act_assoc (⋅) [*]). reflexivity.
+Qed.
+
+Lemma aux4 N j :
+  μ_r (N (S j) ⋅ (v N (S j))).1 (f N (S j)) = μ_r (N (S j) ⋅ (N j ⋅ (v N j))).1 (N j ⋅ v N j).1.
+Proof.
+  unfold f, v.
+  rewrite !TS.
+  rewrite !(left_act_assoc (⋅) [*]). reflexivity.
+Qed.
+
+Lemma caux4 N j :
+  μ_r (N (S j) * (T N (S j))).1.1.2 (c N (S j)) = μ_r (N (S j) * (N j * (T N j))).1.1.2 (N j * T N j).1.1.2.
+Proof.
+  unfold c.
+  rewrite !TS.  reflexivity.
+Qed.
+
+Lemma t_spec3 M i :
+  (forall i, ratchet (M i)) ->
+  κ_r M i = κ_r (t M) (3 * i).
+Proof.
+  intros; induction i.
+  - unfold κ_r. rewrite !big_op_nil by lia. reflexivity.
+  - unfold κ_r.
+    replace (3 * S i)%nat with (S (S (S (3 * i)))) by lia.
+    rewrite !big_op_S_r by (exact _ || lia).
+    fold (κ_r M i).
+    fold (κ_r (t M) (3 * i)).
+    rewrite <- IHi.
+    rewrite <- !Z.add_assoc.
+    apply f_equal.
+    rewrite !Z.add_assoc.
+    rewrite !aux3.
+    rewrite !aux4.
+    unfold f.
+    rewrite μ_r_lem_r.
+    rewrite vS.
+    rewrite <- (left_act_assoc (⋅) [*]).
+    rewrite μ_r_lem_l.
+    apply μ_r_Proper.
+    rewrite <- (left_act_assoc (⋅) [*]).
+    rewrite t_spec2.
+    unfold v.
+    rewrite <- t_spec. reflexivity.
+    unfold v.
+    rewrite <- t_spec. reflexivity.
+    unfold v.
+    intros.
+    apply ratchet_ut_vec_2.
+    apply tSS_ratchet. auto.
+    apply tSS_lt.
+    intros.
+    apply ratchet_ut_vec_2.
+    apply t_ratchet. auto.
+    apply t_lt.
+Qed.
+
+Lemma t_spec6 M i :
+  (forall i, ratchet (M i)) ->
+  κ_r' M i = κ_r' (t M) (3 * i).
+Proof.
+  intros; induction i.
+  - unfold κ_r'. rewrite !big_op_nil by lia. reflexivity.
+  - unfold κ_r'.
+    replace (3 * S i)%nat with (S (S (S (3 * i)))) by lia.
+    rewrite !big_op_S_r by (exact _ || lia).
+    fold (κ_r' M i).
+    fold (κ_r' (t M) (3 * i)).
+    rewrite <- IHi.
+    rewrite <- !Z.add_assoc.
+    apply f_equal.
+    rewrite !Z.add_assoc.
+    rewrite !caux3.
+    rewrite !caux4.
+    unfold c.
+    rewrite μ_r_lem_r2.
+    rewrite TS.
+    rewrite (assoc [*]).
+    rewrite μ_r_lem_l2.
+    apply μ_r_Proper.
+    rewrite (assoc [*]).
+    rewrite t_spec2.
+    rewrite <- t_spec. reflexivity.
+    rewrite <- t_spec. reflexivity.
+    intros.
+    apply ratchet_ut_mat_2.
+    apply tSS_ratchet. auto.
+    apply tSS_lt.
+    intros.
+    apply ratchet_ut_mat_2.
+    apply t_ratchet. auto.
+    apply t_lt.
+Qed.
+
+Definition ratchet_spec M i :=
+  (κ_r M i = (κ_r' M i) + ((μ_r (f M i) (f M 0)) + (μ_r (c M i) (c M 0))) mod 2)%Z.
+
+Lemma transform_spec2 M i :
+  (forall i, ratchet (M i)) -> ratchet_spec (t M) (3 * i) -> ratchet_spec M i.
+Proof.
+  intros.
+  unfold ratchet_spec in *.
+  intros.
+  assert (μ_r (f M i) (f M 0) = μ_r (f (t M) (3 * i)) (f (t M) 0)).
+  rewrite t_spec4. reflexivity.
+  rewrite H1.
+  assert (μ_r (c M i) (c M 0) = μ_r (c (t M) (3 * i)) (c (t M) 0)).
+  rewrite t_spec5. reflexivity.
+  rewrite H2.
+  rewrite t_spec3.
+  rewrite t_spec6.
+  assumption.
+  assumption.
+  assumption.
+Qed.
+
+Definition lt_or_rot N :=
+  lt N \/ N ≡ (0,1,-1,0).
+
+Lemma t_lt_or_rot M :
+  forall i, lt_or_rot (t M i).
+Proof.
+  intros.
+  unfold lt_or_rot, t.
+  destruct (M (i / 3)%nat) as [[[a b] c] d].
+  destruct (decide _);
+    destruct (mod3dec i);[destruct s| |destruct s|].
+  - left. rewrite e. repeat eexists.
+  - left. repeat eexists.
+  - left. repeat eexists.
+  - left. repeat eexists.
+  - right. reflexivity.
+  - left. repeat eexists.
+Qed.
+
+Lemma T_pos_det M i :
+  (forall i, ratchet (M i)) -> 0 < det (T M i).
+Proof.
+  intros.
+  induction i.
   + reflexivity.
-  + rewrite (big_op_rev_S_l [*] 1) by lia. rewrite det_mul.
+  + unfold T in *.
+    rewrite (big_op_rev_S_l [*] 1) by lia. rewrite det_mul.
     specialize (H i).
     unfold ratchet in H.
     destruct H. cbn in *. nra.
 Qed.
 
-Lemma sgn_lem i f g :
-  f ≢ 0 -> msb (det [f, 0; g, 1]) = msb (det ((T i) * [f, 0; g, 1])).
+Lemma T0 M : T M 0 = I.
+Proof. unfold T. now rewrite big_op_rev_nil. Qed.
+
+Lemma v0_ M : v M 0 ≡ (f0, g0).
+Proof. unfold v. rewrite T0; split; simpl; lra. Qed.
+
+Lemma f0_ M : f M 0 ≡ f0.
+Proof. unfold f. rewrite v0_; simpl; lra. Qed.
+
+Theorem thm M :
+  f0 ≢ 0 \/ g0 > 0 ->
+  (forall i, ratchet (M i)) ->
+  (forall i, lt_or_rot (M i)) ->
+  (forall i, ratchet_spec M i).
 Proof.
-  intros.
-  pose proof T_pos_det i.
-  rewrite det_mul.
-  rewrite msb_mul.
-  rewrite (msb_pos _ H1). rewrite Z.mul_1_l. reflexivity.
-  cbn in *. nra. cbn in *. nra.
+  unfold ratchet_spec. intros.
+  induction i.
+  -
+    unfold κ_r, κ_r', f, c, T.
+    rewrite !big_op_nil, !big_op_rev_nil by lia.
+    rewrite !μ_r_id. reflexivity.
+  -
+    pose proof (T_pos_det M i) as ti_det.
+    unfold κ_r, κ_r'.
+    rewrite !big_op_S_r by lia.
+    fold (κ_r M i).
+    fold (κ_r' M i).
+    rewrite !IHi.
+    rewrite <- !Z.add_assoc. apply f_equal.
+    specialize (ti_det H0).
+    specialize (H0 i).
+    specialize (H1 i).
+    destruct H1.
+    +
+      rewrite !aux3.
+      rewrite ratchet_ut_vec_2 by assumption.
+      rewrite ratchet_ut_vec by assumption.
+      rewrite !caux3.
+      rewrite ratchet_ut_mat_2 by assumption.
+      rewrite ratchet_ut_mat by assumption.
+      rewrite Z.add_0_l, Z.add_0_r. reflexivity.
+    +
+      rewrite !aux3.
+      rewrite !caux3.
+
+      (* weird but it works *)
+      rewrite H1 at 1.
+      rewrite H1 at 1.
+      setoid_rewrite H1.
+      (* end weird *)
+      rewrite f0_ at 1.
+      rewrite f0_ at 1.
+      unfold c, f, v.
+      rewrite T0.
+      destruct (T M i) as [[[ai bi] ci] di].
+
+      cbn -[Z.add Z.mul Z.sub Z.opp] in *.
+
+      unfold μ_r.
+      repeat (destruct (decide _)); try nra; try reflexivity.
+      destruct H. nra.
+      assert (ai < 0). nra.
+      assert (ci < 0). nra. nra.
+      destruct H. nra.
+      assert (ci >= 0). nra.
+      assert (ai >= 0). nra. nra.
 Qed.
 
-
-
-Theorem ratched_spec f g :
-  f ≢ 0 \/ g > 0 ->
-  let '(a0, b0, c0, d0) := T 0%nat in
-  forall i,
-    let '(ai, bi, ci, di) := T i in
-    let '(fi, gi) := (T i) ⋅ (f, g) in
-    (0 <= bi) <-> (msb fi = msb f).
+Theorem thm2 M :
+  f0 ≢ 0 \/ g0 > 0 ->
+  (forall i, ratchet (M i)) ->
+  (forall i, ratchet_spec M i).
 Proof.
   intros.
-  destruct (T 0%nat) as [[[a0 b0] c0] d0] eqn:E. intros.
-  induction i.
-  - simpl.
-    rewrite Qmult_0_l, Qmult_1_l, Qplus_0_r. intuition.
-  -
-    (* epose proof ratchet_lemma1 (M i) (T i) f g ltac:(apply H). *)
+  apply transform_spec2.
+  assumption.
+  apply thm. assumption.
+  apply all_t_ratchet. assumption.
+  apply t_lt_or_rot.
+Qed.
 
-    destruct (M i) as [[[a b] c] d] eqn:E4.
-    destruct (T i) as [[[ai bi] ci] di] eqn:E2.
-    destruct (T (S i)) as [[[asi bsi] csi] dsi] eqn:E3.
-    cbn.
-    assert (forall asi' bsi' csi' dsi', (asi', bsi', csi', dsi') ≡ T (S i) -> (0 <= bsi' ↔ msb (asi' * f + bsi' * g) = msb f) -> (0 <= bsi ↔ msb (asi * f + bsi * g) = msb f)).
-    { intros.
-      rewrite E3 in H1.
-      invert_mat. cbn -[equiv big_op_rev id2] in H3, H4, H6, H5.
-      setoid_rewrite H3 in H2. setoid_rewrite H6 in H2. assumption. }
-    eapply H1.
-    destruct (decide (b ≡ 0)).
-    + epose proof ratchet_lemma1 (M i) (T i) f g ltac:(apply H).
-      rewrite E2, E4 in H1.
-      specialize (H1 e).
-      rewrite <- E2, <- E4 in H1.
-      destruct (M i * T i) as [[[asi' bsi'] csi'] dsi'].
-
-
-  pose proof (sgn_lem i f g).
-  pose proof (sgn_lem (S i) f g).
-  set (fi := ai * f + bi * g).
-  set (gi := ci * f + di * g).
-  destruct (T (S i)) as [[[asi bsi] csi] dsi] eqn:E3.
-  set (fsi := asi * f + bsi * g).
-  set (gsi := csi * f + dsi * g).
-  assert (((ai, bi, ci, di) * (f, 0, g, 1)) ≡ [fi, bi; gi, di]).
-  { unfold fi, gi; auto_mat. }
-  assert (((asi, bsi, csi, dsi) * (f, 0, g, 1)) ≡ [fsi, bsi; gsi, dsi]).
-  { unfold fsi, gsi; auto_mat. }
-  (* assert (a, b, c, d) * (ai, bi, ci ,di) ≡ T (S i). *)
-  (* rewrite <- E2 in H1. *)
-  rewrite H3 in H1.
-  rewrite H4 in H2.
-  cbn in IHi.
-  cbn -[equiv big_op_rev id2] in *.
-  invert_mat.
-  cbn -[equiv big_op_rev id2] in *.
-  rewrite !Qmult_0_l, !Qmult_0_r, !Qplus_0_l, !Qplus_0_r, !Qmult_1_r in *.
-  replace (ai * f + bi * g)%Q with fi in * by reflexivity.
-  (* rewrite H3 in H1. *)
-  (* rewrite H4 in H2. *)
-
-  assert (E2' : T i ≡ (ai, bi, ci, di)). rewrite <- E2. reflexivity.  assert (E3' : T (S i) ≡ (asi, bsi, csi, dsi)). rewrite <- E3. reflexivity.
-
-  rewrite (big_op_rev_S_l [*] 1) in E3' by lia.
-  destruct (Qeq_dec b 0).
-  rewrite q in E4.
-
-  rewrite E2' in E3'.
-
-  invert_mat.
-  cbn -[equiv big_op_rev id2] in *.
-  +
-    Set Printing All.
-    rewrite E2 in H17.
-
-    (T (S i)).
-  assert (0 < a * d /\ 0 < d /\ 0 < a).
-  { specialize (H i). unfold ratchet in *. rewrite E4 in H.
-    simpl in H.
-    split. nra.
-    split. nra.
-    assert (0 < d) by nra. nra. }
-  rewrite q in H3, H15.
-  rewrite !Qmult_0_l, !Qplus_0_r in H3, H15.
-  destruct H17 as [lt_ad [lt_d lt_a]].
-  cbn in H15, H3. cbn. setoid_rewrite <- H3. setoid_rewrite <- H15.
-  split.
-  * intros.
-    assert (0 <= bi). clear -H15 H17 lt_ad lt_a lt_d. cbn in *. nra.
-    apply IHi in H20.
-    setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q.
-    destruct (Qeq_dec fi 0). rewrite q0 in *. rewrite Qmult_0_r. assumption.
-    rewrite msb_mul. rewrite msb_pos by nra. cbn. lia. cbn.  nra. assumption.
-    cbn. unfold fi. nra.
-  * intros.
-    assert (msb (ai * f + bi * g) = msb f).
-    { clear -lt_a H17 fi.
-    fold fi.
-    setoid_replace (a * ai * f + a * bi * g)%Q with (a * fi)%Q in H17.
-    destruct (Qeq_dec fi 0). rewrite q in *. rewrite Qmult_0_r in *. assumption.
-    rewrite msb_mul in *. rewrite msb_pos in * by nra. cbn in *. lia. cbn in *. nra. assumption.
-    cbn. unfold fi. lra. }
-    fold fi in H20.
-    apply IHi in H20. clear -H20 lt_a. nra.
-  +
-    destruct (Z.eq_dec f 0). subst. Search Z.sgn. simpl.
-    Admitted.
-
-
+End __.
 Local Open Scope Z.
+
+Definition ratchetz (M : mat Z) :=
+  (0 < det M) /\
+    (0 <= M.1.1.1) /\ (0 <= M.1.1.2).
+(* Definition T (M : nat -> mat Q) i := (big_mul_rev M 0%nat i). *)
+(* Definition v M i := ((T M i) ⋅ (f0, g0)). *)
+(* Definition f M i := (v M i).1. *)
+(* Definition c M i := (T M i).1.1.2. *)
+(* Definition κ_r M i := (big_sum (fun j => μ_r (f M (S j)) (f M j)) 0%nat i). *)
+(* Definition κ_r' M i := (big_sum (fun j => μ_r (c M (S j)) (c M j)) 0%nat i). *)
+(* Definition k M i  := (big_mul (fun j => σ_r (f M (S j)) (- (f M j))) 0%nat i). *)
+(* Definition k' M i := (big_mul (fun j => σ_r (c M (S j)) (- (c M j))) 0%nat i). *)
+(* count sign changes *)
+Definition μ (a b : Z) :=
+  if decide (a < 0)
+  then if decide (0 <= b)
+       then 1%Z
+       else 0
+  else if decide (b < 0)
+       then 1
+       else 0.
+
+(* lower triangular *)
+Definition lt_z (N : mat Z) :=
+  exists a c d, N ≡ (a, 0, c, d).
+
+Definition lt_or_rot_z (N : mat Z) :=
+  lt_z N \/ N ≡ (0,1,-1,0).
+
+Local Coercion inject_Z : Z >-> Q.
+
+Definition inj_matZ (M : mat Z) : mat Q :=
+  let '(a,b,c,d) := M in (inject_Z a,inject_Z  b,inject_Z  c,inject_Z  d).
+Definition inj_vecZ (M : vec Z) : vec Q :=
+  let '(a,b) := M in (inject_Z a,inject_Z  b).
+
+Definition inj_nat_matZ (M : nat -> mat Z) :=
+  (fun i => (inj_matZ (M i))).
+Instance : Proper ((≡) ==> (≡)) inj_matZ.
+Proof.
+  do 2 red; intros; unfold inj_matZ.
+  destruct x as [[[? ? ] ? ]? ].
+  destruct y as [[[? ? ] ? ]? ].
+  split_pairs.
+  repeat constructor; cbn in *; congruence.
+Qed.
+Local Open Scope lmod_scope.
 Local Open Scope mat_scope.
 Local Open Scope ring_scope.
-Local Open Scope grp_scope.
+Lemma inj_matZ_mult (N M : mat Z) :
+  inj_matZ (N * M) ≡ inj_matZ N * inj_matZ M.
+Proof. auto_mat; rewrite !inject_Z_plus, !inject_Z_mult; reflexivity.  Qed.
+Lemma inj_matZ_vec_mult (N : mat Z) (v : vec Z) :
+  ((inj_matZ N) ⋅ (inj_vecZ v)).1 = inject_Z (N ⋅ v).1.
+Proof. auto_mat; rewrite !inject_Z_plus, !inject_Z_mult; reflexivity.  Qed.
+Lemma inj_matZ112 (N : mat Z) :
+  (inj_matZ N).1.1.2 ≡ inject_Z N.1.1.2.
+Proof. auto_mat. Qed.
+
 Local Open Scope lmod_scope.
+Definition κ (f g : Z) (M : nat -> mat Z) i := big_sum (fun j => μ ((big_mul_rev M 0%nat (S j)) ⋅ (f, g)).1 ((big_mul_rev M 0%nat j) ⋅ (f, g)).1) 0%nat i.
+Definition κ' (M : nat -> mat Z) i := big_sum (fun j => μ ((big_mul_rev M 0%nat (S j)).1.1.2) ((big_mul_rev M 0%nat j).1.1.2)) 0%nat i.
 
-Definition ratchet M :=
-  (0 < det M) /\
-  let '(m11, m12, m21, m22) := M in
-  (0 <= m11) /\ (0 <= m12).
+Lemma inject_Z_opp a : inject_Z (- a) = (- inject_Z a)%Q.
+Proof. reflexivity. Qed.
+Lemma inject_Z_0 : inject_Z 0 = 0%Q.
+Proof. reflexivity. Qed.
 
-Section __.
+Definition ratchetz_spec f g M i :=
+  κ f g M i = (κ' M i) + ((μ (((big_mul_rev M 0%nat i) ⋅ (f, g)).1) f + (μ ((big_mul_rev M 0%nat i).1.1.2) 0)) mod 2)%Z.
 
-Definition msb f :=
-  if (Z_le_dec 0 f) then 1 else -1.
-
-Lemma msb_sgn f :
-  f <> 0 -> Z.sgn f = msb f.
+Lemma inj1 (M : mat Z) : ratchet (inj_matZ M) -> ratchetz M.
 Proof.
   intros.
-  unfold msb.
-  destruct_ifs. cbn in *. lia.
-  lia. Qed.
-
-Lemma msb_mul a f :
-  a <> 0 -> f <> 0 -> msb (a * f) = msb a * msb f.
-Proof.
-  intros; unfold msb; destruct_ifs; cbn in *; try lia.
+  unfold ratchetz, ratchet in *.
+  destruct H as [? [? ?]].
+  destruct M as [[[? ?]?]?].
+  unfold inj_matZ in *.
+  split; unfold det in *; cbn -[Z.add Z.sub Z.mul Z.opp] in *.
+  - now rewrite Zlt_Qlt, !inject_Z_plus, !inject_Z_opp, !inject_Z_mult, inject_Z_0.
+  - now rewrite !Zle_Qle, !inject_Z_0 in *.
 Qed.
 
-Lemma msb_pos f :
-  0 < f -> msb f = 1.
-Proof. unfold msb; destruct_ifs; lia. Qed.
-
-Lemma ratchet_lemma1 a c d N f g :
-  let M := (a, 0, c, d) in
-  ratchet M -> f <> 0 -> 0 < g ->
-  let v := (f, g) in
-  let T := M * N in
-  let '(ai, bi, ci, di) := N in
-  let '(asi, bsi, csi, dsi) := T in
-  let '(fi, gi) := N ⋅ v in
-  let '(fsi, gsi) := (M * N) ⋅ v in
-  (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f).
+Lemma inj12 (M : mat Z) : ratchetz M -> ratchet (inj_matZ M).
 Proof.
   intros.
-  unfold ratchet, M, det in H. cbn in *.
-  assert (0 < a * d /\ 0 < d) by lia.
-  assert (0 < a) by lia.
-  destruct N as [[[ai bi] ci] di].
-  unfold T. simpl.
-  intros.
-  rewrite !Z.mul_0_l, !Z.add_0_r in *.
-  split.
-  * intros.
-    assert (0 <= bi). lia.
-    apply H4 in H6.
-    set (fi := (ai * f + bi * g)%Z) in *.
-    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z by lia.
-    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r.
-    assumption.
-    rewrite msb_mul. rewrite msb_pos by lia. cbn. lia. cbn. lia. assumption.
-  * intros.
-    set (fi := (ai * f + bi * g)%Z) in *.
-    assert (msb fi = msb f).
-    {
-    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z in * by lia.
-    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r in *. assumption.
-    rewrite msb_mul in *. rewrite msb_pos in * by lia. cbn in *. lia. cbn in *. lia. assumption. }
-    apply H4 in H6. nia.
+  unfold ratchetz, ratchet in *.
+  destruct H as [? [? ?]].
+  destruct M as [[[? ?]?]?].
+  unfold inj_matZ in *.
+  split; unfold det in *; cbn -[Z.add Z.sub Z.mul Z.opp] in *.
+  - now rewrite Zlt_Qlt, !inject_Z_plus, !inject_Z_opp, !inject_Z_mult, inject_Z_0 in *.
+  - now rewrite !Zle_Qle, !inject_Z_0 in *.
 Qed.
 
-Theorem ratched_spec f g :
-  f <> 0 \/ g > 0 ->
-  let '(a0, b0, c0, d0) := T 0%nat in
-  forall i,
-    let '(ai, bi, ci, di) := T i in
-    let '(fi, gi) := (T i) ⋅ (f, g) in
-    (0 <= bi) <-> (msb fi = msb f).
-Proof.
-  intros.
-  destruct (T 0%nat) as [[[a0 b0] c0] d0] eqn:E. intros.
-  induction i.
-  - simpl. zify.
-    rewrite Z.mul_1_l, Z.mul_0_l, Z.add_0_r. intuition.
--
-  pose proof (sgn_lem i f g). simpl in H1.
-  pose proof (sgn_lem (S i) f g). simpl in H2. zify_all.
-  destruct (Matrix.big_mmult_rev M 0 i) as [[[ai bi] ci] di] eqn:E2.
-  set (fi := ai * f + bi * g).
-  set (gi := ci * f + di * g).
-  destruct (Matrix.big_mmult_rev M 0 (S i)) as [[[asi bsi] csi] dsi] eqn:E3.
-  set (fsi := asi * f + bsi * g).
-  set (gsi := csi * f + dsi * g).
-  assert (((ai, bi, ci, di) * (f, 0, g, 1)) = [fi, bi; gi, di]).
-  { cbn; unfold fi, gi; zify; auto_mat. }
-  assert (((asi, bsi, csi, dsi) * (f, 0, g, 1)) = [fsi, bsi; gsi, dsi]).
-  { cbn; unfold fsi, gsi; zify; auto_mat. }
-  simpl in *.
-  zify_all. simpl in *.
-  zify_all.
-  rewrite !Z.mul_0_r, !Z.mul_1_r, !Z.add_0_l in *.
-  replace (ai * f + bi * g)%Z with fi in *.
-  (* rewrite H3 in H1. *)
-  (* rewrite H4 in H2. *)
+Local Open Scope ring_scope.
 
-  rewrite big_op_rev_S_l in E3 by lia.
-  rewrite E2 in E3.
-
-  destruct (M i) as [[[a b] c] d] eqn:E4.
-  destruct (Z.eq_dec b 0); subst.
-  +
-  assert (0 < a * d /\ 0 < d /\ 0 < a).
-  { specialize (H i). unfold ratchet in *. rewrite E4 in H.
-    simpl in H. zify_all.
-    split. lia.
-    split. lia.
-    assert (0 < d) by lia. lia. }
-
-  inversion E3. zify_all. rewrite !Z.mul_0_l, !Z.add_0_r in *.
-  split.
-  * intros.
-    assert (0 <= bi). clear -H5 H6. lia.
-    apply IHi in H11. clear -H11 H5.
-    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z by lia.
-    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r. assumption.
-    rewrite msb_mul. rewrite msb_pos by lia. zify. lia. zify_all. lia. assumption.
-  * intros.
-    assert (msb (ai * f + bi * g) = msb f).
-    { clear -H5 H6 fi.
-    fold fi.
-    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z in * by lia.
-    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r in *. assumption.
-    rewrite msb_mul in *. rewrite msb_pos in * by lia. zify_all. lia. zify_all. lia. assumption. }
-    apply IHi in H11. clear -H11 H5. nia.
-  +
-    destruct (Z.eq_dec f 0). subst. Search Z.sgn. simpl.
-    Admitted.
-
-
-Lemma ratchet_lemma1 a c d N f g :
-  let M := (a, 0, c, d) in
-  ratchet M -> f <> 0 -> 0 < g ->
-  let v := (f, g) in
-  let T := M * N in
-  let '(ai, bi, ci, di) := N in
-  let '(asi, bsi, csi, dsi) := T in
-  let '(fi, gi) := N ⋅ v in
-  let '(fsi, gsi) := (M * N) ⋅ v in
-  (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f).
-  rewrite T.
-
-  { repeat split.
-    { lia. }
-    { lia. }
-    { nia. }
-  }
-  unfold M in H.
-
-  P
-Admitted.
-(* Lemma ratchet_lemma (M N : mat) v : *)
-(*   let T := M * N in *)
-(*   let '(a, b, c, d) := M in *)
-(*   let '(ai, bi, ci, di) := N in *)
-(*   let '(asi, bsi, csi, dsi) := T in *)
-(*   let '(f, g) := v in *)
-(*   let '(fi, gi) := N ⋅ v in *)
-(*   let '(fsi, gsi) := (M * N) ⋅ v in *)
-(*   (0 <= bi <-> msb fi = msb f) -> (0 <= bsi <-> msb fsi = msb f). *)
-(* Proof. *)
-(*   destruct M as [[[a b] c] d]. *)
-(*   destruct N as [[[ai bi] ci] di]. *)
-(*   simpl. *)
-(*   split_pairs. *)
-
-  Context
-    {M : nat -> mat}
-    `{forall i, ratchet (M i)}.
-
-Notation big_mmult_rev := (fun n m f => @big_op_rev _ mmult I f n m).
-
-Lemma T_pos_det i :
-  0 < det (T i).
+Lemma inj2 (M : nat -> mat Z) i :
+  big_mul_rev (inj_nat_matZ M) 0%nat i ≡ inj_matZ (big_mul_rev M 0%nat i).
 Proof.
   induction i.
-  + reflexivity.
-  + rewrite big_op_rev_S_l by lia. rewrite det_mul.
-    specialize (H i).
-    unfold ratchet in H. zify_all.
-    destruct H. nia.
+  - rewrite !big_op_rev_nil by lia; reflexivity.
+  - rewrite !(big_op_rev_S_l [*] 1) by lia.
+    rewrite IHi.
+    unfold inj_nat_matZ.
+    rewrite <- inj_matZ_mult. reflexivity.
 Qed.
 
-Lemma sgn_lem i f g :
-  Z.sgn (det [f, 0; g, 1]) = Z.sgn (det ((T i) * [f, 0; g, 1])).
+Lemma μ_r_μ (a b : Z) :
+  μ_r a b = μ a b.
 Proof.
-  rewrite det_mul.
-  rewrite Z.sgn_mul.
-  pose proof T_pos_det i. lia.
+  unfold μ_r, μ. repeat destruct (decide _); rewrite <- inject_Z_0, <- ?Zlt_Qlt, <- ?Zle_Qle in *; lia.
+Qed.
+
+Lemma inj3 (f g : Z) (M : nat -> mat Z) i :
+  κ_r f g (inj_nat_matZ M) i = κ f g M i.
+Proof.
+  induction i; unfold κ, κ_r in *.
+  - rewrite !big_op_nil by lia; reflexivity.
+  - rewrite !big_op_S_r by lia.
+    rewrite !IHi.
+    apply f_equal.
+    unfold Ratchet.f, v, T.
+    rewrite !inj2.
+    rewrite (big_op_rev_S_l [*] 1) by lia.
+    replace (inject_Z f, inject_Z g) with (inj_vecZ (f, g)) by reflexivity.
+    rewrite !inj_matZ_vec_mult.
+    rewrite μ_r_μ.
+    reflexivity.
+Qed.
+
+Lemma inj4 (M : nat -> mat Z) i :
+  κ_r' (inj_nat_matZ M) i = κ' M i.
+Proof.
+  induction i; unfold κ', κ_r' in *.
+  - rewrite !big_op_nil by lia; reflexivity.
+  - rewrite !big_op_S_r by lia.
+    rewrite !IHi.
+    apply f_equal.
+    unfold c, T.
+    rewrite !inj2.
+    rewrite (big_op_rev_S_l [*] 1) by lia.
+    rewrite !inj_matZ112.
+    rewrite μ_r_μ.
+    reflexivity.
 Qed.
 
 
-Theorem ratched_spec f g :
-  f <> 0 \/ g > 0 ->
-  let '(a0, b0, c0, d0) := T 0%nat in
-  forall i,
-    let '(ai, bi, ci, di) := T i in
-    let '(fi, gi) := (T i) ⋅ (f, g) in
-    (0 <= bi) <-> (msb fi = msb f).
+Lemma inj5 (f g : Z) (M : nat -> mat Z) i : ratchet_spec f g (inj_nat_matZ M) i -> ratchetz_spec f g M i.
 Proof.
   intros.
-  destruct (T 0%nat) as [[[a0 b0] c0] d0] eqn:E. intros.
-  induction i.
-  - simpl. zify.
-    rewrite Z.mul_1_l, Z.mul_0_l, Z.add_0_r. intuition.
--
-  pose proof (sgn_lem i f g). simpl in H1.
-  pose proof (sgn_lem (S i) f g). simpl in H2. zify_all.
-  destruct (Matrix.big_mmult_rev M 0 i) as [[[ai bi] ci] di] eqn:E2.
-  set (fi := ai * f + bi * g).
-  set (gi := ci * f + di * g).
-  destruct (Matrix.big_mmult_rev M 0 (S i)) as [[[asi bsi] csi] dsi] eqn:E3.
-  set (fsi := asi * f + bsi * g).
-  set (gsi := csi * f + dsi * g).
-  assert (((ai, bi, ci, di) * (f, 0, g, 1)) = [fi, bi; gi, di]).
-  { cbn; unfold fi, gi; zify; auto_mat. }
-  assert (((asi, bsi, csi, dsi) * (f, 0, g, 1)) = [fsi, bsi; gsi, dsi]).
-  { cbn; unfold fsi, gsi; zify; auto_mat. }
-  simpl in *.
-  zify_all. simpl in *.
-  zify_all.
-  rewrite !Z.mul_0_r, !Z.mul_1_r, !Z.add_0_l in *.
-  replace (ai * f + bi * g)%Z with fi in *.
-  (* rewrite H3 in H1. *)
-  (* rewrite H4 in H2. *)
+  unfold ratchet_spec in *.
+  unfold ratchetz_spec.
+  unfold Ratchet.f, c, v, T in *.
+  rewrite !inj2 in H.
+  replace (inject_Z f, inject_Z g) with (inj_vecZ (f, g)) in H.
+  rewrite !inj_matZ_vec_mult in H.
+  rewrite inj_matZ112 in H.
+  rewrite !(big_op_rev_nil _ _ _ _ 0) in H.
+  cbn -[Z.add Z.sub Z.mul Z.opp] in *.
+  rewrite !μ_r_μ in *.
+  rewrite Z.mul_1_l in H.
+  rewrite Z.mul_0_l in H.
+  rewrite Z.add_0_r in H.
+  rewrite inj3, inj4 in H.
 
-  rewrite big_op_rev_S_l in E3 by lia.
-  rewrite E2 in E3.
+  assumption. lia. reflexivity.
+Qed.
 
-  destruct (M i) as [[[a b] c] d] eqn:E4.
-  destruct (Z.eq_dec b 0); subst.
-  +
-  assert (0 < a * d /\ 0 < d /\ 0 < a).
-  { specialize (H i). unfold ratchet in *. rewrite E4 in H.
-    simpl in H. zify_all.
-    split. lia.
-    split. lia.
-    assert (0 < d) by lia. lia. }
+Require Import Divstep.
 
-  inversion E3. zify_all. rewrite !Z.mul_0_l, !Z.add_0_r in *.
-  split.
-  * intros.
-    assert (0 <= bi). clear -H5 H6. lia.
-    apply IHi in H11. clear -H11 H5.
-    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z by lia.
-    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r. assumption.
-    rewrite msb_mul. rewrite msb_pos by lia. zify. lia. zify_all. lia. assumption.
-  * intros.
-    assert (msb (ai * f + bi * g) = msb f).
-    { clear -H5 H6 fi.
-    fold fi.
-    replace (a * ai * f + a * bi * g)%Z with (a * fi)%Z in * by lia.
-    destruct (Z.eq_dec fi 0). rewrite e in *. rewrite Z.mul_0_r in *. assumption.
-    rewrite msb_mul in *. rewrite msb_pos in * by lia. zify_all. lia. zify_all. lia. assumption. }
-    apply IHi in H11. clear -H11 H5. nia.
-  +
-    destruct (Z.eq_dec f 0). subst. Search Z.sgn. simpl.
-    Admitted.
+Lemma Tn_ratchet d f g i :
+  ratchetz (Tn d f g i).
+Proof.
+  unfold ratchetz, det, Tn, Tmat.
+  destruct (Nat.iter _ _ _) as [[dn fn] gn];
+    destruct (Z.odd gn), (0 <? dn); cbn -[Z.add Z.sub Z.add Z.opp]; try lia.
+Qed.
 
-(*   assert (0 < a * d /\ 0 < d /\ 0 < a). *)
-(*   { specialize (H i). unfold ratchet in *. rewrite E4 in H. *)
-(*     simpl in H. zify_all. *)
-(*     split. lia. *)
-(*     split. lia. *)
-(*     assert (0 < d) by lia. lia. } *)
+Theorem thm3 d f g :
+  f <> 0 \/ 0 < g -> (forall i, ratchetz_spec f g (Tn d f g) i).
+Proof.
+  intros.
+  apply inj5.
+  apply thm2.
+  destruct H. left. intros contra. inversion contra.
+  ring_simplify in H1. contradiction.
+  right.
+  rewrite Zlt_Qlt in H. rewrite inject_Z_0 in H. assumption.
+  intros.
+  apply inj12.
+  apply Tn_ratchet.
+Qed.
 
-(*   inversion E3. zify_all. rewrite !Z.mul_0_l, !Z.add_0_r in *. *)
-(*     split. *)
-(*     * *)
-(*       intros. *)
-(*       apply IHi in H5. *)
+Local Open Scope Z_scope.
 
-(* .     *)
+Definition divstep_count_f_tot '(d, f, g, t) :=
+  if Z.odd g
+  then if 0 <? d
+       then (1 - d, g, (g - f) / 2, t + μ g f)
+       else (1 + d, f, (g + f) / 2, t + μ f f)
+  else (1 + d, f, g / 2, t + μ f f).
+Lemma count_f_divstep d f g t :
+  let '(d1, f1, g1, _) := divstep_count_f_tot (d, f, g, t) in
+  divstep (d, f, g) = (d1, f1, g1).
+Proof. unfold divstep, divstep_count_f_tot; destruct (0 <? _), (Z.odd _); reflexivity. Qed.
+Lemma iter_count_iter_divstep (d f g t : Z) n :
+  let '(dn, fn, gn, _) := Nat.iter n divstep_count_f_tot (d, f, g, t) in
+  Nat.iter n divstep (d, f, g) = (dn, fn, gn).
+Proof.
+  induction n; simpl. reflexivity.
+  destruct (Nat.iter _ _ _) as [[[? ?] ? ]? ].
+  rewrite IHn. apply count_f_divstep.
+Qed.
+From stdpp Require Import numbers.
+Local Open Scope Z_scope.
+Require Import Zpower_nat.
+Lemma Tn_spec d f g n :
+  Z.odd f = true -> (big_mul_rev (λ i : nat, Tn d f g i) 0 n) ⋅ (f, g) ≡ 2 ^+ n ⋅ (fn d f g n, gn d f g n).
+Proof.
+  intros.
+  induction n.
+  - rewrite big_op_rev_nil by lia. unfold fn, gn.
+    split; cbn -[Z.add Z.sub Z.opp Z.mul]; lia.
+  - rewrite (big_op_rev_S_l [*] 1)%RI by lia.
+    rewrite (left_act_assoc (⋅) [*]).
+    rewrite IHn.
+    rewrite <- Zpower_nat_mul_r.
+    setoid_rewrite (left_act_assoc (⋅) [*]).
+    rewrite Tn_transition by assumption.
+    rewrite vmult_scvec. reflexivity.
+Qed.
 
-(*   assert (0 < d). *)
+Lemma μ_mul_l a b c :
+  0 < a -> μ (a * b) c = μ b c.
+Proof. unfold μ; repeat (destruct (decide _)); try nia. Qed.
+Lemma μ_mul_r a b c :
+  0 < a -> μ b (a * c) = μ b c.
+Proof. unfold μ; repeat (destruct (decide _)); try nia. Qed.
+Lemma f_tot_spec (d f g : Z) n :
+  Z.odd f = true ->
+  (Nat.iter n divstep_count_f_tot (d, f, g, 0%Z)).2 =
+    κ f g (Tn d f g) n.
+Proof.
+  intros.
+  induction n.
+  - unfold κ. rewrite big_op_nil. reflexivity. lia.
+  -
+    pose proof iter_count_iter_divstep d f g 0 n.
+    pose proof iter_divstep_vr_iter_divstep d f g 0 1 n.
+    pose proof divstep_full_iter_spec d f g n.
+    rewrite Nat_iter_S.
+    destruct (Nat.iter _ _ _) as [[[dn fn] gn] tn].
+    rewrite H0 in *.
+    destruct (Nat.iter _ divstep_vr _) as [[[[dn' fn'] gn'] vn] rn].
+    destruct H1 as [un [qn]].
 
-(*   inversion E3. subst. zify_all. *)
-(*   simpl in E3. *)
+    unfold κ.
+    rewrite big_op_S_r by lia.
+    fold (κ f g (Tn d f g) n).
+    rewrite <- IHn.
+    rewrite !Tn_spec.
+    unfold Divstep.fn, Divstep.gn.
+    rewrite Nat_iter_S.
+    rewrite H0.
+    unfold divstep.
+    unfold divstep_count_f_tot.
+    assert (0 < 2 ^+ n) by (apply Zpower_nat_pos_nonneg; lia).
+    destruct (Z.odd gn), (0 <? dn);
+      cbn -[Z.add Z.sub Z.mul Z.opp];
+      rewrite !μ_mul_r, !μ_mul_l by nia; reflexivity.
+    assumption. assumption.
+Qed.
 
-(*   cbn in E3. *)
-(*   zify_in E3. *)
+Definition divstep_count_v_tot '(d, f, g, u, v, q, r, t) :=
+  if Z.odd g
+  then if 0 <? d
+       then (1 - d, g, (g - f) / 2, u - q, v - r, 2 * u, 2 * v, t + μ (v - r) v)
+       else (1 + d, f, (g + f) / 2, u + q, v + r, 2 * q, 2 * r, t + μ (v + r) v)
+  else (1 + d, f, g / 2, u, v, 2 * q, 2 * r, t + μ v v).
 
-(*   induction i. *)
-(*   cbn in E, E2. zify_all. *)
-(*   inversion E. inversion E2. subst. *)
-(*   rewrite Z.mul_1_l, Z.mul_0_l, Z.add_0_r. simpl. intuition. *)
+Lemma count_f_divstep' d f g t :
+  let '(d1, f1, g1, _) := divstep_count_f_tot (d, f, g, t) in
+  divstep (d, f, g) = (d1, f1, g1).
+Proof. unfold divstep, divstep_count_f_tot; destruct (0 <? _), (Z.odd _); reflexivity. Qed.
 
+Lemma iter_count_iter_divstep' (d f g t : Z) n :
+  let '(dn, fn, gn, _) := Nat.iter n divstep_count_f_tot (d, f, g, t) in
+  Nat.iter n divstep (d, f, g) = (dn, fn, gn).
+Proof.
+  induction n; simpl. reflexivity.
+  destruct (Nat.iter _ _ _) as [[[? ?] ? ]? ].
+  rewrite IHn. apply count_f_divstep.
+Qed.
+Lemma v_tot_spec (d f g : Z) n :
+  Z.odd f = true ->
+  (Nat.iter n divstep_count_v_tot (d, f, g, 1, 0, 0, 1,0%Z)).2 =
+    κ' (Tn d f g) n.
+Proof.
+  Admitted.                     (* fixme *)
+  (* intros. *)
+  (* induction n. *)
+  (* - simpl. unfold κ'. rewrite big_op_nil. reflexivity. lia. *)
+  (* - *)
+  (*   pose proof iter_count_iter_divstep' d f g 0 n. *)
+  (*   pose proof iter_divstep_vr_iter_divstep d f g 0 1 n. *)
+  (*   pose proof divstep_full_iter_spec d f g n. *)
+  (*   rewrite Nat_iter_S. *)
+  (*   destruct (PeanoNat.Nat.iter _ _ _) as [[[dn fn] gn] tn]. *)
+  (*   rewrite H0 in *. *)
+  (*   destruct (Nat.iter _ divstep_vr _) as [[[[dn' fn'] gn'] vn] rn]. *)
+  (*   destruct H1 as [un [qn]]. *)
 
-
-(*   simpl in H1. *)
-(*   zify_all. *)
-(*   rewrite !Z.mul_1_r, !Z.mul_0_r, Z.opp_0, !Z.add_0_r in H1. *)
-
-
-(*   Print Hint. *)
-(*   autorewrite with zarith in H1. *)
-(*   assert T i * [f, g; 0, 1] = []) *)
-(*   split_pairs. *)
-(*   assert ((z5, z6, z4, z3) * (f, g, 0, 1))) *)
-(*   cbn in H2. zify_all. *)
-(*   ring_simplify in H2. *)
-(*   assert (det (T i) > 0). *)
-(*   { induction i. *)
-(*     { reflexivity. } *)
-(*     { rewrite big_op_rev_S_l by lia. rewrite det_mul. *)
-
-(*   } } *)
+  (*   unfold κ. *)
+  (*   rewrite big_op_S_r by lia. *)
+  (*   fold (κ f g (Tn d f g) n). *)
+  (*   rewrite <- IHn. *)
+  (*   rewrite !Tn_spec. *)
+  (*   unfold Divstep.fn, Divstep.gn. *)
+  (*   rewrite Nat_iter_S. *)
+  (*   rewrite H0. *)
+  (*   unfold divstep. *)
+  (*   unfold divstep_count_f_tot. *)
+  (*   assert (0 < 2 ^+ n) by (apply Zpower_nat_pos_nonneg; lia). *)
+  (*   destruct (Z.odd gn), (0 <? dn); *)
+  (*     cbn -[Z.add Z.sub Z.mul Z.opp]; *)
+  (*     rewrite !μ_mul_r, !μ_mul_l by nia; reflexivity. *)

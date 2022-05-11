@@ -160,6 +160,8 @@ Proof.
     + apply Zgcd_1_rel_prime. apply rel_prime_div with (p:=a).
       apply Zgcd_1_rel_prime. assumption. assumption. Qed.
 
+Notation big_sum := (big_op op1 0)%RI.
+
 Lemma big_sum_bound n f :
   (forall i, (i <= n)%nat -> (1 <= f i)%nat) -> (n <= big_sum f 0 n)%nat.
 Proof.
