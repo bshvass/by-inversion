@@ -13,7 +13,6 @@ src/Floor.v
 src/IZR.v
 src/Impl.v
 src/InductionPrinciples.v
-src/Jacobi.v
 src/ListLemmas.v
 src/Log.v
 src/Matrix.v
@@ -21,7 +20,6 @@ src/ModInv.v
 src/PadicVal.v
 src/Q.v
 src/Qmin_list.v
-src/Ratchet.v
 src/Rlemmas.v
 src/Rmin_list.v
 src/Rtail.v
