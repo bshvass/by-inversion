@@ -1,5 +1,6 @@
 From Coq Require Import Ring ZArith.
-From BY.Hierarchy Require Import Definitions CommutativeRing Ring IntegralDomain LeftModule Group AbelianGroup Monoid.
+From BY.Hierarchy Require Export Definitions.
+From BY.Hierarchy Require Import CommutativeRing Ring IntegralDomain LeftModule Group AbelianGroup Monoid.
 From stdpp Require Import base.
 From stdpp Require Import decidable.
 
@@ -364,8 +365,10 @@ Section Inner.
   Proof. auto_mat. Qed.
 
   Lemma sym_self_adj m v w : sym m -> ⟨ v , m ⋅ w ⟩ ≡ ⟨ m ⋅ v , w ⟩.
-  Proof. unfold sym; intros H01. rewrite H01 at 2 3. apply trans_adj. Qed.
+  Proof. unfold sym; intros H01. rewrite H01 at 2. apply trans_adj. Qed.
 
+  Lemma det_mul m n : det (m * n) ≡ det m * det n.
+  Proof. auto_mat. Qed.
 End Inner.
 
 Section Matrix.
@@ -433,7 +436,6 @@ Section Matrix.
          destruct (decide (m11 ≡ 0)); destruct (decide (m12 ≡ 0)); destruct (decide (m21 ≡ 0)); destruct (decide (m22 ≡ 0)); try tauto.
          intros contra.  exfalso; apply contra. rewrite e, e0, e1, e2. reflexivity.
   Qed.
-
 End Matrix.
 
 Section Eigen.

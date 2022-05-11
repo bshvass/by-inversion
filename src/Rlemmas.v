@@ -17,7 +17,9 @@ Proof. intros H contra; apply H; apply eq_IZR; assumption. Qed.
 Lemma Zpower_nat_IZR a b : IZR (a ^+ b) = a ^ b.
 Proof. now rewrite pow_IZR, Zpower_nat_Z. Qed.
 
+#[global]
 Hint Rewrite <- plus_IZR mult_IZR minus_IZR opp_IZR Zpower_nat_IZR : pull_izr.
+#[global]
 Hint Rewrite plus_IZR mult_IZR minus_IZR opp_IZR Zpower_nat_IZR : push_izr.
 
 Lemma inv0 : / 0 = 0.

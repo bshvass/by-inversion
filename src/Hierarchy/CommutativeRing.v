@@ -1,15 +1,22 @@
 From Coq Require Import Ring.
-From BY Require Import Hierarchy.Definitions Hierarchy.Group.
+From BY Require Export Hierarchy.Definitions.
+From BY.Hierarchy Require Import Group AbelianGroup CommutativeMonoid Ring.
 
 Section CommutativeRing.
+
+  Local Open Scope ring_scope.
+
+  Class CommutativeRing A `{Equiv A, Op1 A, Op2 A, Id1 A, Id2 A, Inv1 A} :=
+    {
+      cring_ab_grp :> @AbelianGroup _ _ (+) 0 (-);
+      cring_mon :> @CommutativeMonoid _ _ [*] 1;
+      cring_distr_l :> LeftDistr (≡) [*] (+);
+      cring_distr_r :> RightDistr (≡) [*] (+);
+    }.
 
   Context
     {A : Type}
     `{CommutativeRing A}.
-
-  Local Open Scope mag_scope.
-  Local Open Scope sr_scope.
-  Local Open Scope ring_scope.
 
   Global Instance : Ring A. sub_class_tac. Qed.
 

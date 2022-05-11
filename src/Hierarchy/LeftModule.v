@@ -1,13 +1,25 @@
-Require Import Hierarchy.Definitions Hierarchy.Group Hierarchy.AbelianGroup.
+From BY Require Export Hierarchy.Definitions.
+From BY.Hierarchy Require Import Group AbelianGroup Ring.
 
 Section LeftModule.
+
+  Local Open Scope ring_scope.
+  Local Open Scope ab_grp_scope.
+  Local Open Scope lmod_scope.
+
+  Class LeftModule A B `{Equiv A, Op1 A, Id1 A, Inv1 A, Equiv B, Op1 B, Op2 B, Id1 B, Id2 B, Inv1 B, LeftAct A B} :=
+    {
+      lmod_abgroup :> AbelianGroup A;
+      lmod_cring :> Ring B;
+      lmod_proper :> Proper ((≡) ==> (≡) ==> (≡)) (⋅);
+      lmod_distr_l :> LeftActDistr (≡) (⋅) (+)%AG;
+      lmod_exch_l :> LeftActExch (≡) (⋅) (+)%SR (+)%AG;
+      lmod_act_assoc :> LeftActAssoc (≡) (⋅) [*];
+      lmod_left_id :> LeftActId (≡) 1 (⋅)
+    }.
+
   Context
     `{LeftModule A B}.
-
-  Open Scope sr_scope.
-  Open Scope ring_scope.
-  Open Scope ab_grp_scope.
-  Open Scope lmod_scope.
 
   Definition act_1_l : forall v, 1 ⋅ v ≡ v := left_act_id 1 (⋅).
 

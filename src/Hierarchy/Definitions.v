@@ -83,23 +83,6 @@ Instance inv2_inv1 `{f : Inv2 A} : Inv1 A := f.
 Class LeftAct A B := left_act : B -> A -> A.
 Class RightAct A B := right_act : A -> B -> A.
 
-Declare Scope mag_scope.
-Declare Scope mon_scope.
-Declare Scope grp_scope.
-Declare Scope ab_grp_scope.
-Declare Scope sr_scope.
-Declare Scope ring_scope.
-Declare Scope lmod_scope.
-Declare Scope rmod_scope.
-
-Delimit Scope mag_scope with MA.
-Delimit Scope mon_scope with MO.
-Delimit Scope grp_scope with G.
-Delimit Scope ab_grp_scope with AG.
-Delimit Scope sr_scope with SR.
-Delimit Scope ring_scope with RI.
-Delimit Scope lmod_scope with LM.
-Delimit Scope rmod_scope with RM.
 
 Global Arguments left_inv {_ _} _ _ _ {_} _ : assert.
 Global Arguments right_inv {_ _} _ _ _ {_} _ : assert.
@@ -129,16 +112,37 @@ Global Arguments right_act {_ _ _} _ _ : assert.
 
 Typeclasses Transparent Id1 Id2 Op1 Op2 Inv1 Inv2 LeftAct RightAct.
 
+Declare Scope mag_scope.
+Delimit Scope mag_scope with MA.
+
 Infix "∘" := op1 (left associativity, at level 40) : mag_scope.
 Notation "( x ∘.)" := (op1 x) (only parsing, at level 0) : mag_scope.
 Notation "(.∘ x )" := (fun y => op1 _ x) (only parsing, at level 0) : mag_scope.
 Notation "(∘)" := op1 (only parsing) : mag_scope.
 
+Declare Scope mon_scope.
+Delimit Scope mon_scope with MO.
+
+Infix "∘" := op1 (left associativity, at level 40) : mon_scope.
+Notation "( x ∘.)" := (op1 x) (only parsing, at level 0) : mon_scope.
+Notation "(.∘ x )" := (fun y => op1 _ x) (only parsing, at level 0) : mon_scope.
+Notation "(∘)" := op1 (only parsing) : mon_scope.
 Notation "'ε'" := id1 : mon_scope.
 
+Declare Scope grp_scope.
+Delimit Scope grp_scope with G.
+
+Infix "∘" := op1 (left associativity, at level 40) : grp_scope.
+Notation "( x ∘.)" := (op1 x) (only parsing, at level 0) : grp_scope.
+Notation "(.∘ x )" := (fun y => op1 _ x) (only parsing, at level 0) : grp_scope.
+Notation "(∘)" := op1 (only parsing) : grp_scope.
+Notation "'ε'" := id1 : grp_scope.
 Notation "x ⁻¹" := (inv1 x) (at level 1) : grp_scope.
 Notation "(⁻¹)" := inv1 (only parsing) : grp_scope.
 (* Notation "x / y" := (op1 x (grp_inv y)) : grp_scope. *)
+
+Declare Scope ab_grp_scope.
+Delimit Scope ab_grp_scope with AG.
 
 Infix "+" := op1 (left associativity, at level 50) : ab_grp_scope.
 Notation "(+)" := op1 (only parsing) : ab_grp_scope.
@@ -149,6 +153,9 @@ Notation "- x" := (inv1 x) : ab_grp_scope.
 Notation "(-)" := inv1 (only parsing) : ab_grp_scope.
 Notation "x - y" := (op1 x (inv1 y)) : ab_grp_scope.
 
+Declare Scope sr_scope.
+Delimit Scope sr_scope with SR.
+
 Infix "+" := op1 (left associativity, at level 50) : sr_scope.
 Notation "(+)" := op1 (only parsing) : sr_scope.
 Notation "( x +.)" := (op1 x) (only parsing, at level 0) : sr_scope.
@@ -157,6 +164,9 @@ Infix "*" := op2 (left associativity, at level 40) : sr_scope.
 Notation "[*]" := op2 (only parsing) : sr_scope.
 Notation "( x *.)" := (op2 x) (only parsing, at level 0) : sr_scope.
 Notation "(.* x )" := (fun y => op2 _ x) (only parsing, at level 0) : sr_scope.
+
+Declare Scope ring_scope.
+Delimit Scope ring_scope with RI.
 
 Infix "+" := op1 (left associativity, at level 50) : ring_scope.
 Notation "(+)" := op1 (only parsing) : ring_scope.
@@ -174,257 +184,16 @@ Notation "(/)" := inv2 (only parsing) : ring_scope.
 Notation "0" := id1 : ring_scope.
 Notation "1" := id2 : ring_scope.
 
+Declare Scope lmod_scope.
+Delimit Scope lmod_scope with LM.
+
 Notation "(⋅)" := left_act (only parsing) : lmod_scope.
-Notation "(⋅)" := right_act (only parsing) : rmod_scope.
 Notation "a ⋅ b" := (left_act a b) (at level 30) : lmod_scope.
+
+Declare Scope rmod_scope.
+Delimit Scope rmod_scope with RM.
+
+Notation "(⋅)" := right_act (only parsing) : rmod_scope.
 Notation "a ⋅ b" := (right_act a b) (at level 30) : rmod_scope.
-(* Infix "⋅" := left_act (at level 30) : lmodule_scope. *)
-(* Infix "⋅" := right_act : rmodule_scope. *)
-
-Section Magma.
-
-  Local Open Scope mag_scope.
-  Class Magma A `{Equiv A, Op1 A} :=
-    {
-      mag_setoid :> Setoid A;
-      mag_proper :> Proper ((≡) ==> (≡) ==> (≡)) (∘)
-    }.
-
-  Class MagmaMorph {A} {B} (f : A -> B) `{Magma A, Magma B} :=
-    {
-      mag_morph_setoid_morph :> SetoidMorph f;
-      mag_morph_op : forall x y, f (x ∘ y) = f x ∘ f y
-    }.
-
-  Class MagmaCongruence `{Magma A} (rel : relation A) :=
-    {
-      mag_cong_equiv :> Equivalence rel;
-      mag_cong_proper :> Proper (rel ==> rel ==> rel) (∘)
-    }.
-End Magma.
-
-Section SemiGroup.
-
-  Local Open Scope mag_scope.
-  Class SemiGroup A `{Equiv A, Op1 A} :=
-    {
-      sg_setoid :> Setoid A;
-      sg_proper :> Proper ((≡) ==> (≡) ==> (≡)) (∘);
-      sg_assoc :> Assoc (≡) (∘)
-    }.
-
-End SemiGroup.
-
-Section Monoid.
-  Local Open Scope mag_scope.
-  Local Open Scope mon_scope.
-
-  Class Monoid A `{Equiv A, Op1 A, Id1 A} :=
-    {
-      mon_sg :> Setoid A;
-      mon_proper :> Proper ((≡) ==> (≡) ==> (≡)) (∘);
-      mon_assoc :> Assoc (≡) (∘);
-      mon_id_l :> LeftId (≡) ε (∘);
-      mon_id_r :> RightId (≡) ε (∘)
-    }.
-
-  Class MonoidMorph {A} {B} (f : A -> B) `{Monoid A, Monoid B} :=
-    {
-      mon_morph_mag_morph :> SetoidMorph f;
-      mon_morph_op : forall x y, f (x ∘ y) = f x ∘ f y;
-      mon_morph_id : f ε = ε
-    }.
-
-End Monoid.
-
-Section CommutativeMonoid.
-  Local Open Scope mag_scope.
-  Local Open Scope mon_scope.
-
-  Class CommutativeMonoid A `{Equiv A, Op1 A, Id1 A} :=
-    {
-      cmon_setoid :> Setoid A;
-      cmon_proper :> Proper ((≡) ==> (≡) ==> (≡)) (∘);
-      cmon_assoc :> Assoc (≡) (∘);
-      cmon_id_l :> LeftId (≡) ε (∘);
-      cmon_id_r :> RightId (≡) ε (∘);
-      cmon_comm :> Comm (≡) (∘)
-    }.
-
-End CommutativeMonoid.
-
-Section Group.
-  Local Open Scope mag_scope.
-  Local Open Scope mon_scope.
-  Local Open Scope grp_scope.
-
-  Class Group A `{Equiv A, Op1 A, Id1 A, Inv1 A} :=
-    {
-      grp_setoid :> Setoid A;
-      grp_op_proper :> Proper ((≡) ==> (≡) ==> (≡)) (∘);
-      grp_inv_proper :> Proper ((≡) ==> (≡)) ((⁻¹));
-      grp_assoc :> Assoc (≡) (∘);
-      grp_id_l :> LeftId (≡) ε (∘);
-      grp_id_r :> RightId (≡) ε (∘);
-      grp_inv_l :> LeftInv (≡) ε (⁻¹) (∘);
-      grp_inv_r :> RightInv (≡) ε (⁻¹) (∘)
-    }.
-
-  Class GrpCongruence `{Group A} (rel : relation A) :=
-    {
-      grp_cong_equiv :> Equivalence rel;
-      grp_cong_op_proper :> Proper (rel ==> rel ==> rel) (∘);
-      grp_cong_inv_proper :> Proper (rel ==> rel) (⁻¹)
-    }.
-
-End Group.
-
-Section AbelianGroup.
-
-  Local Open Scope ab_grp_scope.
-
-  Class AbelianGroup A `{Equiv A, Op1 A, Id1 A, Inv1 A} :=
-    {
-      ab_grp_setoid :> Setoid A;
-      ab_grp_proper :> Proper ((≡) ==> (≡) ==> (≡)) (+);
-      ab_grp_inv_proper :> Proper ((≡) ==> (≡)) (-);
-      ab_grp_assoc :> Assoc (≡) (+);
-      ab_grp_comm :> Comm (≡) (+);
-      ab_grp_id_l :> LeftId (≡) 0 (+);
-      ab_grp_id_r :> RightId (≡) 0 (+);
-      ab_grp_inv_l :> LeftInv (≡) 0 (-) (+);
-      ab_grp_inv_r :> RightInv (≡) 0 (-) (+)
-    }.
-
-End AbelianGroup.
-
-Section SemiRing.
-
-  Local Open Scope mag_scope.
-  Local Open Scope sr_scope.
-
-  Class SemiRing A `{Equiv A, Op1 A, Op2 A} :=
-    {
-      sr_mag1 :> @Magma _ _ (∘);
-      sr_mag2 :> @Magma _ _ [*];
-      sr_distr_l :> LeftDistr (≡) [*] (∘);
-      sr_distr_r :> RightDistr (≡) [*] (∘)
-    }.
-
-End SemiRing.
-
-Section Ring.
-  Local Open Scope sr_scope.
-  Local Open Scope ring_scope.
-  (* Local Open Scope ab_grp_scope. *)
-
-  Class Ring A `{Equiv A, Op1 A, Op2 A, Id1 A, Id2 A, Inv1 A} :=
-    {
-      ring_ab_grp :> @AbelianGroup _ _ (+) 0 (-);
-      ring_mon :> @Monoid _ _ [*] 1;
-      ring_distr_l :> LeftDistr (≡) [*] (+);
-      ring_distr_r :> RightDistr (≡) [*] (+)
-    }.
-
-  Class RingCongruence `{Ring A} (rel : relation A) :=
-    {
-      ring_cong_equiv :> Equivalence rel;
-      ring_cong_op1_proper :> Proper (rel ==> rel ==> rel) (+);
-      ring_cong_op2_proper :> Proper (rel ==> rel ==> rel) [*];
-      ring_cong_inv_proper :> Proper (rel ==> rel) (-)
-    }.
-End Ring.
-
-Section CommutativeRing.
-
-  Local Open Scope sr_scope.
-  Local Open Scope ring_scope.
-  (* Local Open Scope ab_grp_scope. *)
-
-  Class CommutativeRing A `{Equiv A, Op1 A, Op2 A, Id1 A, Id2 A, Inv1 A} :=
-    {
-      cring_ab_grp :> @AbelianGroup _ _ (+) 0 (-);
-      cring_mon :> @CommutativeMonoid _ _ [*] 1;
-      cring_distr_l :> LeftDistr (≡) [*] (+);
-      cring_distr_r :> RightDistr (≡) [*] (+);
-    }.
-
-End CommutativeRing.
-
-Section IntegralDomain.
-
-  Local Open Scope sr_scope.
-  Local Open Scope ring_scope.
-  (* Local Open Scope ab_grp_scope. *)
-
-  Class IntegralDomain A `{Equiv A, Op1 A, Op2 A, Id1 A, Id2 A, Inv1 A} :=
-    {
-      dom_ab_grp :> @AbelianGroup _ _ (+) 0 (-);
-      dom_mon :> @CommutativeMonoid _ _ [*] 1;
-      dom_distr_l :> LeftDistr (≡) [*] (+);
-      dom_distr_r :> RightDistr (≡) [*] (+);
-      dom_non_trivial : 0 ≢ 1;
-      dom_zero_rule :> ZeroRule1 (≡) 0 [*]
-    }.
-
-End IntegralDomain.
-
-Section LeftModule.
-
-  Local Open Scope sr_scope.
-  Local Open Scope ring_scope.
-  Local Open Scope ab_grp_scope.
-  Local Open Scope lmod_scope.
-
-  Class LeftModule A B `{Equiv A, Op1 A, Id1 A, Inv1 A, Equiv B, Op1 B, Op2 B, Id1 B, Id2 B, Inv1 B, LeftAct A B} :=
-    {
-      lmod_abgroup :> AbelianGroup A;
-      lmod_cring :> Ring B;
-      lmod_proper :> Proper ((≡) ==> (≡) ==> (≡)) (⋅);
-      lmod_distr_l :> LeftActDistr (≡) (⋅) (+)%AG;
-      lmod_exch_l :> LeftActExch (≡) (⋅) (+)%SR (+)%AG;
-      lmod_act_assoc :> LeftActAssoc (≡) (⋅) [*];
-      lmod_left_id :> LeftActId (≡) 1 (⋅)
-    }.
-End LeftModule.
-
-Section LeftAlgebra.
-
-  Local Open Scope sr_scope.
-  Local Open Scope ring_scope.
-  Local Open Scope lmod_scope.
-
-  Class LeftAlgebra A B `{Equiv A, Op1 A, Op2 A, Id1 A, Id2 A, Inv1 A, Equiv B, Op1 B, Op2 B, Id1 B, Id2 B, Inv1 B, LeftAct A B} :=
-    {
-      lalg_ring :> Ring A;
-      lalg_cring :> Ring B;
-      lalg_proper :> Proper ((≡) ==> (≡) ==> (≡)) (⋅);
-      lalg_distr_l :> LeftActDistr (≡) (⋅) (+);
-      lalg_exch_l :> LeftActExch (≡) (⋅) (+) (+);
-      lalg_act_assoc :> LeftActAssoc (≡) (⋅) [*];
-      lalg_left_id :> LeftActId (≡) 1 (⋅)
-    }.
-
-End LeftAlgebra.
 
 Ltac sub_class_tac := split; exact _ || sub_class_tac.
-
-(* Module Subrelation. *)
-(*   Context {A} *)
-(*           `{Setoid A} *)
-(*           `{cong : relation A}. *)
-
-(*   Infix "∼" := cong (at level 70). *)
-(*   Notation "(∼)" := cong (only parsing). *)
-
-(*   Context `{subrelation A (=) (∼)}. *)
-
-(*   Global Instance : Reflexive (∼). *)
-(*   Proof. now red; intros; apply is_subrelation. Defined. *)
-(*   Global Instance : Symmetric (∼). *)
-(*   Proof. red; intros; apply is_subrelation. *)
-(*          symmetry. *)
-
-(*   Goal forall a b, a = b -> a ∼ b. intros ? ?. apply is_subrelation. pose proof @is_subrelation A. intros. pose proof subrelation. subrelation_tac.  auto. *)
-
-(*                              `{subrelation e11 e12}. *)

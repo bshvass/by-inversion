@@ -1,11 +1,26 @@
 From Coq Require Import Ring.
 From stdpp Require Import base.
-From BY Require Import Hierarchy.Definitions Hierarchy.Group.
+From BY Require Export Hierarchy.Definitions.
+From BY.Hierarchy Require Import Group AbelianGroup Monoid.
 
 Section Ring.
-
-  Local Open Scope sr_scope.
   Local Open Scope ring_scope.
+
+  Class Ring A `{Equiv A, Op1 A, Op2 A, Id1 A, Id2 A, Inv1 A} :=
+    {
+      ring_ab_grp :> @AbelianGroup _ _ (+) 0 (-);
+      ring_mon :> @Monoid _ _ [*] 1;
+      ring_distr_l :> LeftDistr (≡) [*] (+);
+      ring_distr_r :> RightDistr (≡) [*] (+)
+    }.
+
+  Class RingCongruence `{Ring A} (rel : relation A) :=
+    {
+      ring_cong_equiv :> Equivalence rel;
+      ring_cong_op1_proper :> Proper (rel ==> rel ==> rel) (+);
+      ring_cong_op2_proper :> Proper (rel ==> rel ==> rel) [*];
+      ring_cong_inv_proper :> Proper (rel ==> rel) (-)
+    }.
 
   Context
     `{Ring A}.

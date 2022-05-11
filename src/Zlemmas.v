@@ -6,34 +6,18 @@ Local Open Scope Z_scope.
 
 Import Z.
 
-Lemma mod_pos a b (H : 0 <= b) : 0 <= a mod b.
-  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|apply mod_pos_bound]; lia. Qed.
-
-Lemma mod_pos_wbound a b (H : 0 <= b) : 0 <= a mod b <= b.
-  split; [apply mod_pos; lia|].
-  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|pose proof mod_pos_bound a b ltac:(lia)]; lia. Qed.
-
-Lemma mod_neg a b (H : b <= 0) : a mod b <= 0.
-  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|apply mod_neg_bound]; lia. Qed.
-
-Lemma mod_neg_wbound a b (H : b <= 0) : b <= a mod b <= 0.
-  split; [|apply mod_neg; lia].
-  destruct (Z.eq_dec 0 b); [subst; rewrite Zmod_0_r|pose proof mod_neg_bound a b ltac:(lia)]; lia. Qed.
-
 Lemma mod_lemma a b (H : b <= a < 2*b) : a mod b = a - b.
 Proof.
   symmetry; destruct (Z_le_dec b 0); [apply mod_unique_neg with 1|apply mod_unique_pos with 1]; lia. Qed.
 
-Lemma mod_half a b (H : 0 <= b <= a) : a mod b <= a / 2.
+Lemma mod_half a b (H : 0 < b <= a) : a mod b <= a / 2.
 Proof.
-  destruct (eq_dec b 0) as [->|?].
-  - rewrite Zdiv.Zmod_0_r. apply div_pos; lia.
-  - pose proof (mod_pos_bound a b ltac:(lia)).
-    pose proof (mul_succ_div_gt a 2 ltac:(lia)).
-    destruct (ltb_spec b (succ (a / 2))).
-    + lia.
-    + assert (a < 2*b) by lia.
-      rewrite mod_lemma; lia. Qed.
+  pose proof (mod_pos_bound a b ltac:(lia)).
+  pose proof (mul_succ_div_gt a 2 ltac:(lia)).
+  destruct (ltb_spec b (succ (a / 2))).
+  + lia.
+  + assert (a < 2*b) by lia.
+    rewrite mod_lemma; lia. Qed.
 
 Lemma log2_half a (H : 0 < a) : log2 (a / 2) = log2 a - 1 \/ a = 1.
 Proof.
@@ -175,6 +159,8 @@ Proof.
     + apply gcd_greatest; assumption.
     + apply Zgcd_1_rel_prime. apply rel_prime_div with (p:=a).
       apply Zgcd_1_rel_prime. assumption. assumption. Qed.
+
+Notation big_sum := (big_op op1 0)%RI.
 
 Lemma big_sum_bound n f :
   (forall i, (i <= n)%nat -> (1 <= f i)%nat) -> (n <= big_sum f 0 n)%nat.

@@ -61,8 +61,19 @@ test-ocaml-2:
 	make ocaml && \
 	(time ./bin/comp2ocaml 50 all) && \
 	terminal-notifier -message 'Make test-ocaml is done' -sound default
-update-_CoqProject:
+update-makefile:
 	git ls-files --deleted > deleted_files.tmp; \
 	git ls-files 'src/*.v' > files.tmp; \
-	(echo '-R src BY'; grep -vf deleted_files.tmp files.tmp | $(GREP_EXCLUDE) | $(SORT_COQPROJECT)) > _CoqProject; \
+	if ! [ -s deleted_files.tmp ]; \
+	then echo 'no deleted files' > deleted_files.tmp; \
+	fi; \
+	(echo 'INSTALLDEFAULTROOT = /' > _CoqProject); \
+	(echo '-arg -w -arg -deprecated-instance-without-locality' >> _CoqProject); \
+	(echo '-arg -w -arg +undeclared-scope' >> _CoqProject); \
+	(echo '-Q src BY'; grep -vf deleted_files.tmp files.tmp | $(GREP_EXCLUDE) | $(SORT_COQPROJECT)) >> _CoqProject; \
+	(echo '-Q coq-record-update RecordUpdate'; grep .v coq-record-update/_CoqProject | sed 's/^/coq-record-update\//') >> _CoqProject; \
+	(echo '-Q stdpp stdpp'; grep .v stdpp/_CoqProject | sed 's/^/stdpp\//') >> _CoqProject; \
 	rm *.tmp
+	make coq-makefile
+coq-makefile:
+	coq_makefile -f _CoqProject -o CoqMakefile

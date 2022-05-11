@@ -1,9 +1,28 @@
-From BY Require Import Hierarchy.Definitions.
+From BY Require Export Hierarchy.Definitions.
+From BY.Hierarchy Require Import Monoid.
+
+Local Open Scope grp_scope.
 
 Section Group.
-  Local Open Scope mag_scope.
-  Local Open Scope mon_scope.
-  Local Open Scope grp_scope.
+
+  Class Group A `{Equiv A, Op1 A, Id1 A, Inv1 A} :=
+    {
+      grp_setoid :> Setoid A;
+      grp_op_proper :> Proper ((≡) ==> (≡) ==> (≡)) (∘);
+      grp_inv_proper :> Proper ((≡) ==> (≡)) ((⁻¹));
+      grp_assoc :> Assoc (≡) (∘);
+      grp_id_l :> LeftId (≡) ε (∘);
+      grp_id_r :> RightId (≡) ε (∘);
+      grp_inv_l :> LeftInv (≡) ε (⁻¹) (∘);
+      grp_inv_r :> RightInv (≡) ε (⁻¹) (∘)
+    }.
+
+  Class GrpCongruence `{Group A} (rel : relation A) :=
+    {
+      grp_cong_equiv :> Equivalence rel;
+      grp_cong_op_proper :> Proper (rel ==> rel ==> rel) (∘);
+      grp_cong_inv_proper :> Proper (rel ==> rel) (⁻¹)
+    }.
 
   Context `{Group A}.
 

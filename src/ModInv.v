@@ -55,7 +55,7 @@ Proof.
         ** pose proof mod_half r1 (r0 mod r1) ltac:(lia).
            pose proof log2_half r1 ltac:(lia) as [].
            *** apply log2_le_mono in H0; lia.
-           *** rewrite H1, mod_1_r, Zdiv.Zmod_0_r in n1. contradiction.
+           *** rewrite H1, mod_1_r, Zmod_0_r in H0. lia.
         ** pose proof mod_pos_bound r1 (r0 mod r1).
            lia.
         ** replace (_ + _) with (r0 - r1 * (r0 / r1)) by lia.

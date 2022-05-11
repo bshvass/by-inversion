@@ -2,8 +2,22 @@ Require Import Hierarchy.Definitions Hierarchy.Group Hierarchy.AAC.
 
 Section AbelianGroup.
 
-  Context `{G : AbelianGroup A}.
   Local Open Scope ab_grp_scope.
+
+  Class AbelianGroup A `{Equiv A, Op1 A, Id1 A, Inv1 A} :=
+    {
+      ab_grp_setoid :> Setoid A;
+      ab_grp_proper :> Proper ((≡) ==> (≡) ==> (≡)) (+);
+      ab_grp_inv_proper :> Proper ((≡) ==> (≡)) (-);
+      ab_grp_assoc :> Assoc (≡) (+);
+      ab_grp_comm :> Comm (≡) (+);
+      ab_grp_id_l :> LeftId (≡) 0 (+);
+      ab_grp_id_r :> RightId (≡) 0 (+);
+      ab_grp_inv_l :> LeftInv (≡) 0 (-) (+);
+      ab_grp_inv_r :> RightInv (≡) 0 (-) (+)
+    }.
+
+  Context `{G : AbelianGroup A}.
 
   Global Instance ab_grp_grp : Group A. sub_class_tac. Qed.
 

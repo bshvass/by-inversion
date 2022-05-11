@@ -1,7 +1,7 @@
 From Coq Require Import List Rbase Reals QArith micromega.Lia micromega.Lra.
 
 From BY Require Import Rlemmas Tactics Impl Matrix.
-From BY.Hierarchy Require Import Definitions IntegralDomain LeftModule.
+From BY.Hierarchy Require Import Definitions IntegralDomain LeftModule CommutativeRing.
 
 Local Open Scope R_scope.
 Local Open Scope lmod_scope.
@@ -342,11 +342,11 @@ Proof.
 (** Note that this theorem has an equational proof in Matrix.v *)
 (***************************************************************)
 
-Lemma mat_norm_vmult m v :
+Lemma mat_norm_vmult (m : mat R) (v : vec R) :
   vec_norm (m ⋅ v) <= mat_norm m * vec_norm v.
 Proof.
   destruct (decide (v ≡ 0%AG)).
-  - rewrite e. setoid_rewrite act_0_r. replace 0%AG with v0 by reflexivity. rewrite vec_norm_v0. nra.
+  - rewrite e. setoid_rewrite act_0_r. replace 0%RI with (v0 : vec R) by reflexivity. rewrite vec_norm_v0. nra.
   - setoid_replace v with (vec_norm v ⋅ normal_vec v).
     rewrite vmult_scvec. (* rewrite scmat_vmult. *)
     rewrite !vec_norm_scvec. rewrite (Rmult_comm (mat_norm m)).

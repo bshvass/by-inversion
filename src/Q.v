@@ -4,19 +4,19 @@ Require Import Qpower.
 Require Import micromega.Lia.
 Require Import micromega.Lra.
 Require Import micromega.Lqa.
-Require Import List.
+Require Import Lists.List.
 
 Require Export AlphaQ.
 
 Local Open Scope Q.
 
-From BY Require Import Rlemmas AppendixFdefs Qmin_list Rmin_list ListLemmas.
+From BY Require Import Rlemmas AppendixFdefs Qmin_list Rmin_list ListLemmas Impl.
 
 Definition alphaQ_high_Z w : Q := (633/1024) ^ w.
 
 Lemma alphaQ_nat_pos w : 0 < alphaQ_nat w.
 Proof. do 67 (destruct w as [|w]; simpl; try apply Qlt_shift_div_l; try lra).
-       unfold alphaQ_nat_high. apply QExtra.Qpower_pos_lt.
+       unfold alphaQ_nat_high. apply Qpower_0_lt.
        apply Qlt_shift_div_l; lra. Qed.
 
 Definition alphaQ_quot w i :=
@@ -76,11 +76,6 @@ Proof.
   apply Z2Nat.id; assumption. Qed.
 Arguments Z.add /.
 
-
-From stdpp Require Import base.
-
-Instance Qeq_Equiv : Equiv Q := Qeq.
-Arguments Qeq_Equiv /.
 
 Local Open Scope Q.
 (* this should go somewhere else *)
@@ -167,6 +162,9 @@ Proof.
 
   congruence. Qed.
 
+Require Import Hierarchy.Definitions.
+Local Open Scope Q.
+
 Lemma gammaQ_spec w e :
   gammaQ w e ≡
   if (w + e <=? 66)%nat
@@ -198,7 +196,7 @@ Proof.
     setoid_rewrite Qpower_plus.
     do 4 setoid_rewrite <- Qmult_assoc.
     apply Qmult_le_l.
-    apply QExtra.Qpower_pos_lt. reflexivity.
+    apply Qpower_0_lt. reflexivity.
     setoid_rewrite Qmult_assoc.
     setoid_replace ((633 / 1024) ^ (Z.of_nat (e + S n)) * (633 ^ 5 / (2 ^ 30 * 165219)) * (2 ^ Z.of_nat (e + S n) * (70 * / 169))) with
         ((633 / 1024) ^ (Z.of_nat (e + S n)) * 2 ^ Z.of_nat (e + S n) * ((633 ^ 5 / (2 ^ 30 * 165219)) * (70 * / 169))) by (cbn -[Qpower Qmult]; field).
@@ -207,10 +205,10 @@ Proof.
     rewrite Qpower_plus.
     rewrite <- Qmult_assoc.
     apply Qmult_le_l.
-    apply QExtra.Qpower_pos_lt. reflexivity.
+    apply Qpower_0_lt. reflexivity.
     rewrite <- Qmult_1_l.
     apply Qmult_le_r. reflexivity.
-    apply QExtra.Qpower_le_1_increasing'.
+    apply Qpower_1_le.
     apply Qle_bool_imp_le. reflexivity. lia.
     apply Qeq_bool_neq. reflexivity.
     apply Qeq_bool_neq. reflexivity.
@@ -289,7 +287,8 @@ Proof.
   rewrite (Qmult_comm _ ((_ * _) ^ _)).
 
   apply Qmult_le_compat_r.
-  apply QExtra.Qpower_le_compat.
+  Search Qpower.
+  apply Qpower_le_compat_l.
   lia. cbv. intros. congruence.
   apply Qpower_pos. cbv. intros. congruence.
   cbv. intros. lia.
@@ -322,25 +321,7 @@ Proof.
     destruct w as [w|w|w]. lra. lia. lra.
   - rewrite alphaQ_nat_alphaQ. apply alphaQ_nat_nonneg. lia. Qed.
 
-From BY Require Import Matrix Hierarchy.Definitions.
-
-Instance Qadd_op1 : Op1 Q := Qplus.
-Instance Qzero_id1 : Id1 Q := 0%Q.
-Instance Qopp_inv1 : Inv1 Q := Qopp.
-Instance Qmult_op2 : Op2 Q := Qmult.
-Instance Qone_id2 : Id2 Q := 1%Q.
-Instance Qinv_inv2 : Inv2 Q := Qinv.
-
-Global Arguments Qadd_op1 /.
-Global Arguments Qzero_id1 /.
-Global Arguments Qopp_inv1 /.
-Global Arguments Qmult_op2 /.
-Global Arguments Qone_id2 /.
-
-Instance Q_integral_domain : IntegralDomain Q.
-Proof. repeat split; repeat intro; cbn in *; nra. Qed.
-
-Instance Q_eq_dec : forall x y : Q, Decision (x ≡ y) := Qeq_dec.
+From BY Require Import Matrix.
 
 (* Local Open Scope mat_scope. *)
 Local Open Scope vec_scope.
@@ -639,6 +620,8 @@ Proof.
   replace (Q2R 0%Q) with (IZR 0).
   rewrite <- gamma_gammaQ.
   apply gamma_pos. lra. Qed.
+
+Local Open Scope lmod_scope.
 
 Lemma inSQ_gen_scaled_spec w P :
   inS w P -> exists PQ, Qmat2Rmat PQ = (4 ^ w)%R ⋅ P /\ @inSQ_gen_scaled 0%Z I 1%Z (Z.of_nat w) PQ.

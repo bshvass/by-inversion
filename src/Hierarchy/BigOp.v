@@ -1,10 +1,10 @@
 From Coq Require Import Arith micromega.Lia.
-From BY Require Import Hierarchy.Definitions Hierarchy.SemiGroup Hierarchy.Monoid Hierarchy.List.
+From BY Require Import Hierarchy.Definitions Monoid Hierarchy.List.
 
 Section BigOp.
 
   (* Local Open Scope mag_scope. *)
-  (* Local Open Scope mon_scope. *)
+  Local Open Scope mon_scope.
 
   Context
     {A : Type}
@@ -16,9 +16,9 @@ Section BigOp.
     `{LeftId A (≡) id op}
     `{RightId A (≡) id op}.
 
-  Local Instance : Op1 A := op.
-  Local Instance : Id1 A := id.
-  Local Instance : Monoid A. split; exact _. Qed.
+  (* Local Instance : Op1 A := op. *)
+  (* Local Instance : Id1 A := id. *)
+  (* Local Instance : Monoid A. split; exact _. Qed. *)
 
   Local Infix "∘" := op.
   Local Notation "'ε'" := id.
