@@ -13,26 +13,28 @@ Definition by_inv_full f g its pc :=
 
 Definition iterations d :=
   if d <? 46 then (49 * d + 80) / 17 else (49 * d + 57) / 17.
+Definition jump_iterations b mw :=
+  ((iterations b) / (mw - 2)) + 1.
 
-Definition by_inv f g :=
+Definition by_inv_ref f g :=
   let bits := (log2 f) + 1 in
   let its := iterations bits in
   let k := (f + 1) / 2 in
   let pc := (k ^+ (to_nat its)) mod f in
   by_inv_full f g (to_nat its) pc.
 
-Definition by_inv_jump_full f g n mw its pc :=
+Definition by_inv_jump_full mw f g n its pc :=
   let '(_, fm, _, vm, _) := Nat.iter its (jump_divstep n mw f) (1, f, g, 0, 1)  in
   let sign := if fm <? 0 then (-1) else 1 in
   sign * pc * vm mod f.
 
-Definition by_inv_jump f g mw :=
+Definition by_inv_jump_ref mw f g :=
   let bits := (log2 f) + 1 in
-  let jump_iterations := ((iterations bits) / (mw - 2)) + 1 in
-  let total_iterations := jump_iterations * (mw - 2) in
+  let jump_its := jump_iterations bits mw in
+  let total_iterations := jump_its * (mw - 2) in
   let k := (f + 1) / 2 in
   let pc := (k ^+ (to_nat total_iterations)) mod f in
-  by_inv_jump_full f g (to_nat (mw - 2)%Z) mw (to_nat jump_iterations) pc.
+  by_inv_jump_full mw f g (to_nat (mw - 2)%Z) (to_nat jump_its) pc.
 
 Lemma odd_inv2 a (Ha : 1 < a) : odd a = true -> ((a + 1) / 2 * 2) mod a = 1.
 Proof.
@@ -297,9 +299,9 @@ Theorem by_inv_spec f g
         (g_bound : 0 < g <= f)
         (fg_rel_prime : gcd f g = 1)
         (fodd : odd f = true) :
-  by_inv f g * g mod f = 1.
+  by_inv_ref f g * g mod f = 1.
 Proof.
-  unfold by_inv.
+  unfold by_inv_ref.
   assert (1 < f).
   { apply log2_lt_cancel. simpl. lia. }
   replace (log2 f) with (log2 (abs f)) by (f_equal; lia).
@@ -330,7 +332,7 @@ Theorem by_inv_jump_full_spec f g n mw its pc
         (fg_rel_prime : gcd f g = 1)
         (gnon0 : g <> 0)
         (pc_correct : pc * 2 ^+ (its * n) mod f = 1) :
-  by_inv_jump_full f g n mw its pc * g mod f = 1.
+  by_inv_jump_full mw f g n its pc * g mod f = 1.
 Proof.
   unfold by_inv_jump_full.
   rewrite iter_jump_divstep_spec. all: try lia; try assumption.
@@ -343,9 +345,9 @@ Theorem by_inv_jump_spec f g mw
         (mw_bound : 2 < mw)
         (fg_rel_prime : gcd f g = 1)
         (fodd : odd f = true) :
-  by_inv_jump f g mw * g mod f = 1.
+  by_inv_jump_ref mw f g * g mod f = 1.
 Proof.
-  unfold by_inv_jump.
+  unfold by_inv_jump_ref.
   assert (1 < f).
   { apply log2_lt_cancel. simpl. lia. }
   replace (log2 f) with (log2 (abs f)) by (f_equal; lia).
@@ -368,6 +370,7 @@ Proof.
   { apply Z_div_pos. lia.
     apply iterations_pos.
     rewrite abs_eq. pose proof log2_nonneg f. lia. lia. }
+  unfold jump_iterations.
   lia.
   lia.
 Qed.

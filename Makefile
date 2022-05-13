@@ -22,15 +22,9 @@ extocaml1:
 	cd src/Comp1 && coqc Mem.v -R ../../src BY
 ocaml1:
 	mkdir -p bin && \
+	make extocaml1 && \
 	cd src/Comp1 && \
 	ocamlfind ocamlopt -O3 -linkpkg -package zarith -o ../../bin/comp1ocaml big.ml mem.mli mem.ml comp1.ml -rectypes
-	# ocamlfind ocamlopt -O3 -c mem.mli mem.ml -rectypes && \
-	# ocamlfind ocamlopt -O3 -c comp1.ml -rectypes && \
-	# ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml mem.cmx comp1.cmx -rectypes
-	# mkdir -p bin && \
-	# cd src/Comp1 && \
-	# ocamlfind ocamlopt -O3 -c comp1.mli comp1.ml -rectypes && \
-	# ocamlfind ocamlopt -O3 -o ../../bin/comp1ocaml big.cmx mem.cmx comp1.cmx -rectypes
 
 c:
 	mkdir -p bin && \
