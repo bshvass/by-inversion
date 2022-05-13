@@ -287,7 +287,6 @@ Proof.
   rewrite (Qmult_comm _ ((_ * _) ^ _)).
 
   apply Qmult_le_compat_r.
-  Search Qpower.
   apply Qpower_le_compat_l.
   lia. cbv. intros. congruence.
   apply Qpower_pos. cbv. intros. congruence.

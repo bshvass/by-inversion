@@ -485,9 +485,8 @@ Proof.
   induction n. congruence. intros cnodes0 cnodes1.
   destruct (Mem.depth_first_verify_aux_no_mem_three_fuel_gen (mmult (scaledM e1 (Z.of_nat (2 * n + 1))) P0) nodes0
                                                              nodes0 cnodes1 (e1 + w0) e0 fuel1 fuel2) eqn:E3.
-  apply IHfuel1 in E3. rewrite E3.  intros. apply IHn with (cnodes:= (z0 + cnodes0)%Z) (cnodes0:=cnodes1).
- assumption.   assumption. congruence.
- congruence.   Qed.
+  apply IHfuel1 in E3. rewrite E3.  intros. eapply IHn.
+  eassumption. eassumption. congruence. congruence. Qed.
 
 Arguments depth_first_verify : simpl never.
 
