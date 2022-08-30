@@ -160,7 +160,7 @@ Lemma divstep_uvqr_important_bits d f f0 g g0 u v q r n k
 Proof.
   induction n.
   - cbn in *. rewrite !Z.sub_0_r. repeat split; assumption.
-  - rewrite !Nat_iter_S.
+  - rewrite !Nat.iter_succ.
     assert (f0_odd : Z.odd f0 = true).
     { rewrite <- odd_mod2m with (m:=k), <- fmod, odd_mod2m; try assumption; lia. }
 
@@ -239,7 +239,7 @@ Proof.
     repeat match goal with
            | [ |- (_, _) = (_, _) ] => apply f_equal2; rewrite ?Z.div_1_r, ?Z.mod_small by lia; try lia
            end.
-  - rewrite !Nat_iter_S.
+  - rewrite !Nat.iter_succ.
     pose proof iter_divstep_vr_mod_iter_divstep_uvqr m d f g 1 v 0 0 r 1 n.
     pose proof iter_divstep_vr_mod_f_odd m d f g v r n fodd as fodd1.
     destruct (Nat.iter _ _ _) as [[[[d2 f2] g2] v2] r2].
@@ -361,7 +361,7 @@ Lemma iter_jump_divstep_spec (n : nat) mw k m d f g v r
 Proof.
   induction k.
   - reflexivity.
-  - rewrite Nat_iter_mul, !Nat_iter_S, <- Nat_iter_mul, IHk.
+  - rewrite Nat.iter_mul, !Nat.iter_succ, <- Nat.iter_mul, IHk.
     pose proof iter_jump_divstep_inv n mw k m d f g v r f_odd Hmw Hm Hv Hr.
     destruct (Nat.iter (k * n) _ _) as [[[[d1 f1] g1]v1]r1].
     rewrite IHk in H. destruct H as [?[? ?]].
@@ -506,7 +506,7 @@ Lemma fn_odd d f g n : Z.odd f = true -> Z.odd (fn d f g n) = true.
 Proof.
   intros. unfold fn. induction n.
   - assumption.
-  - rewrite Nat_iter_S. destruct (Nat.iter _ _ _) as [[dn fn] gn].
+  - rewrite Nat.iter_succ. destruct (Nat.iter _ _ _) as [[dn fn] gn].
     unfold divstep. destruct (0 <? dn); destruct (Z.odd gn) eqn:gnodd; simpl; assumption. Qed.
 
 (* Local Open Scope group_scope. *)
@@ -517,7 +517,7 @@ Lemma Tn_transition d f g n (fodd : Z.odd f = true) :
     2 ⋅ [ fn d f g (S n) , gn d f g (S n) ] = ((Tn d f g n) ⋅ [ fn d f g n , gn d f g n ]).
 Proof.
   pose proof fn_odd d f g n fodd as fnodd. (* cbv [module_left_act vmult_left_act vmult]. *)
-  unfold Tn, fn, gn, Tmat in *. rewrite Nat_iter_S. unfold divstep.
+  unfold Tn, fn, gn, Tmat in *. rewrite Nat.iter_succ. unfold divstep.
   destruct (Nat.iter _ _ _) as [[dn fn] gn]. zify.
   destruct (0 <? dn); destruct (Z.odd gn) eqn:gnodd; cbn -[Z.mul]; apply f_equal2;
     rewrite <- ?Z_div_exact_full_2; rewrite ?Zmod_odd, ?Z.odd_sub, ?Z.odd_add, ?fnodd, ?gnodd; try (zify; lia); try reflexivity. Qed.
@@ -525,7 +525,7 @@ Proof.
 Lemma Sn_transition d f g n :
     [ 1 , dn d f g (S n) ] ≡ (Sn d f g n) ⋅ [ 1 , dn d f g n ].
 Proof.
-  unfold Sn, dn, Smat in *. rewrite Nat_iter_S. unfold divstep.
+  unfold Sn, dn, Smat in *. rewrite Nat.iter_succ. unfold divstep.
   destruct (Nat.iter _ _ _) as [[dn fn] gn].
   destruct (0 <? dn), (Z.odd gn); auto_mat. Qed.
 
@@ -547,7 +547,7 @@ Lemma divstep_full_iter_spec d f g m :
 Proof.
   induction m.
   - rewrite big_op_rev_nil by lia. do 2 eexists. auto_mat.
-  - rewrite Nat_iter_S.
+  - rewrite Nat.iter_succ.
     pose proof iter_divstep_vr_iter_divstep d f g 0 1 m.
     destruct (Nat.iter _ _ _) as [[[[dm fm] gm] vm] rm] eqn:full_iter.
     destruct IHm as [um [qm]].

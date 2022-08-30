@@ -317,7 +317,7 @@ Lemma alphaQ_nonneg w : 0 <= alphaQ w.
 Proof.
   destruct (Z_le_dec w 0%Z).
   - assert ((w <=? 66) = true)%Z. lia. unfold alphaQ. rewrite H.
-    destruct w as [w|w|w]. lra. lia. lra.
+    destruct w as [|w|w]. lra. lia. lra.
   - rewrite alphaQ_nat_alphaQ. apply alphaQ_nat_nonneg. lia. Qed.
 
 From BY Require Import Matrix.
@@ -355,8 +355,8 @@ Definition Qmat2Rmat (m : mat Q) : mat R :=
   let '(m11, m12, m21, m22) := m in
   [ Q2R m11, Q2R m12 ; Q2R m21, Q2R m22 ]%M.
 
-Hint Rewrite Q2R_mult Q2R_plus Q2R_minus Q2R_opp RMicromega.Q2R_0 RMicromega.Q2R_1 RMicromega.Q2RpowerRZ : pull_q2r.
-Hint Rewrite <- Q2R_mult Q2R_plus Q2R_minus Q2R_opp RMicromega.Q2R_0 RMicromega.Q2R_1 RMicromega.Q2RpowerRZ : push_q2r.
+#[global] Hint Rewrite Q2R_mult Q2R_plus Q2R_minus Q2R_opp RMicromega.Q2R_0 RMicromega.Q2R_1 RMicromega.Q2RpowerRZ : pull_q2r.
+#[global] Hint Rewrite <- Q2R_mult Q2R_plus Q2R_minus Q2R_opp RMicromega.Q2R_0 RMicromega.Q2R_1 RMicromega.Q2RpowerRZ : push_q2r.
 
 Lemma Qmat2Rmat_mul m1 m2 :
   Qmat2Rmat (mmult m1 m2) = Matrix.mmult (Qmat2Rmat m1) (Qmat2Rmat m2).
@@ -513,8 +513,8 @@ Proof.
   rewrite alpha_alphaQ.
   reflexivity. Qed.
 
-Hint Rewrite Q2R_div : pull_q2r.
-Hint Rewrite <- Q2R_div : push_q2r.
+#[global] Hint Rewrite Q2R_div : pull_q2r.
+#[global] Hint Rewrite <- Q2R_div : push_q2r.
 
 Lemma alpha_quot_alphaQ_quot w i :
   alpha_quot w i = alphaQ_quot w i.

@@ -7,7 +7,12 @@ The folder `src/Comp1` contains an implementation of the computer proof of theor
 
 The folder `src/Comp2` contains different implementations of the computational proof of theorem G.4 in the paper. The OCaml implementation is extracted directly from Coq. The binaries for these can be made with `make c` and `make ocaml`. The binaries take an integer as input and outputs the corresponding table entry from figure G.5 in https://gcd.cr.yp.to/papers.html#safegcd.
 
+Building
+--------
+
 To compile all proofs you need the following dependencies: `coq`, `aac-tactics` and `stdpp`. Run `make` from to build.
+The build is tested with `coq` at version `8.15.2`.
 
 On linux you also need to install csdp
-  `sudo apt-get install coinor-csdp`
+  `apt-get install coinor-csdp`
+  `pacman -S coin-or-csdp`

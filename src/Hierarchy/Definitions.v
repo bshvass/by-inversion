@@ -110,7 +110,7 @@ Global Arguments inv2 {_ _} _ : assert.
 Global Arguments left_act {_ _ _} _ _ : assert.
 Global Arguments right_act {_ _ _} _ _ : assert.
 
-Typeclasses Transparent Id1 Id2 Op1 Op2 Inv1 Inv2 LeftAct RightAct.
+#[global] Typeclasses Transparent Id1 Id2 Op1 Op2 Inv1 Inv2 LeftAct RightAct.
 
 Declare Scope mag_scope.
 Delimit Scope mag_scope with MA.

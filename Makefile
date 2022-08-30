@@ -2,7 +2,7 @@ SORT_COQPROJECT = sed 's,[^/]*/,~&,g' | env LC_COLLATE=C sort | sed 's,~,,g' | u
 GREP_EXCLUDE = grep -v '^src/Comp2/\(SmallValues\|MediumValues\).v'
 
 all:
-	make -f CoqMakefile
+	$(MAKE) -f CoqMakefile
 clean:
 	make -f CoqMakefile clean
 test-small:

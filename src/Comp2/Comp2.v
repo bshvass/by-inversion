@@ -2,13 +2,13 @@ Require Import Coq.Arith.Arith.
 Require Import Coq.ZArith.ZArith.
 Require Import Coq.Bool.Bool.
 Require Import Coq.micromega.Lia.
-Require Import Coq.Numbers.Cyclic.Int63.Int63.
+Require Import Coq.Numbers.Cyclic.Int63.Sint63.
 Require Import Coq.Lists.List.
 Require Import Coq.Program.Program.
 
 Import ListNotations.
 
-Local Open Scope int63.
+Local Open Scope sint63_scope.
 
 Definition steps := Eval vm_compute in 2 ^ 44 : N.
 Definition sint_max := Eval vm_compute in 1 << 62 - 1.

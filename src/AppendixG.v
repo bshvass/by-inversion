@@ -170,11 +170,11 @@ Section __.
     replace (- (f - q f g * split2 g)) with (q f g * split2 g - f) by ring.
     replace (g / 2) with (g / 2 ^+ 1) by reflexivity.
     replace (2 * e)%nat with ((S e) + (e - 1))%nat by lia.
-    rewrite Nat_iter_add.
+    rewrite Nat.iter_add.
     rewrite divstep_lemma1.
     replace ((e - 1)%nat + 1%nat) with (Z.of_nat e) by lia.
     replace ((e - 1) + 1)%nat with e by lia.
-    rewrite Nat_iter_S_r.
+    rewrite Nat.iter_succ_r.
     fold (split2 g).
     rewrite divstep_lemma3.
     replace (1 - e) with (1 - e + Z.of_nat 0) by lia.
@@ -205,7 +205,7 @@ Section __.
       replace (R_ (S j) =? 0) with false by (symmetry; apply Z.eqb_neq; lia).
       rewrite big_op_S_r.
       replace (2 * (w j + e (S j))%RI)%nat with (2 * e (S j) + 2 * (w j))%nat by (cbn; lia).
-      rewrite Nat_iter_add.
+      rewrite Nat.iter_add.
       rewrite IHj.
       rewrite Zdiv_Zdiv, Zpower_nat_mul_r.
       eapply G1.
