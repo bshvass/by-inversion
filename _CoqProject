@@ -20,6 +20,7 @@ src/ModInv.v
 src/PadicVal.v
 src/Q.v
 src/Qmin_list.v
+src/Ratchet.v
 src/Rlemmas.v
 src/Rmin_list.v
 src/Rtail.v
