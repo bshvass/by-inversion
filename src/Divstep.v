@@ -448,7 +448,6 @@ Definition divstep_jac_uvqr '(d, f, g, u, v, q, r, k) :=
        else (1 + d, f, (g + f) / 2, u + q, v + r, 2 * q, 2 * r, k * ν f)
   else (1 + d, f, g / 2, u, v, 2 * q, 2 * r, k * ν f).
 
-
 Local Open Scope mat_scope.
 Local Open Scope vec_scope.
 Local Open Scope Z.
